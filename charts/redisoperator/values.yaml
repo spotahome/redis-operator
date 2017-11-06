@@ -1,0 +1,16 @@
+replicaCount: 1
+image: dist.spotahome.net:5000/devops/redis-operator
+tag: latest
+pullPolicy: IfNotPresent
+team: devops
+resources:
+  requests:
+    cpu: 10m
+    memory: 50Mi
+  limits:
+    cpu: 100m
+    memory: 50Mi
+rbac:
+  install: false
+  apiVersion: v1beta1
+  imagePullSecrets: []

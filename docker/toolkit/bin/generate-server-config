@@ -1,0 +1,6 @@
+#!/bin/sh
+
+config=${1:-/redis/server.conf}
+master=$(get-redis-master)
+
+echo "slaveof ${master} 6379" > ${config}

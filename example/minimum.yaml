@@ -1,0 +1,5 @@
+apiVersion: spotahome.com/v1alpha1
+kind: RedisFailover
+metadata:
+  name: rfexample
+  namespace: example

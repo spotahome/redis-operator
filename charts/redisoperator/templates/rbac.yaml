@@ -1,0 +1,65 @@
+{{ if .Values.rbac.install }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "name" . | quote }}
+  labels:
+{{ include "common-labels" . | indent 4 }}
+imagePullSecrets:
+{{ toYaml .Values.rbac.imagePullSecrets | indent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/{{ .Values.rbac.apiVersion }}
+kind: ClusterRole
+metadata:
+  name: {{ include "name" . | quote }}
+  labels:
+{{ include "common-labels" . | indent 4 }}
+rules:
+  - apiGroups:
+      - spotahome.com
+    resources:
+      - redisfailovers
+    verbs:
+      - "*"
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+      - endpoints
+      - events
+    verbs:
+      - "*"
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+    verbs:
+      - "*"
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - "*"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/{{ .Values.rbac.apiVersion }}
+metadata:
+  name: {{ include "name" . | quote }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "name" . | quote }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "name" . | quote }}
+{{ end }}
