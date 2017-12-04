@@ -1,4 +1,4 @@
-# redis-operator
+# redis-operator [![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator) [![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
 Redis Operator creates/configures/manages redis clusters atop Kubernetes.
 
 ## Requirements
@@ -10,7 +10,7 @@ All dependecies have been vendored, so there's no need to any additional downloa
 [![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 
 #### Redis Operator Toolkit
-[![Redis Operator Toolkit Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Toolkit Image")](https://quay.io/repository/spotahome/redis-operator)
+[![Redis Operator Toolkit Image](https://quay.io/repository/spotahome/redis-operator-toolkit/status "Redis Operator Toolkit Image")](https://quay.io/repository/spotahome/redis-operator-toolkit)
 
 ## Operator deployment on kubernetes
 In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed:
