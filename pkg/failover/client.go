@@ -250,6 +250,10 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 
 	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 
+	spec := rf.Spec
+	redisResources := getRedisResources(spec)
+	sentinelResources := getSentinelResources(spec)
+
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -289,6 +293,7 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 							},
 						},
 					},
+					Resources: redisResources,
 				},
 				v1.Container{
 					Name:            "sentinel",
@@ -323,6 +328,7 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 							},
 						},
 					},
+					Resources: sentinelResources,
 				},
 			},
 		},
