@@ -98,7 +98,7 @@ The redis-operator creates a redis failover, using the following pipeline:
   * tpr: created to define the third party resource that will be registered into k8s.
 * vendor: vendored packages used by the application.
 
-## No code folder structure
+## Non-code folder structure
 * charts: helm chart to deploy the TPR.
 * docker: Dockerfiles to generate redis-failover docker images.
 * example: yaml files with spec of redis-failover.
