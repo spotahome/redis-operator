@@ -727,7 +727,7 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 	for range t.C {
 		logger.Debug("Waiting for Redis statefulset to be fully operative")
 		statefulset, _ := r.Client.AppsV1beta1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
-		if statefulset.Status.Replicas == spec.Redis.Replicas {
+		if statefulset.Status.ReadyReplicas == spec.Redis.Replicas {
 			t.Stop()
 			break
 		}
@@ -868,7 +868,7 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 	for range t.C {
 		logger.Debug("Waiting for Redis statefulset to be updated")
 		statefulset, _ := r.GetRedisStatefulset(rf)
-		if statefulset.Status.Replicas == replicas && statefulset.Status.UpdatedReplicas == replicas {
+		if statefulset.Status.ReadyReplicas == replicas && statefulset.Status.UpdatedReplicas == replicas {
 			t.Stop()
 			break
 		}
