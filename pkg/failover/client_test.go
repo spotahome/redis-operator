@@ -1139,7 +1139,7 @@ func TestCreateRedisStatefulsetPDBError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				Replicas: statefulsetSize,
+				ReadyReplicas: statefulsetSize,
 			},
 		}
 
@@ -1244,7 +1244,7 @@ func TestCreateRedisStatefulsetReplicas(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				Replicas: statefulsetSize,
+				ReadyReplicas: statefulsetSize,
 			},
 		}
 		return true, statefulset, nil
@@ -1346,7 +1346,7 @@ func TestCreateRedisStatefulset(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				Replicas: statefulsetSize,
+				ReadyReplicas: statefulsetSize,
 			},
 		}
 
@@ -1617,7 +1617,7 @@ func TestUpdateRedisStatefulsetError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				Replicas: int32(3),
+				ReadyReplicas: int32(3),
 			},
 			Spec: v1beta1.StatefulSetSpec{
 				Template: v1.PodTemplateSpec{
@@ -1697,7 +1697,7 @@ func TestUpdateRedisStatefulset(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				Replicas:        r,
+				ReadyReplicas:   r,
 				UpdatedReplicas: r,
 			},
 			Spec: v1beta1.StatefulSetSpec{
