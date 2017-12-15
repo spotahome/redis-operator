@@ -76,7 +76,7 @@ func (c *client) ResetSentinel(ip string) error {
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
-	cmd := rediscli.NewStringCmd("SENTINEL", "reset", "*")
+	cmd := rediscli.NewIntCmd("SENTINEL", "reset", "*")
 	rClient.Process(cmd)
 	rClient.Close()
 	_, err := cmd.Result()
