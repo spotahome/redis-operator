@@ -1,5 +1,5 @@
 replicaCount: 1
-image: dist.spotahome.net:5000/devops/redis-operator
+image: quay.io/spotahome/redis-operator
 tag: latest
 pullPolicy: IfNotPresent
 team: devops
