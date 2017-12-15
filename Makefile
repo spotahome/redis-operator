@@ -89,7 +89,7 @@ publish:
 	docker tag $(REPOSITORY):"$$COMMIT_VERSION" $(REPOSITORY):$(VERSION)
 	docker push $(REPOSITORY):$(VERSION)
 
-release: image publish
+release: tag image publish
 
 # Test stuff in dev
 unit-test: docker-build
