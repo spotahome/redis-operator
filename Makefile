@@ -1,8 +1,9 @@
 # The following are targers that do not exist in the filesystem as real files and should be always executed by make
 .PHONY: default build deps-development docker-build shell run image unit-test test generate go-generate get-deps update-deps
+VERSION := 0.1.1
 
 # Name of this service/application
-SERVICE_NAME := redisfailover
+SERVICE_NAME := redis-operator
 
 # Docker image name for this project
 IMAGE_NAME := spotahome/$(SERVICE_NAME)
@@ -20,7 +21,7 @@ DOCKER := $(shell command -v docker)
 UID := $(shell id -u)
 
 # Commit hash from git
-COMMIT=$(shell git rev-parse --short HEAD)
+COMMIT=$(shell git rev-parse HEAD)
 
 # Branch from git
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -80,6 +81,15 @@ image: deps-development
 	-t $(REPOSITORY):$(BRANCH) \
 	-f $(APP_DIR)/Dockerfile \
 	.
+tag:
+	git tag $(VERSION)
+
+publish:
+	@COMMIT_VERSION="$$(git rev-list -n 1 $(VERSION))"; \
+	docker tag $(REPOSITORY):"$$COMMIT_VERSION" $(REPOSITORY):$(VERSION)
+	docker push $(REPOSITORY):$(VERSION)
+
+release: image publish
 
 # Test stuff in dev
 unit-test: docker-build
