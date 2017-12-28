@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -18,10 +17,10 @@ import (
 )
 
 type flags struct {
-	kubeConfig  string
-	listenAddr  string
-	metricsPath string
-	maxThreads  int
+	kubeConfig     string
+	listenAddr     string
+	metricsPath    string
+	maxConcurrency int
 }
 
 func initFlags() flags {
@@ -31,7 +30,7 @@ func initFlags() flags {
 	flag.StringVar(&f.kubeConfig, "kubeconfig", "", "Path to a kube config. Only required if out-of-cluster.")
 	flag.StringVar(&f.listenAddr, "listen-address", ":9710", "Address to listen on for metrics.")
 	flag.StringVar(&f.metricsPath, "metrics-path", "/metrics", "Path to serve the metrics.")
-	flag.IntVar(&f.maxThreads, "max-threads", 0, "Maximum number of threads.")
+	flag.IntVar(&f.maxConcurrency, "max-concurrency", 3, "Maximum number of concurrent routines.")
 
 	// Parse flags & return.
 	flag.Parse()
@@ -65,12 +64,16 @@ func main() {
 		panic(err)
 	}
 
-	if flags.maxThreads == 0 {
-		flags.maxThreads = runtime.GOMAXPROCS(0)
+	if flags.maxConcurrency <= 0 {
+		log.Panic("The given max concurrency number is invalid")
+	}
+
+	if flags.maxConcurrency == 1 {
+		log.Warnf("The given max concurrency number (%d) is dangerous", flags.maxConcurrency)
 	}
 
 	stop := make(chan int, 1)
-	crd, err := failover.NewRedisFailoverCRD(m, clientset, *config, stop, flags.maxThreads)
+	crd, err := failover.NewRedisFailoverCRD(m, clientset, *config, stop, flags.maxConcurrency)
 	if err != nil {
 		log.Panic(err)
 	}
