@@ -1659,6 +1659,247 @@ func TestUpdateRedisStatefulsetError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestUpdateRedisStatefulsetWithUpdate(t *testing.T) {
+	assert := assert.New(t)
+
+	replicas := int32(3)
+	replicasUpdated := int32(4)
+	called := false
+	cpu := "200m"
+	memory := "200Mi"
+	cpuQuantityOriginal, _ := resource.ParseQuantity("100m")
+	memoryQuantityOriginal, _ := resource.ParseQuantity("100Mi")
+	cpuQuantityRequired, _ := resource.ParseQuantity(cpu)
+	memoryQuantityRequired, _ := resource.ParseQuantity(memory)
+	var updatedRequests v1.ResourceRequirements
+
+	requiredRequests := v1.ResourceRequirements{
+		Limits: v1.ResourceList{
+			v1.ResourceCPU:    cpuQuantityRequired,
+			v1.ResourceMemory: memoryQuantityRequired,
+		},
+		Requests: v1.ResourceList{
+			v1.ResourceCPU:    cpuQuantityRequired,
+			v1.ResourceMemory: memoryQuantityRequired,
+		},
+	}
+
+	exporterExists := false
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		r := replicas
+		if called {
+			r = replicasUpdated
+		}
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas:   r,
+				UpdatedReplicas: r,
+			},
+			Spec: v1beta1.StatefulSetSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							v1.Container{
+								Name: redisName,
+								Resources: v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+									Requests: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		called = true
+		return true, statefulset, nil
+	})
+	client.Fake.AddReactor("update", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		updateAction := action.(k8stesting.UpdateAction)
+		statefulset := updateAction.GetObject().(*v1beta1.StatefulSet)
+		for _, container := range statefulset.Spec.Template.Spec.Containers {
+			if container.Name == redisName {
+				updatedRequests = container.Resources
+			}
+			if container.Name == "redis-exporter" {
+				exporterExists = true
+			}
+		}
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: replicasUpdated,
+				Resources: failover.RedisFailoverResources{
+					Limits: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+					Requests: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+				},
+				Exporter: true,
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.UpdateRedisStatefulset(redisFailover)
+	assert.NoError(err)
+	assert.Equal(requiredRequests, updatedRequests, "Requests are not equal as updated")
+	assert.True(exporterExists, "Redis-exporter should exist")
+}
+
+func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
+	assert := assert.New(t)
+
+	replicas := int32(3)
+	replicasUpdated := int32(4)
+	called := false
+	cpu := "200m"
+	memory := "200Mi"
+	cpuQuantityOriginal, _ := resource.ParseQuantity("100m")
+	memoryQuantityOriginal, _ := resource.ParseQuantity("100Mi")
+	cpuQuantityRequired, _ := resource.ParseQuantity(cpu)
+	memoryQuantityRequired, _ := resource.ParseQuantity(memory)
+	var updatedRequests v1.ResourceRequirements
+
+	requiredRequests := v1.ResourceRequirements{
+		Limits: v1.ResourceList{
+			v1.ResourceCPU:    cpuQuantityRequired,
+			v1.ResourceMemory: memoryQuantityRequired,
+		},
+		Requests: v1.ResourceList{
+			v1.ResourceCPU:    cpuQuantityRequired,
+			v1.ResourceMemory: memoryQuantityRequired,
+		},
+	}
+
+	exporterExists := false
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		r := replicas
+		if called {
+			r = replicasUpdated
+		}
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas:   r,
+				UpdatedReplicas: r,
+			},
+			Spec: v1beta1.StatefulSetSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							v1.Container{
+								Name: redisName,
+								Resources: v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+									Requests: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+								},
+							},
+							v1.Container{
+								Name: "redis-exporter",
+							},
+						},
+					},
+				},
+			},
+		}
+		called = true
+		return true, statefulset, nil
+	})
+	client.Fake.AddReactor("update", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		updateAction := action.(k8stesting.UpdateAction)
+		statefulset := updateAction.GetObject().(*v1beta1.StatefulSet)
+		for _, container := range statefulset.Spec.Template.Spec.Containers {
+			if container.Name == redisName {
+				updatedRequests = container.Resources
+			}
+			if container.Name == "redis-exporter" {
+				exporterExists = true
+			}
+		}
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: replicasUpdated,
+				Resources: failover.RedisFailoverResources{
+					Limits: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+					Requests: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+				},
+				Exporter: false,
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.UpdateRedisStatefulset(redisFailover)
+	assert.NoError(err)
+	assert.Equal(requiredRequests, updatedRequests, "Requests are not equal as updated")
+	assert.False(exporterExists, "Redis-exporter should not exist")
+}
+
 func TestUpdateRedisStatefulset(t *testing.T) {
 	assert := assert.New(t)
 

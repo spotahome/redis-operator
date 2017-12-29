@@ -21,8 +21,13 @@ import (
 
 // variables refering to the redis exporter port
 const (
-	exporterPort     = 9121
-	exporterPortName = "http-metrics"
+	exporterPort                 = 9121
+	exporterPortName             = "http-metrics"
+	exporterContainerName        = "redis-exporter"
+	exporterDefaultRequestCPU    = "25m"
+	exporterDefaultLimitCPU      = "50m"
+	exporterDefaultRequestMemory = "50Mi"
+	exporterDefaultLimitMemory   = "100Mi"
 )
 
 const (
@@ -645,47 +650,7 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 	}
 
 	if rf.Spec.Redis.Exporter {
-		exporter := v1.Container{
-			Name:            "redis-exporter",
-			Image:           exporterImage,
-			ImagePullPolicy: "Always",
-			Ports: []v1.ContainerPort{
-				v1.ContainerPort{
-					Name:          "metrics",
-					ContainerPort: exporterPort,
-					Protocol:      v1.ProtocolTCP,
-				},
-			},
-			ReadinessProbe: &v1.Probe{
-				InitialDelaySeconds: 10,
-				TimeoutSeconds:      3,
-				Handler: v1.Handler{
-					HTTPGet: &v1.HTTPGetAction{
-						Path: "/",
-						Port: intstr.FromString("metrics"),
-					},
-				},
-			},
-			LivenessProbe: &v1.Probe{
-				TimeoutSeconds: 3,
-				Handler: v1.Handler{
-					HTTPGet: &v1.HTTPGetAction{
-						Path: "/",
-						Port: intstr.FromString("metrics"),
-					},
-				},
-			},
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					v1.ResourceCPU:    resource.MustParse("300m"),
-					v1.ResourceMemory: resource.MustParse("300Mi"),
-				},
-				Requests: v1.ResourceList{
-					v1.ResourceCPU:    resource.MustParse("200m"),
-					v1.ResourceMemory: resource.MustParse("150Mi"),
-				},
-			},
-		}
+		exporter := createRedisExporterContainer()
 		redisStatefulset.Spec.Template.Spec.Containers = append(redisStatefulset.Spec.Template.Spec.Containers, exporter)
 	}
 
@@ -817,6 +782,17 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 	oldSS.Spec.Replicas = &replicas
 	oldSS.Spec.Template.Spec.Containers[0].Resources = getRedisResources(rf.Spec)
 	oldSS.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
+
+	if rf.Spec.Redis.Exporter {
+		exporter := createRedisExporterContainer()
+		oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers, exporter)
+	} else {
+		for pos, container := range oldSS.Spec.Template.Spec.Containers {
+			if container.Name == exporterContainerName {
+				oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers[:pos], oldSS.Spec.Template.Spec.Containers[pos+1:]...)
+			}
+		}
+	}
 
 	if _, err := r.Client.AppsV1beta1().StatefulSets(namespace).Update(oldSS); err != nil {
 		return err
@@ -954,4 +930,48 @@ func generateResourceList(cpu string, memory string) v1.ResourceList {
 		resources[v1.ResourceMemory], _ = resource.ParseQuantity(memory)
 	}
 	return resources
+}
+
+func createRedisExporterContainer() v1.Container {
+	return v1.Container{
+		Name:            exporterContainerName,
+		Image:           exporterImage,
+		ImagePullPolicy: "Always",
+		Ports: []v1.ContainerPort{
+			v1.ContainerPort{
+				Name:          "metrics",
+				ContainerPort: exporterPort,
+				Protocol:      v1.ProtocolTCP,
+			},
+		},
+		ReadinessProbe: &v1.Probe{
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      3,
+			Handler: v1.Handler{
+				HTTPGet: &v1.HTTPGetAction{
+					Path: "/",
+					Port: intstr.FromString("metrics"),
+				},
+			},
+		},
+		LivenessProbe: &v1.Probe{
+			TimeoutSeconds: 3,
+			Handler: v1.Handler{
+				HTTPGet: &v1.HTTPGetAction{
+					Path: "/",
+					Port: intstr.FromString("metrics"),
+				},
+			},
+		},
+		Resources: v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+				v1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
+			},
+			Requests: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+				v1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+			},
+		},
+	}
 }
