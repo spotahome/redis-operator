@@ -21,9 +21,13 @@ import (
 
 // variables refering to the redis exporter port
 const (
-	exporterPort          = 9121
-	exporterPortName      = "http-metrics"
-	exporterContainerName = "redis-exporter"
+	exporterPort                 = 9121
+	exporterPortName             = "http-metrics"
+	exporterContainerName        = "redis-exporter"
+	exporterDefaultRequestCPU    = "25m"
+	exporterDefaultLimitCPU      = "50m"
+	exporterDefaultRequestMemory = "50Mi"
+	exporterDefaultLimitMemory   = "100Mi"
 )
 
 const (
@@ -961,12 +965,12 @@ func createRedisExporterContainer() v1.Container {
 		},
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
-				v1.ResourceCPU:    resource.MustParse("300m"),
-				v1.ResourceMemory: resource.MustParse("300Mi"),
+				v1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+				v1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
 			},
 			Requests: v1.ResourceList{
-				v1.ResourceCPU:    resource.MustParse("200m"),
-				v1.ResourceMemory: resource.MustParse("150Mi"),
+				v1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+				v1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
 			},
 		},
 	}
