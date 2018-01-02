@@ -26,3 +26,7 @@ spec:
         imagePullPolicy: {{ .Values.pullPolicy }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
+        ports:
+        - containerPort: 9710
+          name: metrics
+          protocol: TCP
