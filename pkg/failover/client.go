@@ -175,7 +175,7 @@ func (r *RedisFailoverKubeClient) GetBootstrapPod(rf *RedisFailover) (*v1.Pod, e
 	namespace := rf.Metadata.Namespace
 	pod, err := r.Client.Core().Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get pod")
+		return nil, errors.New("could not get pod")
 	}
 	return pod, nil
 }
@@ -186,7 +186,7 @@ func (r *RedisFailoverKubeClient) GetSentinelService(rf *RedisFailover) (*v1.Ser
 	namespace := rf.Metadata.Namespace
 	service, err := r.Client.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get service")
+		return nil, errors.New("could not get service")
 	}
 	return service, nil
 }
@@ -197,7 +197,7 @@ func (r *RedisFailoverKubeClient) GetSentinelDeployment(rf *RedisFailover) (*v1b
 	namespace := rf.Metadata.Namespace
 	deployment, err := r.Client.AppsV1beta1().Deployments(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get deployment")
+		return nil, errors.New("could not get deployment")
 	}
 	return deployment, nil
 }
@@ -208,7 +208,7 @@ func (r *RedisFailoverKubeClient) GetRedisService(rf *RedisFailover) (*v1.Servic
 	namespace := rf.Metadata.Namespace
 	service, err := r.Client.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get service")
+		return nil, errors.New("could not get service")
 	}
 	return service, nil
 }
@@ -219,7 +219,7 @@ func (r *RedisFailoverKubeClient) GetRedisStatefulset(rf *RedisFailover) (*v1bet
 	namespace := rf.Metadata.Namespace
 	statefulset, err := r.Client.AppsV1beta1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get statefulset")
+		return nil, errors.New("could not get statefulset")
 	}
 	return statefulset, nil
 }
@@ -233,7 +233,7 @@ func (r *RedisFailoverKubeClient) GetSentinelPodsIPs(rf *RedisFailover) ([]strin
 		return nil, err
 	}
 	if len(endpoints.Subsets) != 1 {
-		return nil, errors.New("The Sentinel Service has different endpoints than expected")
+		return nil, errors.New("the Sentinel Service has different endpoints than expected")
 	}
 	pods := []string{}
 	for _, e := range endpoints.Subsets[0].Addresses {
