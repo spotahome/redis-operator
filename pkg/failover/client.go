@@ -271,7 +271,7 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 	redisResources := getRedisResources(spec)
 	sentinelResources := getSentinelResources(spec)
 
-	labels := generateLabels(rf.Metadata.Name, bootstrapRoleName)
+	labels := generateLabels(bootstrapRoleName, rf.Metadata.Name)
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -371,7 +371,7 @@ func (r *RedisFailoverKubeClient) CreateSentinelService(rf *RedisFailover) error
 
 	sentinelTargetPort := intstr.FromInt(26379)
 
-	labels := generateLabels(rf.Metadata.Name, sentinelRoleName)
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
 
 	sentinelSvc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -416,7 +416,7 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 
 	resources := getSentinelResources(spec)
 
-	labels := generateLabels(rf.Metadata.Name, sentinelRoleName)
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
 
 	sentinelDeployment := &v1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -562,7 +562,7 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 
 	resources := getRedisResources(spec)
 
-	labels := generateLabels(rf.Metadata.Name, redisRoleName)
+	labels := generateLabels(redisRoleName, rf.Metadata.Name)
 
 	redisStatefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -706,7 +706,7 @@ func (r *RedisFailoverKubeClient) CreateRedisService(rf *RedisFailover) error {
 	name := r.GetRedisName(rf)
 	namespace := rf.Metadata.Namespace
 
-	labels := generateLabels(rf.Metadata.Name, redisRoleName)
+	labels := generateLabels(redisRoleName, rf.Metadata.Name)
 
 	srv := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
