@@ -793,8 +793,16 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 	oldSS.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
 
 	if rf.Spec.Redis.Exporter {
-		exporter := createRedisExporterContainer()
-		oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers, exporter)
+		found := false
+		for _, container := range oldSS.Spec.Template.Spec.Containers {
+			if container.Name == exporterContainerName {
+				found = true
+			}
+		}
+		if !found {
+			exporter := createRedisExporterContainer()
+			oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers, exporter)
+		}
 	} else {
 		for pos, container := range oldSS.Spec.Template.Spec.Containers {
 			if container.Name == exporterContainerName {
