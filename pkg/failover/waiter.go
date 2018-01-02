@@ -25,7 +25,7 @@ func (r *RedisFailoverKubeClient) waitForPod(name string, namespace string, logg
 				}
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -48,7 +48,7 @@ func (r *RedisFailoverKubeClient) waitForService(name string, namespace string, 
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (r *RedisFailoverKubeClient) waitForDeployment(name string, namespace strin
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -86,7 +86,7 @@ func (r *RedisFailoverKubeClient) waitForStatefulset(name string, namespace stri
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -111,7 +111,7 @@ func (r *RedisFailoverKubeClient) waitForPodDeletion(name string, namespace stri
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -136,7 +136,7 @@ func (r *RedisFailoverKubeClient) waitForStatefulsetDeletion(name string, namesp
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -161,7 +161,7 @@ func (r *RedisFailoverKubeClient) waitForDeploymentDeletion(name string, namespa
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
@@ -186,7 +186,7 @@ func (r *RedisFailoverKubeClient) waitForServiceDeletion(name string, namespace 
 				return nil
 			}
 		case <-to:
-			return errors.New("Timeout waiting the condition")
+			return errors.New("timeout waiting the condition")
 		}
 	}
 }
