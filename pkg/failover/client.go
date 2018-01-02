@@ -31,15 +31,16 @@ const (
 )
 
 const (
-	description       = "Manage a Redis Failover deployment"
-	baseName          = "rf"
-	bootstrapName     = "b"
-	sentinelName      = "s"
-	sentinelRoleName  = "sentinel"
-	redisName         = "r"
-	redisRoleName     = "redis"
-	bootstrapRoleName = "bootstrap"
-	appLabel          = "redis-failover"
+	description         = "Manage a Redis Failover deployment"
+	baseName            = "rf"
+	bootstrapName       = "b"
+	sentinelName        = "s"
+	sentinelRoleName    = "sentinel"
+	redisName           = "r"
+	redisRoleName       = "redis"
+	bootstrapRoleName   = "bootstrap"
+	appLabel            = "redis-failover"
+	hostnameTopologyKey = "kubernetes.io/hostname"
 )
 
 const (
@@ -433,6 +434,7 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 						PodAntiAffinity: &v1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
 								v1.PodAffinityTerm{
+									TopologyKey: hostnameTopologyKey,
 									LabelSelector: &metav1.LabelSelector{
 										MatchLabels: labels,
 									},
@@ -582,6 +584,7 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 						PodAntiAffinity: &v1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
 								v1.PodAffinityTerm{
+									TopologyKey: hostnameTopologyKey,
 									LabelSelector: &metav1.LabelSelector{
 										MatchLabels: labels,
 									},
