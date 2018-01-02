@@ -346,7 +346,9 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 		return err
 	}
 
-	r.waitForPod(name, namespace, logger)
+	if err := r.waitForPod(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -391,7 +393,9 @@ func (r *RedisFailoverKubeClient) CreateSentinelService(rf *RedisFailover) error
 		return err
 	}
 
-	r.waitForService(name, namespace, logger)
+	if err := r.waitForService(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -521,7 +525,9 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 		return err
 	}
 
-	r.waitForDeployment(name, namespace, spec.Sentinel.Replicas, logger)
+	if err := r.waitForDeployment(name, namespace, spec.Sentinel.Replicas, logger); err != nil {
+		return err
+	}
 
 	logger.Debug("Creating Sentinel PodDisruptionBudget...")
 	if err := r.createPodDisruptionBudget(rf, sentinelName, sentinelRoleName); err != nil {
@@ -659,7 +665,9 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 		return err
 	}
 
-	r.waitForStatefulset(name, namespace, spec.Redis.Replicas, logger)
+	if err := r.waitForStatefulset(name, namespace, spec.Redis.Replicas, logger); err != nil {
+		return err
+	}
 
 	logger.Debug("Creating Redis PodDisruptionBudget...")
 	if err := r.createPodDisruptionBudget(rf, redisName, redisRoleName); err != nil {
@@ -762,7 +770,9 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 		return err
 	}
 
-	r.waitForDeployment(name, namespace, replicas, logger)
+	if err := r.waitForDeployment(name, namespace, replicas, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -799,7 +809,9 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 		return err
 	}
 
-	r.waitForStatefulset(name, namespace, replicas, logger)
+	if err := r.waitForStatefulset(name, namespace, replicas, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -815,7 +827,9 @@ func (r *RedisFailoverKubeClient) DeleteBootstrapPod(rf *RedisFailover) error {
 		return err
 	}
 
-	r.waitForPodDeletion(name, namespace, logger)
+	if err := r.waitForPodDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -835,7 +849,9 @@ func (r *RedisFailoverKubeClient) DeleteRedisStatefulset(rf *RedisFailover) erro
 	}
 	logger.Debug("Redis PodDisruptionBudget deleted!")
 
-	r.waitForStatefulsetDeletion(name, namespace, logger)
+	if err := r.waitForStatefulsetDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -855,7 +871,9 @@ func (r *RedisFailoverKubeClient) DeleteSentinelDeployment(rf *RedisFailover) er
 	}
 	logger.Debug("Sentinel PodDisruptionBudget deleted!")
 
-	r.waitForDeploymentDeletion(name, namespace, logger)
+	if err := r.waitForDeploymentDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -870,7 +888,9 @@ func (r *RedisFailoverKubeClient) DeleteSentinelService(rf *RedisFailover) error
 		return err
 	}
 
-	r.waitForServiceDeletion(name, namespace, logger)
+	if err := r.waitForServiceDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -885,7 +905,9 @@ func (r *RedisFailoverKubeClient) DeleteRedisService(rf *RedisFailover) error {
 		return err
 	}
 
-	r.waitForServiceDeletion(name, namespace, logger)
+	if err := r.waitForServiceDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
