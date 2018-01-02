@@ -31,13 +31,15 @@ const (
 )
 
 const (
-	description      = "Manage a Redis Failover deployment"
-	baseName         = "rf"
-	bootstrapName    = "b"
-	sentinelName     = "s"
-	sentinelRoleName = "sentinel"
-	redisName        = "r"
-	redisRoleName    = "redis"
+	description         = "Manage a Redis Failover deployment"
+	baseName            = "rf"
+	bootstrapName       = "b"
+	sentinelName        = "s"
+	sentinelRoleName    = "sentinel"
+	redisName           = "r"
+	redisRoleName       = "redis"
+	appLabel            = "redis-failover"
+	hostnameTopologyKey = "kubernetes.io/hostname"
 )
 
 const (
@@ -119,6 +121,14 @@ func getRedisImage(rf *RedisFailover) string {
 	return fmt.Sprintf("%s:%s", config.RedisImage, rf.Spec.Redis.Version)
 }
 
+func generateLabels(component, role string) map[string]string {
+	return map[string]string{
+		"app":       appLabel,
+		"component": component,
+		component:   role,
+	}
+}
+
 // GetAllRedisfailovers connects to k8s and returns all RF deployed on cluster
 func (r *RedisFailoverKubeClient) GetAllRedisfailovers() (*RedisFailoverList, error) {
 	uri := fmt.Sprintf("/apis/%s/%s/%s/", config.Domain, config.Version, config.APIName)
@@ -165,7 +175,7 @@ func (r *RedisFailoverKubeClient) GetBootstrapPod(rf *RedisFailover) (*v1.Pod, e
 	namespace := rf.Metadata.Namespace
 	pod, err := r.Client.Core().Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get pod")
+		return nil, errors.New("could not get pod")
 	}
 	return pod, nil
 }
@@ -176,7 +186,7 @@ func (r *RedisFailoverKubeClient) GetSentinelService(rf *RedisFailover) (*v1.Ser
 	namespace := rf.Metadata.Namespace
 	service, err := r.Client.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get service")
+		return nil, errors.New("could not get service")
 	}
 	return service, nil
 }
@@ -187,7 +197,7 @@ func (r *RedisFailoverKubeClient) GetSentinelDeployment(rf *RedisFailover) (*v1b
 	namespace := rf.Metadata.Namespace
 	deployment, err := r.Client.AppsV1beta1().Deployments(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get deployment")
+		return nil, errors.New("could not get deployment")
 	}
 	return deployment, nil
 }
@@ -198,7 +208,7 @@ func (r *RedisFailoverKubeClient) GetRedisService(rf *RedisFailover) (*v1.Servic
 	namespace := rf.Metadata.Namespace
 	service, err := r.Client.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get service")
+		return nil, errors.New("could not get service")
 	}
 	return service, nil
 }
@@ -209,7 +219,7 @@ func (r *RedisFailoverKubeClient) GetRedisStatefulset(rf *RedisFailover) (*v1bet
 	namespace := rf.Metadata.Namespace
 	statefulset, err := r.Client.AppsV1beta1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.New("Could not get statefulset")
+		return nil, errors.New("could not get statefulset")
 	}
 	return statefulset, nil
 }
@@ -223,7 +233,7 @@ func (r *RedisFailoverKubeClient) GetSentinelPodsIPs(rf *RedisFailover) ([]strin
 		return nil, err
 	}
 	if len(endpoints.Subsets) != 1 {
-		return nil, errors.New("The Sentinel Service has different endpoints than expected")
+		return nil, errors.New("the Sentinel Service has different endpoints than expected")
 	}
 	pods := []string{}
 	for _, e := range endpoints.Subsets[0].Addresses {
@@ -260,15 +270,13 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 	redisResources := getRedisResources(spec)
 	sentinelResources := getSentinelResources(spec)
 
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
+
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels: map[string]string{
-				"app":       "redis-failover",
-				"component": "sentinel",
-				"sentinel":  rf.Metadata.Name,
-			},
+			Labels:    labels,
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
@@ -362,22 +370,16 @@ func (r *RedisFailoverKubeClient) CreateSentinelService(rf *RedisFailover) error
 
 	sentinelTargetPort := intstr.FromInt(26379)
 
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
+
 	sentinelSvc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels: map[string]string{
-				"app":       "redis-failover",
-				"component": "sentinel",
-				"sentinel":  rf.Metadata.Name,
-			},
+			Labels:    labels,
 		},
 		Spec: v1.ServiceSpec{
-			Selector: map[string]string{
-				"app":       "redis-failover",
-				"component": "sentinel",
-				"sentinel":  rf.Metadata.Name,
-			},
+			Selector: labels,
 			Ports: []v1.ServicePort{
 				v1.ServicePort{
 					Name:       "sentinel",
@@ -413,6 +415,8 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 
 	resources := getSentinelResources(spec)
 
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
+
 	sentinelDeployment := &v1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -422,13 +426,21 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 			Replicas: &spec.Sentinel.Replicas,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app":       "redis-failover",
-						"component": "sentinel",
-						"sentinel":  rf.Metadata.Name,
-					},
+					Labels: labels,
 				},
 				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+								v1.PodAffinityTerm{
+									TopologyKey: hostnameTopologyKey,
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: labels,
+									},
+								},
+							},
+						},
+					},
 					InitContainers: []v1.Container{
 						v1.Container{
 							Name:            "sentinel-config",
@@ -549,6 +561,8 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 
 	resources := getRedisResources(spec)
 
+	labels := generateLabels(redisRoleName, rf.Metadata.Name)
+
 	redisStatefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -562,13 +576,21 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app":       "redis-failover",
-						"component": "redis",
-						"redis":     rf.Metadata.Name,
-					},
+					Labels: labels,
 				},
 				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+								v1.PodAffinityTerm{
+									TopologyKey: hostnameTopologyKey,
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: labels,
+									},
+								},
+							},
+						},
+					},
 					InitContainers: []v1.Container{
 						v1.Container{
 							Name:            "redis-config",
@@ -682,6 +704,9 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 func (r *RedisFailoverKubeClient) CreateRedisService(rf *RedisFailover) error {
 	name := r.GetRedisName(rf)
 	namespace := rf.Metadata.Namespace
+
+	labels := generateLabels(redisRoleName, rf.Metadata.Name)
+
 	srv := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -697,11 +722,7 @@ func (r *RedisFailoverKubeClient) CreateRedisService(rf *RedisFailover) error {
 					Name:     exporterPortName,
 				},
 			},
-			Selector: map[string]string{
-				"app":       "redis-failover",
-				"component": "redis",
-				"redis":     rf.Metadata.Name,
-			},
+			Selector: labels,
 		},
 	}
 
@@ -710,11 +731,14 @@ func (r *RedisFailoverKubeClient) CreateRedisService(rf *RedisFailover) error {
 }
 
 // createPodDisruptionBudget creates a PodDisruptionBudget for redis or sentinel
-func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, name string, role string) error {
+func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, name string, component string) error {
 	name = generateName(name, rf.Metadata.Name)
 	namespace := rf.Metadata.Namespace
 	if _, err := r.Client.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(name, metav1.GetOptions{}); err != nil {
 		minAvailable := intstr.FromInt(2)
+
+		labels := generateLabels(component, rf.Metadata.Name)
+
 		pdb := &policy.PodDisruptionBudget{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
@@ -723,11 +747,7 @@ func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, n
 			Spec: policy.PodDisruptionBudgetSpec{
 				MinAvailable: &minAvailable,
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app":       "redis-failover",
-						"component": role,
-						role:        rf.Metadata.Name,
-					},
+					MatchLabels: labels,
 				},
 			},
 		}
