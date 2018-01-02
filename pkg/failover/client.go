@@ -38,7 +38,6 @@ const (
 	sentinelRoleName    = "sentinel"
 	redisName           = "r"
 	redisRoleName       = "redis"
-	bootstrapRoleName   = "bootstrap"
 	appLabel            = "redis-failover"
 	hostnameTopologyKey = "kubernetes.io/hostname"
 )
@@ -271,7 +270,7 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 	redisResources := getRedisResources(spec)
 	sentinelResources := getSentinelResources(spec)
 
-	labels := generateLabels(bootstrapRoleName, rf.Metadata.Name)
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
