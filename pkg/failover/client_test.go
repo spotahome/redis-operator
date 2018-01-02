@@ -573,6 +573,59 @@ func TestCreateBootstrapPodError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestCreateBootstrapPodTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "pods", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the pod to be returned with the status Ready = True
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bootstrapName,
+				Namespace: namespace,
+			},
+			Status: v1.PodStatus{
+				Conditions: []v1.PodCondition{
+					v1.PodCondition{
+						Type:   "Ready",
+						Status: v1.ConditionTrue,
+					},
+				},
+			},
+		}
+
+		// Return the pod as if we where the API responding to GET pods
+		return true, pod, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	err := r.CreateBootstrapPod(redisFailover)
+	assert.Error(err)
+}
+
 func TestCreateBootstrapPod(t *testing.T) {
 	assert := assert.New(t)
 
@@ -618,6 +671,8 @@ func TestCreateBootstrapPod(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	err := r.CreateBootstrapPod(redisFailover)
@@ -636,6 +691,63 @@ func TestCreateSentinelServiceError(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.CreateSentinelService(redisFailover)
+	assert.Error(err)
+}
+
+func TestCreateSentinelServiceTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "endpoints", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the endpoint to be returned with one ready address
+		endpoint := &v1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Subsets: []v1.EndpointSubset{
+				v1.EndpointSubset{
+					Addresses: []v1.EndpointAddress{
+						v1.EndpointAddress{
+							Hostname: "test",
+							IP:       "1.1.1.1",
+						},
+					},
+					NotReadyAddresses: []v1.EndpointAddress{},
+					Ports:             []v1.EndpointPort{},
+				},
+			},
+		}
+
+		// Return the endpoint as if we where the API responding to GET endpoints
+		return true, endpoint, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -691,6 +803,8 @@ func TestCreateSentinelService(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -775,6 +889,8 @@ func TestCreateSentinelDeploymentPDBError(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -834,6 +950,8 @@ func TestCreateSentinelDeploymentReplicas(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -907,6 +1025,59 @@ func TestCreateSentinelDeploymentRequests(t *testing.T) {
 	}
 }
 
+func TestCreateSentinelDeploymentTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+
+	deploymentSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the deployment to be returned with ReadyReplicas = 3
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas: deploymentSize,
+			},
+		}
+
+		// Return the deployment as if we where the API responding to GET deployments
+		return true, deployment, nil
+	})
+	client.Fake.AddReactor("get", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("")
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: deploymentSize,
+			},
+		},
+	}
+
+	err := r.CreateSentinelDeployment(redisFailover)
+	assert.Error(err)
+}
+
 func TestCreateSentinelDeployment(t *testing.T) {
 	assert := assert.New(t)
 
@@ -942,6 +1113,8 @@ func TestCreateSentinelDeployment(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1157,6 +1330,8 @@ func TestCreateRedisStatefulsetPDBError(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1267,6 +1442,8 @@ func TestCreateRedisStatefulsetReplicas(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1330,6 +1507,60 @@ func TestCreateRedisStatefulsetImageVersion(t *testing.T) {
 	assert.Equal(fmt.Sprintf("%s:%s", config.RedisImage, imageVersion), imageRequested, "Redis image is not well formed. It's different from the asked one.")
 }
 
+func TestCreateRedisStatefulsetTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+
+	statefulsetSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas: statefulsetSize,
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
+	})
+
+	client.Fake.AddReactor("get", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("")
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.CreateRedisStatefulset(redisFailover)
+	assert.Error(err)
+}
+
 func TestCreateRedisStatefulset(t *testing.T) {
 	assert := assert.New(t)
 
@@ -1366,6 +1597,8 @@ func TestCreateRedisStatefulset(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1481,6 +1714,85 @@ func TestUpdateSentinelDeploymentError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestUpdateSentinelDeploymentTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	replicas := int32(4) // Different from default
+	cpu := "200m"
+	memory := "200Mi"
+	var updatedRequests v1.ResourceRequirements
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("update", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		updateAction := action.(k8stesting.UpdateAction)
+		deployment := updateAction.GetObject().(*v1beta1.Deployment)
+		updatedRequests = deployment.Spec.Template.Spec.Containers[0].Resources
+		return true, nil, nil
+	})
+
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+			Spec: v1beta1.DeploymentSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						InitContainers: []v1.Container{
+							v1.Container{},
+						},
+						Containers: []v1.Container{
+							v1.Container{},
+						},
+					},
+				},
+			},
+		}
+		return true, deployment, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: replicas,
+				Resources: failover.RedisFailoverResources{
+					Limits: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+					Requests: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+				},
+			},
+		},
+	}
+
+	err := r.UpdateSentinelDeployment(redisFailover)
+	assert.Error(err)
+}
+
 func TestUpdateSentinelDeployment(t *testing.T) {
 	assert := assert.New(t)
 
@@ -1540,6 +1852,8 @@ func TestUpdateSentinelDeployment(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1744,6 +2058,8 @@ func TestUpdateRedisStatefulsetWithUpdate(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1866,6 +2182,8 @@ func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1898,6 +2216,101 @@ func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(requiredRequests, updatedRequests, "Requests are not equal as updated")
 	assert.False(exporterExists, "Redis-exporter should not exist")
+}
+
+func TestUpdateRedisStatefulsetTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+
+	replicas := int32(3)
+	replicasUpdated := int32(4)
+	called := false
+	cpu := "200m"
+	memory := "200Mi"
+	cpuQuantityOriginal, _ := resource.ParseQuantity("100m")
+	memoryQuantityOriginal, _ := resource.ParseQuantity("100Mi")
+	var updatedRequests v1.ResourceRequirements
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		r := replicas
+		if called {
+			r = replicasUpdated
+		}
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas:   r,
+				UpdatedReplicas: r,
+			},
+			Spec: v1beta1.StatefulSetSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							v1.Container{
+								Resources: v1.ResourceRequirements{
+									Limits: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+									Requests: v1.ResourceList{
+										v1.ResourceCPU:    cpuQuantityOriginal,
+										v1.ResourceMemory: memoryQuantityOriginal,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		called = true
+		return true, statefulset, nil
+	})
+	client.Fake.AddReactor("update", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		updateAction := action.(k8stesting.UpdateAction)
+		statefulset := updateAction.GetObject().(*v1beta1.StatefulSet)
+		updatedRequests = statefulset.Spec.Template.Spec.Containers[0].Resources
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: replicasUpdated,
+				Resources: failover.RedisFailoverResources{
+					Limits: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+					Requests: failover.CPUAndMem{
+						CPU:    cpu,
+						Memory: memory,
+					},
+				},
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.UpdateRedisStatefulset(redisFailover)
+	assert.Error(err)
 }
 
 func TestUpdateRedisStatefulset(t *testing.T) {
@@ -1975,6 +2388,8 @@ func TestUpdateRedisStatefulset(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2037,6 +2452,47 @@ func TestDeleteBootstrapPodError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestDeleteBootstrapPodTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("delete", "pods", func(action k8stesting.Action) (bool, runtime.Object, error) {
+
+		podEmpty := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "",
+				Namespace: namespace,
+			},
+		}
+
+		// Return a pod with no name
+		return true, podEmpty, nil
+	})
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.DeleteBootstrapPod(redisFailover)
+	assert.Error(err)
+}
+
 func TestDeleteBootstrapPod(t *testing.T) {
 	assert := assert.New(t)
 	client := &fake.Clientset{}
@@ -2055,6 +2511,8 @@ func TestDeleteBootstrapPod(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2085,6 +2543,8 @@ func TestDeleteRedisStatefulsetError(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2118,6 +2578,45 @@ func TestDeleteRedisStatefulsetDeletePDBError(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.DeleteRedisStatefulset(redisFailover)
+	assert.Error(err)
+}
+
+func TestDeleteRedisStatefulsetTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("delete", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, nil
+	})
+	pdbCalled := false
+	client.Fake.AddReactor("delete", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		pdbCalled = true
+		return true, nil, nil
+	})
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2153,6 +2652,8 @@ func TestDeleteRedisStatefulset(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2238,6 +2739,43 @@ func TestDeleteSentinelDeploymentDeletePDBError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestDeleteSentinelDeploymentTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+	client := &fake.Clientset{}
+	client.Fake.AddReactor("delete", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, nil
+	})
+	pdbCalled := false
+	client.Fake.AddReactor("delete", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		pdbCalled = true
+		return true, nil, nil
+	})
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.DeleteSentinelDeployment(redisFailover)
+	assert.Error(err)
+}
+
 func TestDeleteSentinelDeployment(t *testing.T) {
 	assert := assert.New(t)
 	client := &fake.Clientset{}
@@ -2252,6 +2790,8 @@ func TestDeleteSentinelDeployment(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2304,6 +2844,41 @@ func TestDeleteSentinelServiceError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestDeleteSentinelServiceTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+	client := &fake.Clientset{}
+	var deletedName string
+	client.Fake.AddReactor("delete", "services", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deleteAction := action.(k8stesting.DeleteAction)
+		deletedName = deleteAction.GetName()
+		return true, nil, nil
+	})
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.DeleteSentinelService(redisFailover)
+	assert.Error(err)
+}
+
 func TestDeleteSentinelService(t *testing.T) {
 	assert := assert.New(t)
 	client := &fake.Clientset{}
@@ -2316,6 +2891,8 @@ func TestDeleteSentinelService(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2344,7 +2921,51 @@ func TestDeleteRedisServiceError(t *testing.T) {
 	client.Fake.AddReactor("delete", "services", func(action k8stesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("")
 	})
-	r := failover.NewRedisFailoverKubeClient(client, clock.Base(), log.Nil)
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
+
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.DeleteRedisService(redisFailover)
+	assert.Error(err)
+}
+
+func TestDeleteRedisServiceTimeoutError(t *testing.T) {
+	assert := assert.New(t)
+	client := &fake.Clientset{}
+	var deletedName string
+	client.Fake.AddReactor("delete", "services", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deleteAction := action.(k8stesting.DeleteAction)
+		deletedName = deleteAction.GetName()
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(time.Hour))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(1))
+
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
 		Metadata: metav1.ObjectMeta{
@@ -2422,6 +3043,8 @@ func TestCreatePDBAlreadyExists(t *testing.T) {
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{

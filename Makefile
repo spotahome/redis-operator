@@ -1,6 +1,6 @@
 # The following are targers that do not exist in the filesystem as real files and should be always executed by make
 .PHONY: default build deps-development docker-build shell run image unit-test test generate go-generate get-deps update-deps
-VERSION := 0.1.3
+VERSION := 0.1.4
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -88,6 +88,7 @@ publish:
 	@COMMIT_VERSION="$$(git rev-list -n 1 $(VERSION))"; \
 	docker tag $(REPOSITORY):"$$COMMIT_VERSION" $(REPOSITORY):$(VERSION)
 	docker push $(REPOSITORY):$(VERSION)
+	docker push $(REPOSITORY):latest
 
 release: tag image publish
 

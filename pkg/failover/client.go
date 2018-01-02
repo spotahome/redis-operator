@@ -42,6 +42,7 @@ const (
 
 const (
 	loopInterval     = 5 * time.Second
+	waitTimeout      = 15 * time.Minute
 	redisfailoverAPI = "/apis/%s/%s/namespaces/%s/%s/%s"
 )
 
@@ -345,7 +346,9 @@ func (r *RedisFailoverKubeClient) CreateBootstrapPod(rf *RedisFailover) error {
 		return err
 	}
 
-	r.waitForPod(rf.Metadata.Name, rf.Metadata.Namespace, logger)
+	if err := r.waitForPod(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -390,7 +393,9 @@ func (r *RedisFailoverKubeClient) CreateSentinelService(rf *RedisFailover) error
 		return err
 	}
 
-	r.waitForService(name, namespace, logger)
+	if err := r.waitForService(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -520,7 +525,9 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 		return err
 	}
 
-	r.waitForDeployment(name, namespace, spec.Sentinel.Replicas, logger)
+	if err := r.waitForDeployment(name, namespace, spec.Sentinel.Replicas, logger); err != nil {
+		return err
+	}
 
 	logger.Debug("Creating Sentinel PodDisruptionBudget...")
 	if err := r.createPodDisruptionBudget(rf, sentinelName, sentinelRoleName); err != nil {
@@ -658,7 +665,9 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 		return err
 	}
 
-	r.waitForStatefulset(name, namespace, spec.Redis.Replicas, logger)
+	if err := r.waitForStatefulset(name, namespace, spec.Redis.Replicas, logger); err != nil {
+		return err
+	}
 
 	logger.Debug("Creating Redis PodDisruptionBudget...")
 	if err := r.createPodDisruptionBudget(rf, redisName, redisRoleName); err != nil {
@@ -732,7 +741,7 @@ func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, n
 func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) error {
 	name := r.GetSentinelName(rf)
 	namespace := rf.Metadata.Namespace
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 
 	quorum := rf.GetQuorum()
 	replicas := rf.Spec.Sentinel.Replicas
@@ -761,7 +770,9 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 		return err
 	}
 
-	r.waitForDeployment(name, namespace, replicas, logger)
+	if err := r.waitForDeployment(name, namespace, replicas, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -770,7 +781,7 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) error {
 	name := r.GetRedisName(rf)
 	namespace := rf.Metadata.Namespace
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 
 	replicas := rf.Spec.Redis.Replicas
 
@@ -798,7 +809,9 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 		return err
 	}
 
-	r.waitForStatefulset(name, namespace, replicas, logger)
+	if err := r.waitForStatefulset(name, namespace, replicas, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -808,13 +821,15 @@ func (r *RedisFailoverKubeClient) DeleteBootstrapPod(rf *RedisFailover) error {
 	name := r.GetBootstrapName(rf)
 	namespace := rf.Metadata.Namespace
 
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 	err := r.Client.CoreV1().Pods(namespace).Delete(name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
 
-	r.waitForPodDeletion(name, namespace, logger)
+	if err := r.waitForPodDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -827,14 +842,16 @@ func (r *RedisFailoverKubeClient) DeleteRedisStatefulset(rf *RedisFailover) erro
 	if err := r.Client.AppsV1beta1().StatefulSets(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation}); err != nil {
 		return err
 	}
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 	logger.Debug("Deleting Redis PodDisruptionBudget...")
 	if err := r.deletePodDisruptionBudget(rf, redisName); err != nil {
 		return err
 	}
 	logger.Debug("Redis PodDisruptionBudget deleted!")
 
-	r.waitForStatefulsetDeletion(name, namespace, logger)
+	if err := r.waitForStatefulsetDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -847,14 +864,16 @@ func (r *RedisFailoverKubeClient) DeleteSentinelDeployment(rf *RedisFailover) er
 	if err := r.Client.AppsV1beta1().Deployments(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation}); err != nil {
 		return err
 	}
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 	logger.Debug("Deleting Sentinel PodDisruptionBudget...")
 	if err := r.deletePodDisruptionBudget(rf, sentinelName); err != nil {
 		return err
 	}
 	logger.Debug("Sentinel PodDisruptionBudget deleted!")
 
-	r.waitForDeploymentDeletion(name, namespace, logger)
+	if err := r.waitForDeploymentDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -863,13 +882,15 @@ func (r *RedisFailoverKubeClient) DeleteSentinelDeployment(rf *RedisFailover) er
 func (r *RedisFailoverKubeClient) DeleteSentinelService(rf *RedisFailover) error {
 	name := r.GetSentinelName(rf)
 	namespace := rf.Metadata.Namespace
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 	propagation := metav1.DeletePropagationForeground
 	if err := r.Client.CoreV1().Services(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation}); err != nil {
 		return err
 	}
 
-	r.waitForServiceDeletion(name, namespace, logger)
+	if err := r.waitForServiceDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -878,13 +899,15 @@ func (r *RedisFailoverKubeClient) DeleteSentinelService(rf *RedisFailover) error
 func (r *RedisFailoverKubeClient) DeleteRedisService(rf *RedisFailover) error {
 	name := r.GetRedisName(rf)
 	namespace := rf.Metadata.Namespace
-	logger := r.logger.WithField(logNameField, name).WithField(logNamespaceField, namespace)
+	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 	propagation := metav1.DeletePropagationForeground
 	if err := r.Client.CoreV1().Services(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation}); err != nil {
 		return err
 	}
 
-	r.waitForServiceDeletion(name, namespace, logger)
+	if err := r.waitForServiceDeletion(name, namespace, logger); err != nil {
+		return err
+	}
 
 	return nil
 }
