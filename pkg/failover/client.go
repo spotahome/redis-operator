@@ -759,7 +759,6 @@ func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, n
 
 // UpdateSentinelDeployment updates the spec of the existing sentinel deployment
 func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) error {
-	name := r.GetSentinelName(rf)
 	namespace := rf.Metadata.Namespace
 	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 
@@ -786,11 +785,11 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 	oldSD.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
 	oldSD.Spec.Template.Spec.Containers[0].Resources = getSentinelResources(rf.Spec)
 
-	if _, err := r.Client.AppsV1beta1().Deployments(namespace).Update(oldSD); err != nil {
+	if err := r.waitForStatefulset(r.GetRedisName(rf), namespace, rf.Spec.Redis.Replicas, logger); err != nil {
 		return err
 	}
 
-	if err := r.waitForDeployment(name, namespace, replicas, logger); err != nil {
+	if _, err := r.Client.AppsV1beta1().Deployments(namespace).Update(oldSD); err != nil {
 		return err
 	}
 
@@ -799,7 +798,6 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 
 // UpdateRedisStatefulset updates the spec of the existing redis statefulset
 func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) error {
-	name := r.GetRedisName(rf)
 	namespace := rf.Metadata.Namespace
 	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
 
@@ -815,8 +813,16 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 	oldSS.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
 
 	if rf.Spec.Redis.Exporter {
-		exporter := createRedisExporterContainer()
-		oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers, exporter)
+		found := false
+		for _, container := range oldSS.Spec.Template.Spec.Containers {
+			if container.Name == exporterContainerName {
+				found = true
+			}
+		}
+		if !found {
+			exporter := createRedisExporterContainer()
+			oldSS.Spec.Template.Spec.Containers = append(oldSS.Spec.Template.Spec.Containers, exporter)
+		}
 	} else {
 		for pos, container := range oldSS.Spec.Template.Spec.Containers {
 			if container.Name == exporterContainerName {
@@ -825,11 +831,11 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 		}
 	}
 
-	if _, err := r.Client.AppsV1beta1().StatefulSets(namespace).Update(oldSS); err != nil {
+	if err := r.waitForDeployment(r.GetSentinelName(rf), namespace, rf.Spec.Sentinel.Replicas, logger); err != nil {
 		return err
 	}
 
-	if err := r.waitForStatefulset(name, namespace, replicas, logger); err != nil {
+	if _, err := r.Client.AppsV1beta1().StatefulSets(namespace).Update(oldSS); err != nil {
 		return err
 	}
 

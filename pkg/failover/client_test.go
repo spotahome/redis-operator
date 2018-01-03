@@ -1690,9 +1690,29 @@ func TestUpdateSentinelDeploymentError(t *testing.T) {
 		return true, deployment, nil
 	})
 
+	statefulsetSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas: statefulsetSize,
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
+	})
+
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -1755,6 +1775,22 @@ func TestUpdateSentinelDeploymentTimeoutError(t *testing.T) {
 			},
 		}
 		return true, deployment, nil
+	})
+
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas: int32(3),
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
 	})
 
 	mc := &mocks.Clock{}
@@ -1847,6 +1883,24 @@ func TestUpdateSentinelDeployment(t *testing.T) {
 			},
 		}
 		return true, deployment, nil
+	})
+
+	statefulsetSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				ReadyReplicas: statefulsetSize,
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
 	})
 
 	mc := &mocks.Clock{}
@@ -1949,9 +2003,27 @@ func TestUpdateRedisStatefulsetError(t *testing.T) {
 		return true, nil, errors.New("")
 	})
 
+	replicas := int32(3)
+
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+		}
+		return true, deployment, nil
+	})
+
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
 	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
 
 	redisFailover := &failover.RedisFailover{
@@ -2053,6 +2125,20 @@ func TestUpdateRedisStatefulsetWithUpdate(t *testing.T) {
 			}
 		}
 		return true, nil, nil
+	})
+
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+		}
+		return true, deployment, nil
 	})
 
 	mc := &mocks.Clock{}
@@ -2179,6 +2265,20 @@ func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
 		return true, nil, nil
 	})
 
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+		}
+		return true, deployment, nil
+	})
+
 	mc := &mocks.Clock{}
 	mc.On("NewTicker", mock.Anything).
 		Once().Return(time.NewTicker(1))
@@ -2275,6 +2375,20 @@ func TestUpdateRedisStatefulsetTimeoutError(t *testing.T) {
 		statefulset := updateAction.GetObject().(*v1beta1.StatefulSet)
 		updatedRequests = statefulset.Spec.Template.Spec.Containers[0].Resources
 		return true, nil, nil
+	})
+
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+		}
+		return true, deployment, nil
 	})
 
 	mc := &mocks.Clock{}
@@ -2383,6 +2497,20 @@ func TestUpdateRedisStatefulset(t *testing.T) {
 		statefulset := updateAction.GetObject().(*v1beta1.StatefulSet)
 		updatedRequests = statefulset.Spec.Template.Spec.Containers[0].Resources
 		return true, nil, nil
+	})
+
+	client.Fake.AddReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		deployment := &v1beta1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sentinelName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.DeploymentStatus{
+				ReadyReplicas:   replicas,
+				UpdatedReplicas: replicas,
+			},
+		}
+		return true, deployment, nil
 	})
 
 	mc := &mocks.Clock{}
