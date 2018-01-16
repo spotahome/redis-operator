@@ -873,6 +873,7 @@ func TestCreateSentinelDeploymentPDBError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
+				Replicas:      deploymentSize,
 				ReadyReplicas: deploymentSize,
 			},
 		}
@@ -927,6 +928,7 @@ func TestCreateSentinelDeploymentReplicas(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
+				Replicas:      deploymentSize,
 				ReadyReplicas: deploymentSize,
 			},
 		}
@@ -1041,6 +1043,7 @@ func TestCreateSentinelDeploymentTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
+				Replicas:      deploymentSize,
 				ReadyReplicas: deploymentSize,
 			},
 		}
@@ -1094,6 +1097,7 @@ func TestCreateSentinelDeployment(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
+				Replicas:      deploymentSize,
 				ReadyReplicas: deploymentSize,
 			},
 		}
@@ -1312,6 +1316,7 @@ func TestCreateRedisStatefulsetPDBError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -1419,6 +1424,7 @@ func TestCreateRedisStatefulsetReplicas(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -1523,6 +1529,7 @@ func TestCreateRedisStatefulsetTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -1561,6 +1568,184 @@ func TestCreateRedisStatefulsetTimeoutError(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestCreateRedisStatefulsetSoftAffinity(t *testing.T) {
+	assert := assert.New(t)
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+
+	statefulsetSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
+				ReadyReplicas: statefulsetSize,
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
+	})
+
+	client.Fake.AddReactor("get", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("")
+	})
+	client.Fake.AddReactor("create", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, nil
+	})
+
+	expectedAffinity := &v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+				v1.WeightedPodAffinityTerm{
+					Weight: 100,
+					PodAffinityTerm: v1.PodAffinityTerm{
+						TopologyKey: "kubernetes.io/hostname",
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app":       "redis-failover",
+								"component": "redis",
+								"redis":     "test",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	createdAffinity := &v1.Affinity{}
+
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("create", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		createAction := action.(k8stesting.CreateAction)
+		statefulset := createAction.GetObject().(*v1beta1.StatefulSet)
+		createdAffinity = statefulset.Spec.Template.Spec.Affinity
+
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.CreateRedisStatefulset(redisFailover)
+	assert.NoError(err)
+	assert.Equal(expectedAffinity, createdAffinity)
+}
+
+func TestCreateRedisStatefulsetHardAffinity(t *testing.T) {
+	assert := assert.New(t)
+
+	// Create a faked K8S client
+	client := &fake.Clientset{}
+
+	statefulsetSize := int32(3)
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		// Create the statefulset to be returned with Replicas = 3
+		statefulset := &v1beta1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      redisName,
+				Namespace: namespace,
+			},
+			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
+				ReadyReplicas: statefulsetSize,
+			},
+		}
+
+		// Return the statefulset as if we where the API responding to GET statefulsets
+		return true, statefulset, nil
+	})
+
+	client.Fake.AddReactor("get", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("")
+	})
+	client.Fake.AddReactor("create", "poddisruptionbudgets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, nil
+	})
+
+	expectedAffinity := &v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+				v1.PodAffinityTerm{
+					TopologyKey: "kubernetes.io/hostname",
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app":       "redis-failover",
+							"component": "redis",
+							"redis":     "test",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	createdAffinity := &v1.Affinity{}
+
+	// Add a reactor when calling pods
+	client.Fake.AddReactor("create", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		createAction := action.(k8stesting.CreateAction)
+		statefulset := createAction.GetObject().(*v1beta1.StatefulSet)
+		createdAffinity = statefulset.Spec.Template.Spec.Affinity
+
+		return true, nil, nil
+	})
+
+	mc := &mocks.Clock{}
+	mc.On("NewTicker", mock.Anything).
+		Once().Return(time.NewTicker(1))
+	mc.On("After", mock.Anything).
+		Once().Return(time.After(time.Hour))
+	r := failover.NewRedisFailoverKubeClient(client, mc, log.Nil)
+
+	redisFailover := &failover.RedisFailover{
+		Metadata: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: failover.RedisFailoverSpec{
+			HardAntiAffinity: true,
+			Redis: failover.RedisSettings{
+				Replicas: int32(3),
+			},
+			Sentinel: failover.SentinelSettings{
+				Replicas: int32(3),
+			},
+		},
+	}
+
+	err := r.CreateRedisStatefulset(redisFailover)
+	assert.NoError(err)
+	assert.Equal(expectedAffinity, createdAffinity)
+}
+
 func TestCreateRedisStatefulset(t *testing.T) {
 	assert := assert.New(t)
 
@@ -1577,6 +1762,7 @@ func TestCreateRedisStatefulset(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -1671,8 +1857,8 @@ func TestUpdateSentinelDeploymentError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 			Spec: v1beta1.DeploymentSpec{
 				Template: v1.PodTemplateSpec{
@@ -1700,6 +1886,7 @@ func TestUpdateSentinelDeploymentError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -1758,8 +1945,8 @@ func TestUpdateSentinelDeploymentTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 			Spec: v1beta1.DeploymentSpec{
 				Template: v1.PodTemplateSpec{
@@ -1785,6 +1972,7 @@ func TestUpdateSentinelDeploymentTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      int32(3),
 				ReadyReplicas: int32(3),
 			},
 		}
@@ -1866,8 +2054,8 @@ func TestUpdateSentinelDeployment(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 			Spec: v1beta1.DeploymentSpec{
 				Template: v1.PodTemplateSpec{
@@ -1895,6 +2083,7 @@ func TestUpdateSentinelDeployment(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
+				Replicas:      statefulsetSize,
 				ReadyReplicas: statefulsetSize,
 			},
 		}
@@ -2012,8 +2201,8 @@ func TestUpdateRedisStatefulsetError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 		}
 		return true, deployment, nil
@@ -2075,18 +2264,10 @@ func TestUpdateRedisStatefulsetWithUpdate(t *testing.T) {
 	// Create a faked K8S client
 	client := &fake.Clientset{}
 	client.Fake.AddReactor("get", "statefulsets", func(action k8stesting.Action) (bool, runtime.Object, error) {
-		r := replicas
-		if called {
-			r = replicasUpdated
-		}
 		statefulset := &v1beta1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      redisName,
 				Namespace: namespace,
-			},
-			Status: v1beta1.StatefulSetStatus{
-				ReadyReplicas:   r,
-				UpdatedReplicas: r,
 			},
 			Spec: v1beta1.StatefulSetSpec{
 				Template: v1.PodTemplateSpec{
@@ -2134,8 +2315,8 @@ func TestUpdateRedisStatefulsetWithUpdate(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 		}
 		return true, deployment, nil
@@ -2220,8 +2401,8 @@ func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				ReadyReplicas:   r,
-				UpdatedReplicas: r,
+				ReadyReplicas: r,
+				Replicas:      r,
 			},
 			Spec: v1beta1.StatefulSetSpec{
 				Template: v1.PodTemplateSpec{
@@ -2272,8 +2453,8 @@ func TestUpdateRedisStatefulsetWithoutUpdate(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 		}
 		return true, deployment, nil
@@ -2343,8 +2524,8 @@ func TestUpdateRedisStatefulsetTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				ReadyReplicas:   r,
-				UpdatedReplicas: r,
+				ReadyReplicas: r,
+				Replicas:      r,
 			},
 			Spec: v1beta1.StatefulSetSpec{
 				Template: v1.PodTemplateSpec{
@@ -2384,8 +2565,8 @@ func TestUpdateRedisStatefulsetTimeoutError(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 		}
 		return true, deployment, nil
@@ -2465,8 +2646,8 @@ func TestUpdateRedisStatefulset(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.StatefulSetStatus{
-				ReadyReplicas:   r,
-				UpdatedReplicas: r,
+				ReadyReplicas: r,
+				Replicas:      r,
 			},
 			Spec: v1beta1.StatefulSetSpec{
 				Template: v1.PodTemplateSpec{
@@ -2506,8 +2687,8 @@ func TestUpdateRedisStatefulset(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
-				ReadyReplicas:   replicas,
-				UpdatedReplicas: replicas,
+				ReadyReplicas: replicas,
+				Replicas:      replicas,
 			},
 		}
 		return true, deployment, nil
@@ -3158,6 +3339,7 @@ func TestCreatePDBAlreadyExists(t *testing.T) {
 				Namespace: namespace,
 			},
 			Status: v1beta1.DeploymentStatus{
+				Replicas:      deploymentSize,
 				ReadyReplicas: deploymentSize,
 			},
 		}
