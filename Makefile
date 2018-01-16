@@ -1,5 +1,5 @@
 # The following are targers that do not exist in the filesystem as real files and should be always executed by make
-.PHONY: default build deps-development docker-build shell run image unit-test test generate go-generate get-deps update-deps
+.PHONY: default build deps-development docker-build shell run image unit-test test generate go-generate get-deps update-deps testing
 VERSION := 0.1.5
 
 # Name of this service/application
@@ -81,6 +81,10 @@ image: deps-development
 	-t $(REPOSITORY):$(BRANCH) \
 	-f $(APP_DIR)/Dockerfile \
 	.
+
+testing: image
+	docker push $(REPOSITORY):$(BRANCH)
+
 tag:
 	git tag $(VERSION)
 
