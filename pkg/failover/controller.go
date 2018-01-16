@@ -244,7 +244,7 @@ func (r *RedisFailoverController) OnUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	if new.Spec.Sentinel != old.Spec.Sentinel {
+	if new.Spec.Sentinel != old.Spec.Sentinel || new.Spec.HardAntiAffinity != old.Spec.HardAntiAffinity {
 		logger.Info("Updating Sentinel deployment...")
 		logger.Debugf("OLD: \n%+v", old.Spec.Sentinel)
 		logger.Debugf("NEW: \n%+v", new.Spec.Sentinel)
@@ -252,6 +252,8 @@ func (r *RedisFailoverController) OnUpdate(oldObj, newObj interface{}) {
 			new.Status.AppendScalingSentinelUpCondition(old.Spec.Sentinel.Replicas, new.Spec.Sentinel.Replicas)
 		} else if old.Spec.Sentinel.Replicas > new.Spec.Sentinel.Replicas {
 			new.Status.AppendScalingSentinelDownCondition(old.Spec.Sentinel.Replicas, new.Spec.Sentinel.Replicas)
+		} else if new.Spec.HardAntiAffinity != old.Spec.HardAntiAffinity {
+			new.Status.AppendUpdatingSentinelCondition("Change the podAntiAffinity")
 		} else {
 			new.Status.AppendUpdatingSentinelCondition("Change the resources/limits")
 		}
@@ -264,7 +266,8 @@ func (r *RedisFailoverController) OnUpdate(oldObj, newObj interface{}) {
 		}
 		logger.Info("Sentinel Deployment updated!")
 	}
-	if new.Spec.Redis != old.Spec.Redis {
+
+	if new.Spec.Redis != old.Spec.Redis || new.Spec.HardAntiAffinity != old.Spec.HardAntiAffinity {
 		logger.Info("Updating Redis statefulset...")
 		logger.Debugf("OLD: \n%+v", old.Spec.Redis)
 		logger.Debugf("NEW: \n%+v", new.Spec.Redis)
@@ -272,6 +275,8 @@ func (r *RedisFailoverController) OnUpdate(oldObj, newObj interface{}) {
 			new.Status.AppendScalingRedisUpCondition(old.Spec.Redis.Replicas, new.Spec.Redis.Replicas)
 		} else if old.Spec.Redis.Replicas > new.Spec.Redis.Replicas {
 			new.Status.AppendScalingRedisDownCondition(old.Spec.Redis.Replicas, new.Spec.Redis.Replicas)
+		} else if new.Spec.HardAntiAffinity != old.Spec.HardAntiAffinity {
+			new.Status.AppendUpdatingSentinelCondition("Change the podAntiAffinity")
 		} else {
 			new.Status.AppendUpdatingRedisCondition("Change the resources/limits")
 		}
@@ -284,6 +289,7 @@ func (r *RedisFailoverController) OnUpdate(oldObj, newObj interface{}) {
 		}
 		logger.Info("Redis statefulset updated!")
 	}
+
 	new.Status.SetReadyCondition()
 	if _, err := r.Client.UpdateStatus(new); err != nil {
 		logger.Errorf("Error updating status: %s", err)
