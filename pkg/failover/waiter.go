@@ -63,7 +63,7 @@ func (r *RedisFailoverKubeClient) waitForDeployment(name string, namespace strin
 		case <-t.C:
 			logger.Debug("Waiting for Sentinel deployment to be fully operative")
 			deployment, _ := r.Client.AppsV1beta1().Deployments(namespace).Get(name, metav1.GetOptions{})
-			if deployment.Status.ReadyReplicas == replicas {
+			if deployment.Status.ReadyReplicas == replicas && deployment.Status.Replicas == replicas {
 				return nil
 			}
 		case <-to:
@@ -82,7 +82,7 @@ func (r *RedisFailoverKubeClient) waitForStatefulset(name string, namespace stri
 		case <-t.C:
 			logger.Debug("Waiting for Redis statefulset to be fully operative")
 			statefulset, _ := r.Client.AppsV1beta1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
-			if statefulset.Status.ReadyReplicas == replicas {
+			if statefulset.Status.ReadyReplicas == replicas && statefulset.Status.Replicas == replicas {
 				return nil
 			}
 		case <-to:

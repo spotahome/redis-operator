@@ -429,18 +429,7 @@ func (r *RedisFailoverKubeClient) CreateSentinelDeployment(rf *RedisFailover) er
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					Affinity: &v1.Affinity{
-						PodAntiAffinity: &v1.PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
-								v1.PodAffinityTerm{
-									TopologyKey: hostnameTopologyKey,
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: labels,
-									},
-								},
-							},
-						},
-					},
+					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					InitContainers: []v1.Container{
 						v1.Container{
 							Name:            "sentinel-config",
@@ -579,18 +568,7 @@ func (r *RedisFailoverKubeClient) CreateRedisStatefulset(rf *RedisFailover) erro
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					Affinity: &v1.Affinity{
-						PodAntiAffinity: &v1.PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
-								v1.PodAffinityTerm{
-									TopologyKey: hostnameTopologyKey,
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: labels,
-									},
-								},
-							},
-						},
-					},
+					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					InitContainers: []v1.Container{
 						v1.Container{
 							Name:            "redis-config",
@@ -761,6 +739,7 @@ func (r *RedisFailoverKubeClient) createPodDisruptionBudget(rf *RedisFailover, n
 func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) error {
 	namespace := rf.Metadata.Namespace
 	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
+	labels := generateLabels(sentinelRoleName, rf.Metadata.Name)
 
 	quorum := rf.GetQuorum()
 	replicas := rf.Spec.Sentinel.Replicas
@@ -784,6 +763,7 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 	oldSD.Spec.Template.Spec.InitContainers[0].Env = initEnv
 	oldSD.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
 	oldSD.Spec.Template.Spec.Containers[0].Resources = getSentinelResources(rf.Spec)
+	oldSD.Spec.Template.Spec.Affinity = createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels)
 
 	if err := r.waitForStatefulset(r.GetRedisName(rf), namespace, rf.Spec.Redis.Replicas, logger); err != nil {
 		return err
@@ -800,6 +780,7 @@ func (r *RedisFailoverKubeClient) UpdateSentinelDeployment(rf *RedisFailover) er
 func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) error {
 	namespace := rf.Metadata.Namespace
 	logger := r.logger.WithField(logNameField, rf.Metadata.Name).WithField(logNamespaceField, rf.Metadata.Namespace)
+	labels := generateLabels(redisRoleName, rf.Metadata.Name)
 
 	replicas := rf.Spec.Redis.Replicas
 
@@ -811,6 +792,7 @@ func (r *RedisFailoverKubeClient) UpdateRedisStatefulset(rf *RedisFailover) erro
 	oldSS.Spec.Replicas = &replicas
 	oldSS.Spec.Template.Spec.Containers[0].Resources = getRedisResources(rf.Spec)
 	oldSS.Spec.Template.Spec.Containers[0].Image = getRedisImage(rf)
+	oldSS.Spec.Template.Spec.Affinity = createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels)
 
 	if rf.Spec.Redis.Exporter {
 		found := false
@@ -1020,6 +1002,41 @@ func createRedisExporterContainer() v1.Container {
 			Requests: v1.ResourceList{
 				v1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
 				v1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+			},
+		},
+	}
+}
+
+func createPodAntiAffinity(hard bool, labels map[string]string) *v1.Affinity {
+	if hard {
+		// Return a HARD anti-affinity (no same pods on one node)
+		return &v1.Affinity{
+			PodAntiAffinity: &v1.PodAntiAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+					v1.PodAffinityTerm{
+						TopologyKey: hostnameTopologyKey,
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: labels,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	// Return a SOFT anti-affinity
+	return &v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+				v1.WeightedPodAffinityTerm{
+					Weight: 100,
+					PodAffinityTerm: v1.PodAffinityTerm{
+						TopologyKey: hostnameTopologyKey,
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: labels,
+						},
+					},
+				},
 			},
 		},
 	}

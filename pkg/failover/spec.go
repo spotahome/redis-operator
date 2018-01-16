@@ -43,6 +43,10 @@ type RedisFailoverSpec struct {
 
 	// Sentinel defines its failover settings
 	Sentinel SentinelSettings `json:"sentinel,omitempty"`
+
+	// HardAntiAffinity defines if the PodAntiAffinity on the deployments and
+	// statefulsets has to be hard (it's soft by default)
+	HardAntiAffinity bool `json:"hardAntiAffinity,omitempty"`
 }
 
 // RedisFailover represents a Redis failover
