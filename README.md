@@ -56,21 +56,22 @@ metadata:
   name: myredisfailover
   namespace: mynamespace
 spec:
+  hardAntiAffinity: false  # Optional. Value by default. If true, the pods will not be scheduled on the same node.
   sentinel:
-    replicas: 3        # Optional. Value by default, can be set higher.
-    resources:         # Optional. If not set, it won't be defined on created reosurces
+    replicas: 3            # Optional. Value by default, can be set higher.
+    resources:             # Optional. If not set, it won't be defined on created reosurces
       requests:
         cpu: 100m
       limits:
         memory: 100Mi
   redis:
-    replicas: 3        # Optional. Value by default, can be set higher.
-    resources:         # Optional. If not set, it won't be defined on created reosurces
+    replicas: 3            # Optional. Value by default, can be set higher.
+    resources:             # Optional. If not set, it won't be defined on created reosurces
       requests:
         cpu: 100m
       limits:
         memory: 100Mi
-    exporter: false    # Optional. False by default. Adds a redis-exporter container to export metrics.
+    exporter: false        # Optional. False by default. Adds a redis-exporter container to export metrics.
 ~~~~
 
 ## Creation pipeline
@@ -125,4 +126,3 @@ You can do the following commands with make:
 `make update-deps`
 * Build the app image.
 `make image`
-
