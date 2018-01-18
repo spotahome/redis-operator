@@ -1,7 +1,9 @@
 package crd
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -70,9 +72,10 @@ func NewCRD(config rest.Config, signalChan chan int, kind string, domain string,
 
 // Create creates the crd on k8s
 func (t *CRD) Create() error {
+	crdName := fmt.Sprintf("%s.%s", t.apiName, t.domain)
 	crd := &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s.%s", t.apiName, t.domain),
+			Name: crdName,
 		},
 		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
 			Group:   t.domain,
@@ -85,7 +88,37 @@ func (t *CRD) Create() error {
 	}
 
 	_, err := t.clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	return err
+	if err != nil {
+		return err
+	}
+	return t.waitForCRD(crdName)
+}
+
+func (t *CRD) waitForCRD(crdName string) error {
+	finished := make(chan struct{})
+	timeout := make(chan struct{})
+	defer close(timeout)
+
+	go func() {
+		for range time.NewTicker(10 * time.Millisecond).C {
+			_, err := t.clientset.Apiextensions().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+			if err == nil {
+				finished <- struct{}{}
+				return
+			}
+			select {
+			case <-timeout:
+				return
+			default:
+			}
+		}
+	}()
+	select {
+	case <-time.After(5 * time.Second):
+		return errors.New("timeout waiting for CRD creation")
+	case <-finished:
+		return nil
+	}
 }
 
 func (t *CRD) createClient() (*rest.RESTClient, error) {
