@@ -154,18 +154,6 @@ func (m *Main) loadKubernetesConfig() (*rest.Config, error) {
 	return cfg, nil
 }
 
-func (m *Main) createKubernetesClientWithTimeout(timeout time.Duration) (kubernetes.Interface, error) {
-	config, err := m.loadKubernetesConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Set default rest cli timeout.
-	config.Timeout = timeout
-
-	return kubernetes.NewForConfig(config)
-}
-
 func (m *Main) createKubernetesClients() (kubernetes.Interface, redisfailoverclientset.Interface, apiextensionsclientset.Interface, error) {
 	config, err := m.loadKubernetesConfig()
 	if err != nil {
