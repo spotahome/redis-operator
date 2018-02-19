@@ -35,7 +35,6 @@ func (w *redisfailoverCRD) Initialize() error {
 		Scope:      redisfailoverv1alpha2.RFScope,
 	}
 
-	// TODO: wait for creation.
 	return w.service.EnsureCRD(crd)
 }
 

@@ -7,7 +7,6 @@ import (
 )
 
 func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, or []metav1.OwnerReference) error {
-	// logger := w.logger.WithField("name", rf.Name).WithField("namespace", rf.Namespace)
 	if rf.Spec.Redis.Exporter {
 		if err := w.rfService.EnsureRedisService(rf, labels, or); err != nil {
 			return err

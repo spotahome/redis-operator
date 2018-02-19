@@ -55,7 +55,7 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 }
 
 // Add will ensure the redis failover is in the expected state.
-func (w *RedisFailoverHandler) Add(obj runtime.Object) error {
+func (r *RedisFailoverHandler) Add(obj runtime.Object) error {
 	rf, ok := obj.(*redisfailoverv1alpha2.RedisFailover)
 	if !ok {
 		return fmt.Errorf("can't handle redis failover state, parentLabels map[string]string, ownerRefs []metav1.OwnerReferencenot a redisfailover object")
@@ -63,32 +63,32 @@ func (w *RedisFailoverHandler) Add(obj runtime.Object) error {
 
 	// Create owner refs so the objects manager by this handler have ownership to the
 	// received RF.
-	oRefs := w.createOwnerReferences(rf)
+	oRefs := r.createOwnerReferences(rf)
 
 	// Create the labels every object derived from this need to have.
-	labels := w.mergeLabels(rf)
+	labels := r.mergeLabels(rf)
 
-	if err := w.Ensure(rf, labels, oRefs); err != nil {
+	if err := r.Ensure(rf, labels, oRefs); err != nil {
 		return err
 	}
 
-	return w.CheckAndHeal(rf)
+	return r.CheckAndHeal(rf)
 }
 
 // Delete handles the deletion of a RF.
-func (w *RedisFailoverHandler) Delete(name string) error {
+func (r *RedisFailoverHandler) Delete(name string) error {
 	// No need to do anything, it will be handled by the owner reference done
 	// on the creation.
-	w.logger.Debugf("ignoring, kubernetes GCs all using the objects OwnerReference metadata")
+	r.logger.Debugf("ignoring, kubernetes GCs all using the objects OwnerReference metadata")
 	return nil
 }
 
 // mergeLabels merges all the labels (dynamic and operator static ones).
-func (w *RedisFailoverHandler) mergeLabels(rf *redisfailoverv1alpha2.RedisFailover) map[string]string {
+func (r *RedisFailoverHandler) mergeLabels(rf *redisfailoverv1alpha2.RedisFailover) map[string]string {
 	dynLabels := map[string]string{
 		redisFailoverLabelKey: rf.Name,
 	}
-	return util.MergeLabels(w.labels, dynLabels, rf.Labels)
+	return util.MergeLabels(r.labels, dynLabels, rf.Labels)
 }
 
 func (w *RedisFailoverHandler) createOwnerReferences(rf *redisfailoverv1alpha2.RedisFailover) []metav1.OwnerReference {

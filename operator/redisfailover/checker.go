@@ -11,7 +11,7 @@ const (
 	timeToPrepare = 2 * time.Minute
 )
 
-func (w *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailover) error {
 	// Number of redis is equal as the set on the RF spec
 	// Number of sentinel is equal as the set on the RF spec
 	// Check only one master
@@ -20,81 +20,81 @@ func (w *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 	// All sentinels points to the same redis master
 	// Sentinel has not death nodes
 	// Sentinel knows the correct slave number
-	if err := w.rfChecker.CheckRedisNumber(rf); err != nil {
-		w.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
+	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
 		return nil
 	}
-	if err := w.rfChecker.CheckSentinelNumber(rf); err != nil {
-		w.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
+	if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
+		r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
 		return nil
 	}
 
-	nMasters, err := w.rfChecker.GetNumberMasters(rf)
+	nMasters, err := r.rfChecker.GetNumberMasters(rf)
 	if err != nil {
 		return err
 	}
 	switch nMasters {
 	case 0:
-		minTime, err2 := w.rfChecker.GetMinimumRedisPodTime(rf)
+		minTime, err2 := r.rfChecker.GetMinimumRedisPodTime(rf)
 		if err2 != nil {
 			return err2
 		}
 		if minTime > timeToPrepare {
-			w.logger.Debugf("Time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
+			r.logger.Debugf("Time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
 			// We can consider there's an error
-			if err2 := w.rfHealer.SetRandomMaster(rf); err2 != nil {
+			if err2 := r.rfHealer.SetRandomMaster(rf); err2 != nil {
 				return err2
 			}
 		} else {
 			// We'll wait until failover is done
-			w.logger.Debug("No master found, wait until failover")
+			r.logger.Debug("No master found, wait until failover")
 			return nil
 		}
 	case 1:
 		break
 	default:
-		w.mClient.SetClusterError(rf.Namespace, rf.Name)
+		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return errors.New("More than one master, fix manually")
 	}
 
-	master, err := w.rfChecker.GetMasterIP(rf)
+	master, err := r.rfChecker.GetMasterIP(rf)
 	if err != nil {
 		return err
 	}
-	if err2 := w.rfChecker.CheckAllSlavesFromMaster(master, rf); err2 != nil {
-		w.logger.Debug("Not all slaves have the same master")
-		if err3 := w.rfHealer.SetMasterOnAll(master, rf); err3 != nil {
+	if err2 := r.rfChecker.CheckAllSlavesFromMaster(master, rf); err2 != nil {
+		r.logger.Debug("Not all slaves have the same master")
+		if err3 := r.rfHealer.SetMasterOnAll(master, rf); err3 != nil {
 			return err3
 		}
 	}
-	sentinels, err := w.rfChecker.GetSentinelsIPs(rf)
+	sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
 	if err != nil {
 		return err
 	}
 	for _, sip := range sentinels {
-		if err := w.rfChecker.CheckSentinelMonitor(sip, master); err != nil {
-			w.logger.Debug("Sentinel is not monitoring the correct master")
-			if err := w.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
+		if err := r.rfChecker.CheckSentinelMonitor(sip, master); err != nil {
+			r.logger.Debug("Sentinel is not monitoring the correct master")
+			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
 			}
 		}
 	}
 	for _, sip := range sentinels {
-		if err := w.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
-			w.logger.Debug("Sentinel has more sentinel in memory than spected")
-			if err := w.rfHealer.RestoreSentinel(sip); err != nil {
+		if err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
+			r.logger.Debug("Sentinel has more sentinel in memory than spected")
+			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
 				return err
 			}
 		}
 	}
 	for _, sip := range sentinels {
-		if err := w.rfChecker.CheckSentinelSlavesNumberInMemory(sip, rf); err != nil {
-			w.logger.Debug("Sentinel has more slaves in memory than spected")
-			if err := w.rfHealer.RestoreSentinel(sip); err != nil {
+		if err := r.rfChecker.CheckSentinelSlavesNumberInMemory(sip, rf); err != nil {
+			r.logger.Debug("Sentinel has more slaves in memory than spected")
+			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
 				return err
 			}
 		}
 	}
-	w.mClient.SetClusterOK(rf.Namespace, rf.Name)
+	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
 	return nil
 }
