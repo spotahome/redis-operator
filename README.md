@@ -47,7 +47,7 @@ spec:
 ## Usage
 In order to deploy a new redis-failover inside kubernetes, a specification has to be created. Here is a template:
 ~~~~
-apiVersion: spotahome.com/v1alpha1
+apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
   name: myredisfailover
