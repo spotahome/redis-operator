@@ -150,6 +150,8 @@ type Ring struct {
 	shards     map[string]*ringShard
 	shardsList []*ringShard
 
+	processPipeline func([]Cmder) error
+
 	cmdsInfoOnce internal.Once
 	cmdsInfo     map[string]*CommandInfo
 
@@ -158,7 +160,9 @@ type Ring struct {
 
 func NewRing(opt *RingOptions) *Ring {
 	const nreplicas = 100
+
 	opt.init()
+
 	ring := &Ring{
 		opt:       opt,
 		nreplicas: nreplicas,
@@ -166,13 +170,17 @@ func NewRing(opt *RingOptions) *Ring {
 		hash:   consistenthash.New(nreplicas, nil),
 		shards: make(map[string]*ringShard),
 	}
-	ring.setProcessor(ring.Process)
+	ring.processPipeline = ring.defaultProcessPipeline
+	ring.cmdable.setProcessor(ring.Process)
+
 	for name, addr := range opt.Addrs {
 		clopt := opt.clientOptions()
 		clopt.Addr = addr
 		ring.addShard(name, NewClient(clopt))
 	}
+
 	go ring.heartbeat()
+
 	return ring
 }
 
@@ -298,6 +306,9 @@ func (c *Ring) cmdInfo(name string) *CommandInfo {
 	if err != nil {
 		return nil
 	}
+	if c.cmdsInfo == nil {
+		return nil
+	}
 	info := c.cmdsInfo[name]
 	if info == nil {
 		internal.Logf("info for cmd=%s not found", name)
@@ -343,8 +354,19 @@ func (c *Ring) shardByName(name string) (*ringShard, error) {
 
 func (c *Ring) cmdShard(cmd Cmder) (*ringShard, error) {
 	cmdInfo := c.cmdInfo(cmd.Name())
-	firstKey := cmd.arg(cmdFirstKeyPos(cmd, cmdInfo))
+	pos := cmdFirstKeyPos(cmd, cmdInfo)
+	if pos == 0 {
+		return c.randomShard()
+	}
+	firstKey := cmd.stringArg(pos)
 	return c.shardByKey(firstKey)
+}
+
+func (c *Ring) WrapProcess(fn func(oldProcess func(cmd Cmder) error) func(cmd Cmder) error) {
+	c.ForEachShard(func(c *Client) error {
+		c.WrapProcess(fn)
+		return nil
+	})
 }
 
 func (c *Ring) Process(cmd Cmder) error {
@@ -429,21 +451,27 @@ func (c *Ring) Close() error {
 
 func (c *Ring) Pipeline() Pipeliner {
 	pipe := Pipeline{
-		exec: c.pipelineExec,
+		exec: c.processPipeline,
 	}
-	pipe.setProcessor(pipe.Process)
+	pipe.cmdable.setProcessor(pipe.Process)
 	return &pipe
 }
 
 func (c *Ring) Pipelined(fn func(Pipeliner) error) ([]Cmder, error) {
-	return c.Pipeline().pipelined(fn)
+	return c.Pipeline().Pipelined(fn)
 }
 
-func (c *Ring) pipelineExec(cmds []Cmder) error {
+func (c *Ring) WrapProcessPipeline(
+	fn func(oldProcess func([]Cmder) error) func([]Cmder) error,
+) {
+	c.processPipeline = fn(c.processPipeline)
+}
+
+func (c *Ring) defaultProcessPipeline(cmds []Cmder) error {
 	cmdsMap := make(map[string][]Cmder)
 	for _, cmd := range cmds {
 		cmdInfo := c.cmdInfo(cmd.Name())
-		name := cmd.arg(cmdFirstKeyPos(cmd, cmdInfo))
+		name := cmd.stringArg(cmdFirstKeyPos(cmd, cmdInfo))
 		if name != "" {
 			name = c.hash.Get(hashtag.Key(name))
 		}
@@ -477,7 +505,7 @@ func (c *Ring) pipelineExec(cmds []Cmder) error {
 			}
 			_ = shard.Client.connPool.Remove(cn)
 
-			if canRetry && internal.IsRetryableError(err) {
+			if canRetry && internal.IsRetryableError(err, true) {
 				if failedCmdsMap == nil {
 					failedCmdsMap = make(map[string][]Cmder)
 				}
@@ -492,4 +520,12 @@ func (c *Ring) pipelineExec(cmds []Cmder) error {
 	}
 
 	return firstCmdsErr(cmds)
+}
+
+func (c *Ring) TxPipeline() Pipeliner {
+	panic("not implemented")
+}
+
+func (c *Ring) TxPipelined(fn func(Pipeliner) error) ([]Cmder, error) {
+	panic("not implemented")
 }

@@ -1,0 +1,9 @@
+## 0.1.0 / 2018-02-15
+
+* [FEATURE] Add CRD client check for kubernetes apiserver (>=1.7)
+* [FEATURE] Add CRD ensure (waits to be present after registering a CRD)
+* [FEATURE] Add CRD client tooling
+* [FEATURE] Add multiple CRD and multiple controller operator.
+* [FEATURE] Add single CRD and single controller operator.
+* [FEATURE] Add sequential controller implementation.
+* [FEATURE] Dependencies managed by dep and vendored.
