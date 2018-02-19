@@ -1,4 +1,4 @@
-apiVersion: spotahome.com/v1alpha1
+apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
   name: rfexample
@@ -20,4 +20,4 @@ spec:
       limits:
         cpu: 400m
         memory: 500Mi
-    exporter: true
+    exporter: false

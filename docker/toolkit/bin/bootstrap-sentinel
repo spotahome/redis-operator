@@ -1,7 +1,0 @@
-#!/bin/sh
-
-config=$(mktemp)
-
-generate-sentinel-config ${config}
-
-redis-sentinel ${config}
