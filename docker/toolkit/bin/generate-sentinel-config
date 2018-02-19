@@ -1,9 +1,0 @@
-#!/bin/sh
-
-config=${1:-/redis/sentinel.conf}
-master=$(get-redis-master)
-
-echo "sentinel monitor mymaster ${master} 6379 ${SENTINEL_QUORUM:-2}" > ${config}
-echo "sentinel down-after-milliseconds mymaster ${SENTINEL_DOWN_MS:-1000}" >> ${config}
-echo "sentinel failover-timeout mymaster ${SENTINEL_FAILOVER_TIMEOUT_MS:-3000}" >> ${config}
-echo "sentinel parallel-syncs mymaster 1" >> ${config}
