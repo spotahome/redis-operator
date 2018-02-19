@@ -11,7 +11,7 @@ import (
 // Level refers to the level of logging
 type Level string
 
-// Logger is an interface that needs to be implemented in order to log on Ragnarok.
+// Logger is an interface that needs to be implemented in order to log.
 type Logger interface {
 	Debug(...interface{})
 	Debugln(...interface{})
@@ -24,6 +24,7 @@ type Logger interface {
 	Warn(...interface{})
 	Warnln(...interface{})
 	Warnf(string, ...interface{})
+	Warningf(string, ...interface{})
 
 	Error(...interface{})
 	Errorln(...interface{})
@@ -82,6 +83,10 @@ func (l logger) Warnf(format string, args ...interface{}) {
 	l.sourced().Warnf(format, args...)
 }
 
+func (l logger) Warningf(format string, args ...interface{}) {
+	l.sourced().Warnf(format, args...)
+}
+
 func (l logger) Error(args ...interface{}) {
 	l.sourced().Error(args...)
 }
@@ -105,7 +110,6 @@ func (l logger) Fatalln(args ...interface{}) {
 func (l logger) Fatalf(format string, args ...interface{}) {
 	l.sourced().Fatalf(format, args...)
 }
-
 func (l logger) Panic(args ...interface{}) {
 	l.sourced().Panic(args...)
 }
@@ -119,6 +123,7 @@ func (l logger) Panicf(format string, args ...interface{}) {
 func (l logger) With(key string, value interface{}) Logger {
 	return &logger{l.entry.WithField(key, value)}
 }
+
 func (l logger) WithField(key string, value interface{}) Logger {
 	return &logger{l.entry.WithField(key, value)}
 }
