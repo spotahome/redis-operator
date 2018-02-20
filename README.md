@@ -11,7 +11,7 @@ Redis Operator is meant to be run on Kubernetes 1.8+.
 All dependecies have been vendored, so there's no need to any additional download.
 
 ### Versions deployed
-The image versions deployed by the operator can be found on the [constants file](operator/redisfailover/constants.go) for the RedisFailover service.
+The image versions deployed by the operator can be found on the [constants file](operator/redisfailover/service/constants.go) for the RedisFailover service.
 
 ## Images
 ### Redis Operator
@@ -28,6 +28,7 @@ kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/mas
 This will create a deployment named `redisoperator`.
 
 ### Using the Helm chart
+From the root folder of the project, execute the following:
 ```
 helm install --name redisfailover charts/redisfailover
 ```
