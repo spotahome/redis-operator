@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: redisoperator
+  name: redisoperator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redisoperator
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: redisoperator
+    spec:
+      containers:
+      - image: quay.io/spotahome/redis-operator:0.2.0
+        imagePullPolicy: IfNotPresent
+        name: app
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 10m
+            memory: 50Mi
+      restartPolicy: Always

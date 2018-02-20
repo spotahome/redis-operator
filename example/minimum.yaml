@@ -1,5 +1,4 @@
 apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
-  name: rfexample
-  namespace: example
+  name: redisfailover
