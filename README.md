@@ -1,131 +1,74 @@
-# redis-operator [![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator) [![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
-Redis Operator creates/configures/manages redis failovers atop Kubernetes.
+# redis-operator
+[![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator)
+[![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
+
+**NOTE**: This is an alpha-status project. We do regular tests on the code and functionality, but we can not assure a production-ready stability.
+
+Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
 ## Requirements
 Redis Operator is meant to be run on Kubernetes 1.8+.
 All dependecies have been vendored, so there's no need to any additional download.
 
-### Images
-#### Redis Operator
+### Versions deployed
+The image versions deployed by the operator can be found on the [constants file](operator/redisfailover/service/constants.go) for the RedisFailover service.
+
+## Images
+### Redis Operator
 [![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 
 ## Operator deployment on kubernetes
-In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed:
-~~~~
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  labels:
-    app: redisoperator
-  name: redisoperator
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redisoperator
-  strategy:
-    type: RollingUpdate
-  template:
-    metadata:
-      labels:
-        app: redisoperator
-    spec:
-      containers:
-      - image: quay.io/spotahome/redis-operator:0.2.0
-        imagePullPolicy: IfNotPresent
-        name: app
-        resources:
-          limits:
-            cpu: 100m
-            memory: 50Mi
-          requests:
-            cpu: 10m
-            memory: 50Mi
-      restartPolicy: Always
-~~~~
+In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with a [deployment](example/operator.yaml) or with the provided [Helm chart](charts/redisoperator).
+
+### Using a Deployment
+To create the operator, you can directly create it with kubectl:
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator.yaml
+```
+This will create a deployment named `redisoperator`.
+
+### Using the Helm chart
+From the root folder of the project, execute the following:
+```
+helm install --name redisfailover charts/redisfailover
+```
 
 ## Usage
-In order to deploy a new redis-failover inside kubernetes, a specification has to be created. Here is a template:
-~~~~
-apiVersion: storage.spotahome.com/v1alpha2
-kind: RedisFailover
-metadata:
-  name: myredisfailover
-  namespace: mynamespace
-spec:
-  hardAntiAffinity: false  # Optional. Value by default. If true, the pods will not be scheduled on the same node.
-  sentinel:
-    replicas: 3            # Optional. Value by default, can be set higher.
-    resources:             # Optional. If not set, it won't be defined on created reosurces
-      requests:
-        cpu: 100m
-      limits:
-        memory: 100Mi
-  redis:
-    replicas: 3            # Optional. Value by default, can be set higher.
-    resources:             # Optional. If not set, it won't be defined on created reosurces
-      requests:
-        cpu: 100m
-      limits:
-        memory: 100Mi
-    exporter: false        # Optional. False by default. Adds a redis-exporter container to export metrics.
-~~~~
+Once the operator is deployed inside a Kubernetes cluster, a new API will be accesible, so you'll be able to create, update and delete redisfailovers.
 
-## Creation pipeline
-The redis-operator creates a redis failover, with all the needed pieces. It does this in two separated steps:
-* Ensure: checks that all the pieces needed are created.
-    * Redis statefulset
-    * Sentinel Deployment
-    * Sentinel service
-    * Redis service (if exporter enabled)
-* Check & Heal: checks that the failover is working and configured as spected.
-    * Number of redis is equal as the set on the RF spec
-    * Number of sentinel is equal as the set on the RF spec
-    * Only one redis working as a master
-    * All redis slaves have the same master
-    * All redis slaves are connected to the master
-    * All sentinels points to the same redis master
-    * Sentinel has not death nodes
-    * Sentinel knows the correct slave number
+In order to deploy a new redis-failover a [specification](example/redisfailover.yaml) has to be created:
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover.yaml
+```
 
-## Code folder structure
-* api: definition of the RedisFailover CRD.
-* client: autogenerated client to interact with redis-failovers.
-* cmd: contains the starting point of the application.
-* log: wrapper of logrus, created to be able to mock it.
-* metrics: exposer of status of the failovers created.
-* mocks: contains the mocked interfaces for testing the application.
-* operator: the main logic. Manages the requests from k8s and creates/updates/deletes the pieces as needed.
-* service: services/clients to interact with k8s and redises.
-* vendor: vendored packages used by the application.
+This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
+* `rfr-<NAME>`: Redis configmap
+* `rfr-<NAME>`: Redis statefulset
+* `rfr-<NAME>`: Redis service (if redis-exporter is enabled)
+* `rfs-<NAME>`: Sentinel configmap
+* `rfs-<NAME>`: Sentinel deployment
+* `rfs-<NAME>`: Sentinel service
 
-## Non-code folder structure
-* charts: helm chart to deploy the TPR.
-* docker: Dockerfiles to generate redis-failover docker images.
-* example: yaml files with spec of redis-failover.
-* hack: scripts to generate the client.
-* scripts: scripts used to build and run the app.
+**NOTE**: `NAME` is the named provided when creating the RedisFailover.
 
-## Development
-### With Make
-You can do the following commands with make:
-* Build the development container.
-`make docker-build`
-* Generate mocks.
-`make go-generate`
-* Generate client
-`make update-codegen`
-* Run tests.
-`make test`
-* Build the executable file.
-`make build`
-* Run the app.
-`make run`
-* Access the docker instance with a shell.
-`make shell`
-* Install dependencies
-`make get-deps`
-* Update dependencies
-`make update-deps`
-* Build the app image.
-`make image`
+### Connection
+In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
+The connection parameters are the following:
+```
+url: rfs-<NAME>
+port: 26379
+master-name: mymaster
+```
+
+## Cleanup
+If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted.
+
+Also, the CRD has to be deleted too:
+```
+kubectl delete crd redisfailovers.storage.spotahome.com
+```
+
+## Documentation
+For the code documentation, you can lookup on the [GoDoc](https://godoc.org/github.com/spotahome/redis-operator).
+
+Also, you can check more deeply information on the [docs folder](docs).

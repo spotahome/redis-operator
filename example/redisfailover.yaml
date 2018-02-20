@@ -1,23 +1,23 @@
 apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
-  name: rfexample
-  namespace: example
+  name: redisfailover
 spec:
+  hardAntiAffinity: false  # Optional. Value by default. If true, the pods will not be scheduled on the same node.
   sentinel:
-    replicas: 3
-    resources:
+    replicas: 3            # Optional. 3 by default, can be set higher.
+    resources:             # Optional. If not set, it won't be defined on created reosurces.
       requests:
         cpu: 100m
       limits:
         memory: 100Mi
   redis:
-    replicas: 3
-    resources:
+    replicas: 3            # Optional. 3 by default, can be set higher.
+    resources:             # Optional. If not set, it won't be defined on created reosurces
       requests:
         cpu: 100m
         memory: 100Mi
       limits:
         cpu: 400m
         memory: 500Mi
-    exporter: false
+    exporter: false         # Optional. False by default. Adds a redis-exporter container to export metrics.
