@@ -219,7 +219,7 @@ func (c *client) GetSentinelMonitor(ip string) (string, error) {
 	}
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
-	cmd := rediscli.NewSliceCmd("SENTINEL", "master", "mymaster")
+	cmd := rediscli.NewSliceCmd("SENTINEL", "master", masterName)
 	rClient.Process(cmd)
 	res, err := cmd.Result()
 	if err != nil {
