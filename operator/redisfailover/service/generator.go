@@ -31,7 +31,7 @@ func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Name:       "sentinel",
 					Port:       26379,
 					TargetPort: sentinelTargetPort,
@@ -59,7 +59,7 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 			Type:      corev1.ServiceTypeClusterIP,
 			ClusterIP: corev1.ClusterIPNone,
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Port:     exporterPort,
 					Protocol: corev1.ProtocolTCP,
 					Name:     exporterPortName,
@@ -144,19 +144,19 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 				Spec: corev1.PodSpec{
 					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					Containers: []corev1.Container{
-						corev1.Container{
+						{
 							Name:            "redis",
 							Image:           redisImage,
 							ImagePullPolicy: "Always",
 							Ports: []corev1.ContainerPort{
-								corev1.ContainerPort{
+								{
 									Name:          "redis",
 									ContainerPort: 6379,
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								corev1.VolumeMount{
+								{
 									Name:      "redis-config",
 									MountPath: "/redis",
 								},
@@ -195,7 +195,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 						},
 					},
 					Volumes: []corev1.Volume{
-						corev1.Volume{
+						{
 							Name: "redis-config",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -246,21 +246,53 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 				},
 				Spec: corev1.PodSpec{
 					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					InitContainers: []corev1.Container{
+						{
+							Name:            "sentinel-config-copy",
+							Image:           "alpine",
+							ImagePullPolicy: "IfNotPresent",
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "sentinel-config",
+									MountPath: "/redis",
+								},
+								{
+									Name:      "sentinel-config-writable",
+									MountPath: "/redis-writable",
+								},
+							},
+							Command: []string{
+								"cp",
+								fmt.Sprintf("/redis/%s", sentinelConfigFileName),
+								fmt.Sprintf("/redis-writable/%s", sentinelConfigFileName),
+							},
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10m"),
+									corev1.ResourceMemory: resource.MustParse("10Mi"),
+								},
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("10m"),
+									corev1.ResourceMemory: resource.MustParse("10Mi"),
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
-						corev1.Container{
+						{
 							Name:            "sentinel",
 							Image:           redisImage,
 							ImagePullPolicy: "Always",
 							Ports: []corev1.ContainerPort{
-								corev1.ContainerPort{
+								{
 									Name:          "sentinel",
 									ContainerPort: 26379,
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								corev1.VolumeMount{
-									Name:      "sentinel-config",
+								{
+									Name:      "sentinel-config-writable",
 									MountPath: "/redis",
 								},
 							},
@@ -299,7 +331,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 						},
 					},
 					Volumes: []corev1.Volume{
-						corev1.Volume{
+						{
 							Name: "sentinel-config",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -307,6 +339,12 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 										Name: name,
 									},
 								},
+							},
+						},
+						{
+							Name: "sentinel-config-writable",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -372,7 +410,7 @@ func createRedisExporterContainer() corev1.Container {
 		Image:           exporterImage,
 		ImagePullPolicy: "Always",
 		Ports: []corev1.ContainerPort{
-			corev1.ContainerPort{
+			{
 				Name:          "metrics",
 				ContainerPort: exporterPort,
 				Protocol:      corev1.ProtocolTCP,
@@ -416,7 +454,7 @@ func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.Affinity
 		return &corev1.Affinity{
 			PodAntiAffinity: &corev1.PodAntiAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-					corev1.PodAffinityTerm{
+					{
 						TopologyKey: hostnameTopologyKey,
 						LabelSelector: &metav1.LabelSelector{
 							MatchLabels: labels,
@@ -431,7 +469,7 @@ func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.Affinity
 	return &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-				corev1.WeightedPodAffinityTerm{
+				{
 					Weight: 100,
 					PodAffinityTerm: corev1.PodAffinityTerm{
 						TopologyKey: hostnameTopologyKey,

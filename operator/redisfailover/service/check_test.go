@@ -170,7 +170,7 @@ func TestCheckAllSlavesFromMasterGetSlaveOfError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "",
 				},
@@ -196,7 +196,7 @@ func TestCheckAllSlavesFromMasterDifferentMaster(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -222,7 +222,7 @@ func TestCheckAllSlavesFromMaster(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -263,7 +263,7 @@ func TestCheckSentinelNumberInMemoryGetNumberSentinelInMemoryError(t *testing.T)
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -289,7 +289,7 @@ func TestCheckSentinelNumberInMemoryNumberMismatch(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -315,7 +315,7 @@ func TestCheckSentinelNumberInMemory(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -356,7 +356,7 @@ func TestCheckSentinelSlavesNumberInMemoryGetNumberSentinelSlavesInMemoryError(t
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -382,7 +382,7 @@ func TestCheckSentinelSlavesNumberInMemoryReplicasMismatch(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -408,7 +408,7 @@ func TestCheckSentinelSlavesNumberInMemory(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -488,7 +488,7 @@ func TestGetMasterIPIsMasterError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -514,12 +514,12 @@ func TestGetMasterIPMultipleMastersError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -546,12 +546,12 @@ func TestGetMasterIP(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -594,7 +594,7 @@ func TestGetNumberMastersIsMasterError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -620,12 +620,12 @@ func TestGetNumberMasters(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -653,12 +653,12 @@ func TestGetNumberMastersTwo(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -705,14 +705,14 @@ func TestGetMinimumRedisPodTime(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					StartTime: &metav1.Time{
 						Time: oneHour,
 					},
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					StartTime: &metav1.Time{
 						Time: oneMinute,
