@@ -20,7 +20,7 @@ func TestSetRandomMasterNewMasterError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -46,7 +46,7 @@ func TestSetRandomMaster(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
@@ -72,12 +72,12 @@ func TestSetRandomMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -104,12 +104,12 @@ func TestSetRandomMasterMultiplePods(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -136,12 +136,12 @@ func TestSetMasterOnAllMakeMasterError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -167,12 +167,12 @@ func TestSetMasterOnAllMakeSlaveOfError(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
@@ -199,12 +199,12 @@ func TestSetMasterOnAll(t *testing.T) {
 
 	pods := &corev1.PodList{
 		Items: []corev1.Pod{
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
 				},
 			},
-			corev1.Pod{
+			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
 				},
