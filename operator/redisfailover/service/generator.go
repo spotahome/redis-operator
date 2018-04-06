@@ -54,6 +54,11 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
+			Annotations: map[string]string{
+				"prometheus.io/scrape": "true",
+				"prometheus.io/port":   "http",
+				"prometheus.io/path":   "/metrics",
+			},
 		},
 		Spec: corev1.ServiceSpec{
 			Type:      corev1.ServiceTypeClusterIP,
@@ -409,6 +414,17 @@ func createRedisExporterContainer() corev1.Container {
 		Name:            exporterContainerName,
 		Image:           exporterImage,
 		ImagePullPolicy: "Always",
+		Env: []corev1.EnvVar{
+			{
+				Name: "REDIS_ALIAS",
+				ValueFrom:
+					&corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.name",
+						},
+					},
+			},
+		},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "metrics",
