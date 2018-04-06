@@ -31,6 +31,7 @@ PORT := 9710
 
 # CMDs
 UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
+INTEGRATION_TEST_CMD := go test `go list ./... | grep -v vendor` -v -tags='integration'
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
 GET_DEPS_CMD := dep ensure
 UPDATE_DEPS_CMD := dep ensure
@@ -107,8 +108,13 @@ release: tag image publish
 unit-test: docker-build
 	docker run -ti --rm -v $(PWD):$(WORKDIR) -u $(UID):$(UID) --name $(SERVICE_NAME) $(REPOSITORY)-dev /bin/sh -c '$(UNIT_TEST_CMD)'
 
+# Run both integration and unit tests
+.PHONY: integration-test
+integration-test: docker-build
+	docker run -ti --rm -v $(PWD):$(WORKDIR) -u $(UID):$(UID) --name $(SERVICE_NAME) $(REPOSITORY)-dev /bin/sh -c '$(INTEGRATION_TEST_CMD)'
+
 .PHONY: test
-test: unit-test
+test: integration-test
 
 .PHONY: go-generate
 go-generate: docker-build
