@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 SUDO=''
 if [[ $(id -u) -ne 0 ]]
@@ -17,13 +17,14 @@ trap cleanup EXIT
 echo "=> Preparing minikube for running integration tests"
 $SUDO minikube start --vm-driver=none
 
-# Wait a few seconds for Kubernetes to run
+echo "=> Waiting for minikube to start"
 sleep 30
 
 # Hack for Travis. The kubeconfig has to be readable
-if [ -f /home/travis/.kube/config ]
+if [[ -v IN_TRAVIS ]]
 then
-    $SUDO chmod a+rw /home/travis/.kube/config
+    $SUDO chmod a+r ${HOME}/.kube/config
+    $SUDO chmod a+r ${HOME}/.minikube/client.key
 fi
 
 echo "=> Running integration tests"

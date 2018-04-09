@@ -109,7 +109,7 @@ unit-test: docker-build
 
 # Run both integration and unit tests
 .PHONY: integration-test
-integration-test: docker-build
+integration-test:
 	./scripts/integration-tests.sh
 
 .PHONY: test
