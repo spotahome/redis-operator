@@ -1,6 +1,6 @@
-FROM golang:1.9-alpine
+FROM golang:1.10-alpine
 
-ENV CODEGEN_VERSION="1.9.1"
+ENV CODEGEN_VERSION="1.10.0"
 
 RUN apk --no-cache add \
     bash \
@@ -12,7 +12,7 @@ RUN apk --no-cache add \
 # Check: https://github.com/kubernetes/kubernetes/pull/57656
 RUN wget http://github.com/kubernetes/code-generator/archive/kubernetes-${CODEGEN_VERSION}.tar.gz && \
     mkdir -p /go/src/k8s.io/code-generator/ && \
-    tar zxvf kubernetes-1.9.1.tar.gz --strip 1 -C /go/src/k8s.io/code-generator/ && \
+    tar zxvf kubernetes-${CODEGEN_VERSION}.tar.gz --strip 1 -C /go/src/k8s.io/code-generator/ && \
     mkdir -p /go/src/k8s.io/kubernetes/hack/boilerplate/ && \
     touch /go/src/k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt
 
