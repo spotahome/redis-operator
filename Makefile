@@ -107,8 +107,13 @@ release: tag image publish
 unit-test: docker-build
 	docker run -ti --rm -v $(PWD):$(WORKDIR) -u $(UID):$(UID) --name $(SERVICE_NAME) $(REPOSITORY)-dev /bin/sh -c '$(UNIT_TEST_CMD)'
 
+# Run both integration and unit tests
+.PHONY: integration-test
+integration-test:
+	./scripts/integration-tests.sh
+
 .PHONY: test
-test: unit-test
+test: unit-test integration-test
 
 .PHONY: go-generate
 go-generate: docker-build
