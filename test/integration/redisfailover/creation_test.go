@@ -42,13 +42,14 @@ type clients struct {
 	redisClient redis.Client
 }
 
-func (c *clients) prepareNS() {
+func (c *clients) prepareNS() error {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	c.k8sClient.CoreV1().Namespaces().Create(ns)
+	_, err := c.k8sClient.CoreV1().Namespaces().Create(ns)
+	return err
 }
 
 func (c *clients) cleanup(stopC chan struct{}) {
@@ -56,7 +57,6 @@ func (c *clients) cleanup(stopC chan struct{}) {
 	close(stopC)
 }
 
-// Run execs the program.
 func TestRedisFailover(t *testing.T) {
 	require := require.New(t)
 
@@ -87,7 +87,11 @@ func TestRedisFailover(t *testing.T) {
 	k8sservice := k8s.New(stdclient, customclient, aeClientset, log.Dummy)
 
 	// Prepare namespace
-	clients.prepareNS()
+	prepErr := clients.prepareNS()
+	require.NoError(prepErr)
+
+	// Give time to the namespace to be ready
+	time.Sleep(15 * time.Second)
 
 	// Create operator and run.
 	redisfailoverOperator := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
@@ -101,15 +105,28 @@ func TestRedisFailover(t *testing.T) {
 	// Give time to the operator to start
 	time.Sleep(15 * time.Second)
 
+	// Check that if we create a RedisFailover, it is certainly created and we can get it
 	ok := t.Run("Check Custom Resource Creation", clients.testCRCreation)
 	require.True(ok, "the custom resource has to be created to continue")
 
 	// Giving time to the operator to create the resources
 	time.Sleep(6 * time.Minute)
 
+	// Check that a Redis Statefulset is created and the size of it is the one defined by the
+	// Redis Failover definition created before.
 	t.Run("Check Redis Statefulset existing and size", clients.testRedisStatefulSet)
+
+	// Check that a Sentinel Deployment is created and the size of it is the one defined by the
+	// Redis Failover definition created before.
 	t.Run("Check Sentinel Deployment existing and size", clients.testSentinelDeployment)
+
+	// Connect to all the Redis pods and, asking to the Redis running inside them, check
+	// that only one of them is the master of the failover.
 	t.Run("Check Only One Redis Master", clients.testRedisMaster)
+
+	// Connect to all the Sentinel pods and, asking to the Sentinel running inside them,
+	// check that all of them are connected to the same Redis node, and also that that node
+	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
 }
 
