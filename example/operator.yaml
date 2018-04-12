@@ -17,7 +17,7 @@ spec:
         app: redisoperator
     spec:
       containers:
-      - image: quay.io/spotahome/redis-operator:0.2.0
+      - image: quay.io/spotahome/redis-operator:latest
         imagePullPolicy: IfNotPresent
         name: app
         resources:
