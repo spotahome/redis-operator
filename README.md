@@ -30,7 +30,7 @@ This will create a deployment named `redisoperator`.
 ### Using the Helm chart
 From the root folder of the project, execute the following:
 ```
-helm install --name redisfailover charts/redisfailover
+helm install --name redisfailover charts/redisoperator
 ```
 
 ## Usage
