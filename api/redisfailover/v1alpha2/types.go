@@ -1,6 +1,7 @@
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,16 +31,18 @@ type RedisFailoverSpec struct {
 
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
-	Replicas  int32                  `json:"replicas,omitempty"`
-	Resources RedisFailoverResources `json:"resources,omitempty"`
-	Exporter  bool                   `json:"exporter,omitempty"`
-	Version   string                 `json:"version,omitempty"`
+	Replicas     int32                  `json:"replicas,omitempty"`
+	Resources    RedisFailoverResources `json:"resources,omitempty"`
+	Exporter     bool                   `json:"exporter,omitempty"`
+	Version      string                 `json:"version,omitempty"`
+	NodeAffinity *corev1.NodeAffinity   `json:"nodeAffinity,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
-	Replicas  int32                  `json:"replicas,omitempty"`
-	Resources RedisFailoverResources `json:"resources,omitempty"`
+	Replicas     int32                  `json:"replicas,omitempty"`
+	Resources    RedisFailoverResources `json:"resources,omitempty"`
+	NodeAffinity *corev1.NodeAffinity   `json:"nodeAffinity,omitempty"`
 }
 
 // RedisFailoverResources sets the limits and requests for a container

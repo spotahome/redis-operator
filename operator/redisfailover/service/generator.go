@@ -147,7 +147,10 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					Affinity: &corev1.Affinity{
+						NodeAffinity:    rf.Spec.Redis.NodeAffinity,
+						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -250,7 +253,10 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					Affinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					Affinity: &corev1.Affinity{
+						NodeAffinity:    rf.Spec.Sentinel.NodeAffinity,
+						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					},
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
@@ -417,12 +423,11 @@ func createRedisExporterContainer() corev1.Container {
 		Env: []corev1.EnvVar{
 			{
 				Name: "REDIS_ALIAS",
-				ValueFrom:
-					&corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.name",
-						},
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
 					},
+				},
 			},
 		},
 		Ports: []corev1.ContainerPort{
@@ -464,17 +469,15 @@ func createRedisExporterContainer() corev1.Container {
 	}
 }
 
-func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.Affinity {
+func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.PodAntiAffinity {
 	if hard {
 		// Return a HARD anti-affinity (no same pods on one node)
-		return &corev1.Affinity{
-			PodAntiAffinity: &corev1.PodAntiAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-					{
-						TopologyKey: hostnameTopologyKey,
-						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: labels,
-						},
+		return &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					TopologyKey: hostnameTopologyKey,
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: labels,
 					},
 				},
 			},
@@ -482,16 +485,14 @@ func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.Affinity
 	}
 
 	// Return a SOFT anti-affinity
-	return &corev1.Affinity{
-		PodAntiAffinity: &corev1.PodAntiAffinity{
-			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-				{
-					Weight: 100,
-					PodAffinityTerm: corev1.PodAffinityTerm{
-						TopologyKey: hostnameTopologyKey,
-						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: labels,
-						},
+	return &corev1.PodAntiAffinity{
+		PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+			{
+				Weight: 100,
+				PodAffinityTerm: corev1.PodAffinityTerm{
+					TopologyKey: hostnameTopologyKey,
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: labels,
 					},
 				},
 			},
