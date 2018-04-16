@@ -27,22 +27,24 @@ type RedisFailoverSpec struct {
 	// HardAntiAffinity defines if the PodAntiAffinity on the deployments and
 	// statefulsets has to be hard (it's soft by default)
 	HardAntiAffinity bool `json:"hardAntiAffinity,omitempty"`
+
+	// NodeAffinity defines the rules for scheduling the Redis and Sentinel
+	// nodes
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
-	Replicas     int32                  `json:"replicas,omitempty"`
-	Resources    RedisFailoverResources `json:"resources,omitempty"`
-	Exporter     bool                   `json:"exporter,omitempty"`
-	Version      string                 `json:"version,omitempty"`
-	NodeAffinity *corev1.NodeAffinity   `json:"nodeAffinity,omitempty"`
+	Replicas  int32                  `json:"replicas,omitempty"`
+	Resources RedisFailoverResources `json:"resources,omitempty"`
+	Exporter  bool                   `json:"exporter,omitempty"`
+	Version   string                 `json:"version,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
-	Replicas     int32                  `json:"replicas,omitempty"`
-	Resources    RedisFailoverResources `json:"resources,omitempty"`
-	NodeAffinity *corev1.NodeAffinity   `json:"nodeAffinity,omitempty"`
+	Replicas  int32                  `json:"replicas,omitempty"`
+	Resources RedisFailoverResources `json:"resources,omitempty"`
 }
 
 // RedisFailoverResources sets the limits and requests for a container

@@ -148,7 +148,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 				},
 				Spec: corev1.PodSpec{
 					Affinity: &corev1.Affinity{
-						NodeAffinity:    rf.Spec.Redis.NodeAffinity,
+						NodeAffinity:    rf.Spec.NodeAffinity,
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					Containers: []corev1.Container{
@@ -254,7 +254,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 				},
 				Spec: corev1.PodSpec{
 					Affinity: &corev1.Affinity{
-						NodeAffinity:    rf.Spec.Sentinel.NodeAffinity,
+						NodeAffinity:    rf.Spec.NodeAffinity,
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					InitContainers: []corev1.Container{
