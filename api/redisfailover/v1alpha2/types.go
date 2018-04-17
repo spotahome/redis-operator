@@ -1,6 +1,7 @@
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,6 +27,10 @@ type RedisFailoverSpec struct {
 	// HardAntiAffinity defines if the PodAntiAffinity on the deployments and
 	// statefulsets has to be hard (it's soft by default)
 	HardAntiAffinity bool `json:"hardAntiAffinity,omitempty"`
+
+	// NodeAffinity defines the rules for scheduling the Redis and Sentinel
+	// nodes
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 // RedisSettings defines the specification of the redis cluster

@@ -15,7 +15,7 @@ function cleanup {
 trap cleanup EXIT
 
 echo "=> Preparing minikube for running integration tests"
-$SUDO minikube start --vm-driver=none
+$SUDO minikube start --vm-driver=none --kubernetes-version=v1.9.4
 
 echo "=> Waiting for minikube to start"
 sleep 30
