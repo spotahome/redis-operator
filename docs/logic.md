@@ -5,7 +5,6 @@ The Redis-Operator creates Redis Failovers, with all the needed pieces. So, when
 * Ensure: checks that all the pieces needed are created. It is important to notice that if a change is performed manually on the objects created, the operator will override them. This is done to ensure a healthy status. It will create the following:
     * Redis configmap
     * Redis statefulset
-    * Redis service (if exporter enabled)
     * Sentinel configmap
     * Sentinel deployment
     * Sentinel service
