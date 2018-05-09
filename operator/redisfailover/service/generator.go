@@ -42,39 +42,6 @@ func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map
 	}
 }
 
-func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
-	name := GetRedisName(rf)
-	namespace := rf.Namespace
-
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
-
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
-			Namespace:       namespace,
-			Labels:          labels,
-			OwnerReferences: ownerRefs,
-			Annotations: map[string]string{
-				"prometheus.io/scrape": "true",
-				"prometheus.io/port":   "http",
-				"prometheus.io/path":   "/metrics",
-			},
-		},
-		Spec: corev1.ServiceSpec{
-			Type:      corev1.ServiceTypeClusterIP,
-			ClusterIP: corev1.ClusterIPNone,
-			Ports: []corev1.ServicePort{
-				{
-					Port:     exporterPort,
-					Protocol: corev1.ProtocolTCP,
-					Name:     exporterPortName,
-				},
-			},
-			Selector: labels,
-		},
-	}
-}
-
 func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace

@@ -7,15 +7,6 @@ import (
 )
 
 func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, or []metav1.OwnerReference) error {
-	if rf.Spec.Redis.Exporter {
-		if err := w.rfService.EnsureRedisService(rf, labels, or); err != nil {
-			return err
-		}
-	} else {
-		if err := w.rfService.EnsureNotPresentRedisService(rf); err != nil {
-			return err
-		}
-	}
 	if err := w.rfService.EnsureSentinelService(rf, labels, or); err != nil {
 		return err
 	}
