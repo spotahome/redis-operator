@@ -189,6 +189,11 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	if rf.Spec.Redis.Exporter {
 		exporter := createRedisExporterContainer()
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
+		ss.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"prometheus.io/scrape": "true",
+			"prometheus.io/port":   "metrics",
+			"prometheus.io/path":   "/metrics",
+		}
 	}
 
 	return ss
