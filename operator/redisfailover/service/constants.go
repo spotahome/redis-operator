@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"os"
 )
 
 const (
@@ -9,18 +10,7 @@ const (
 	logNamespaceField = "namespace"
 )
 
-const (
-	// ExporterImage defines the redis exporter image
-	ExporterImage = "oliver006/redis_exporter"
-	// ExporterImageVersion defines the redis exporter version
-	ExporterImageVersion = "v0.11.3"
-	// RedisImage defines the redis image
-	RedisImage = "redis"
-	// RedisImageVersion defines the redis image version
-	RedisImageVersion = "3.2-alpine"
-)
 
-// variables refering to the redis exporter port
 const (
 	exporterPort                 = 9121
 	exporterPortName             = "http-metrics"
@@ -42,10 +32,24 @@ const (
 	redisName              = "r"
 	redisRoleName          = "redis"
 	redisGroupName         = "mymaster"
-	appLabel               = "redis-failover"
+	//appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
 )
 
 var (
 	exporterImage = fmt.Sprintf("%s:%s", ExporterImage, ExporterImageVersion)
+
+	// ExporterImage defines the redis exporter image
+	ExporterImage = os.Getenv("REDIS_EXPORTER_IMAGE")
+	// ExporterImageVersion defines the redis exporter version
+	ExporterImageVersion = os.Getenv("REDIS_EXPORTER_IMAGE_VERSION")
+	// RedisImage defines the redis image
+	RedisImage = os.Getenv("REDIS_IMAGE")
+	// RedisImageVersion defines the redis image version
+	RedisImageVersion = os.Getenv("REDIS_IMAGE_VERSION")
+
+  //app label variable to have more redis operators in cluster
+	//Manage a Redis Failover deployment
+  appLabel = os.Getenv("APP_LABEL")
+// variables refering to the redis exporter port
 )
