@@ -11,36 +11,8 @@ type RedisFailoverClient struct {
 	mock.Mock
 }
 
-// EnsureNotPresentRedisService provides a mock function with given fields: rFailover
-func (_m *RedisFailoverClient) EnsureNotPresentRedisService(rFailover *v1alpha2.RedisFailover) error {
-	ret := _m.Called(rFailover)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*v1alpha2.RedisFailover) error); ok {
-		r0 = rf(rFailover)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // EnsureRedisConfigMap provides a mock function with given fields: rFailover, labels, ownerRefs
 func (_m *RedisFailoverClient) EnsureRedisConfigMap(rFailover *v1alpha2.RedisFailover, labels map[string]string, ownerRefs []v1.OwnerReference) error {
-	ret := _m.Called(rFailover, labels, ownerRefs)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*v1alpha2.RedisFailover, map[string]string, []v1.OwnerReference) error); ok {
-		r0 = rf(rFailover, labels, ownerRefs)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// EnsureRedisService provides a mock function with given fields: rFailover, labels, ownerRefs
-func (_m *RedisFailoverClient) EnsureRedisService(rFailover *v1alpha2.RedisFailover, labels map[string]string, ownerRefs []v1.OwnerReference) error {
 	ret := _m.Called(rFailover, labels, ownerRefs)
 
 	var r0 error

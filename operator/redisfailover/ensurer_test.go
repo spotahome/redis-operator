@@ -78,11 +78,7 @@ func TestEnsure(t *testing.T) {
 			mrfc := &mRFService.RedisFailoverCheck{}
 			mrfh := &mRFService.RedisFailoverHeal{}
 			mrfs := &mRFService.RedisFailoverClient{}
-			if test.exporter {
-				mrfs.On("EnsureRedisService", rf, mock.Anything, mock.Anything).Once().Return(nil)
-			} else {
-				mrfs.On("EnsureNotPresentRedisService", rf).Once().Return(nil)
-			}
+
 			mrfs.On("EnsureSentinelService", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			mrfs.On("EnsureSentinelConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			mrfs.On("EnsureRedisConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)

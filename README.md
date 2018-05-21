@@ -44,7 +44,6 @@ kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/mas
 This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
 * `rfr-<NAME>`: Redis configmap
 * `rfr-<NAME>`: Redis statefulset
-* `rfr-<NAME>`: Redis service (if redis-exporter is enabled)
 * `rfs-<NAME>`: Sentinel configmap
 * `rfs-<NAME>`: Sentinel deployment
 * `rfs-<NAME>`: Sentinel service

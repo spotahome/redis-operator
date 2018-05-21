@@ -19,9 +19,7 @@ type RedisFailoverClient interface {
 	EnsureSentinelConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelDeployment(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisStatefulset(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureRedisService(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureNotPresentRedisService(rFailover *redisfailoverv1alpha2.RedisFailover) error
 }
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
@@ -87,23 +85,6 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1alph
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	cm := generateRedisConfigMap(rf, labels, ownerRefs)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
-}
-
-// EnsureRedisService makes sure the redis statefulset exists
-func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	svc := generateRedisService(rf, labels, ownerRefs)
-	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
-}
-
-// EnsureNotPresentRedisService makes sure the redis service is not present
-func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailoverv1alpha2.RedisFailover) error {
-	name := GetRedisName(rf)
-	namespace := rf.Namespace
-	// If the service exists (no get error), delete it
-	if _, err := r.K8SService.GetService(namespace, name); err == nil {
-		return r.K8SService.DeleteService(namespace, name)
-	}
-	return nil
 }
 
 // EnsureRedisStatefulset makes sure the pdb exists in the desired state
