@@ -1,6 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  namespace: default
   labels:
     app: redisoperator
   name: redisoperator
@@ -13,9 +14,11 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      namespace: default
       labels:
         app: redisoperator
     spec:
+      containers:
       - image: gridson/redis-operator:1.5-tmp
         imagePullPolicy: IfNotPresent
         env:
@@ -28,7 +31,7 @@ spec:
           - name: REDIS_IMAGE_VERSION
             value: "3.2.5"
           - name: APP_LABEL
-            value: "redisfailover"
+            value: "redisfailover-test"
         name: app
         resources:
           limits:
