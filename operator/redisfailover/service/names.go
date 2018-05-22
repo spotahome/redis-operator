@@ -8,11 +8,17 @@ import (
 
 // GetRedisName returns the name for redis resources
 func GetRedisName(rf *redisfailoverv1alpha2.RedisFailover) string {
+	if rf.Spec.Redis.ConfigMap != "" {
+		return rf.Spec.Redis.ConfigMap
+	}
 	return generateName(redisName, rf.Name)
 }
 
 // GetSentinelName returns the name for sentinel resources
 func GetSentinelName(rf *redisfailoverv1alpha2.RedisFailover) string {
+	if rf.Spec.Sentinel.ConfigMap != "" {
+		return rf.Spec.Sentinel.ConfigMap
+	}
 	return generateName(sentinelName, rf.Name)
 }
 

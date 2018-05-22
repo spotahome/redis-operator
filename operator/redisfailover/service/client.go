@@ -52,8 +52,14 @@ func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1alpha
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateSentinelConfigMap(rf, labels, ownerRefs)
-	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	cx, err := r.K8SService.GetConfigMap(rf.Namespace, GetSentinelName(rf))
+	if err != nil {
+		log.Error("cant find sentinel configmap")
+		cm := generateSentinelConfigMap(rf, labels, ownerRefs)
+		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	}
+	log.Infof("%+v", cx)
+	return nil
 }
 
 // EnsureSentinelDeployment makes sure the sentinel deployment exists in the desired state
@@ -76,8 +82,14 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1alph
 
 // EnsureRedisConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateRedisConfigMap(rf, labels, ownerRefs)
-	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	cx, err := r.K8SService.GetConfigMap(rf.Namespace, GetSentinelName(rf))
+	if err != nil {
+		log.Error("cant find redis configmap")
+		cm := generateRedisConfigMap(rf, labels, ownerRefs)
+		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	}
+	log.Infof("%+v", cx)
+	return nil
 }
 
 // EnsureRedisService makes sure the redis statefulset exists
