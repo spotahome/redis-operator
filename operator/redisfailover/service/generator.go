@@ -76,7 +76,7 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 }
 
 func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
-	name := GetSentinelName(rf)
+	name := GetSentinelConfigMapName(rf)
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
@@ -98,7 +98,7 @@ sentinel parallel-syncs mymaster 2`,
 }
 
 func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
-	name := GetRedisName(rf)
+	name := GetRedisConfigMapName(rf)
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
@@ -119,6 +119,7 @@ tcp-keepalive 60`,
 
 func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.StatefulSet {
 	name := GetRedisName(rf)
+	configMapName := GetRedisConfigMapName(rf)
 	namespace := rf.Namespace
 
 	spec := rf.Spec
@@ -208,7 +209,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: name,
+										Name: configMapName,
 									},
 								},
 							},
@@ -229,6 +230,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 
 func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.Deployment {
 	name := GetSentinelName(rf)
+	configMapName := GetSentinelConfigMapName(rf)
 	namespace := rf.Namespace
 
 	spec := rf.Spec
@@ -347,7 +349,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: name,
+										Name: configMapName,
 									},
 								},
 							},
