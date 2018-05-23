@@ -1,9 +1,5 @@
 package service
 
-import (
-	"fmt"
-)
-
 const (
 	logNameField      = "redisfailover"
 	logNamespaceField = "namespace"
@@ -44,8 +40,4 @@ const (
 	redisGroupName         = "mymaster"
 	appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
-)
-
-var (
-	exporterImage = fmt.Sprintf("%s:%s", ExporterImage, ExporterImageVersion)
 )
