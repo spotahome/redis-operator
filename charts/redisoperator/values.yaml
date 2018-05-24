@@ -14,3 +14,5 @@ rbac:
   install: false
   apiVersion: v1beta1
   imagePullSecrets: []
+redisoperator:
+  name: redisoperator
