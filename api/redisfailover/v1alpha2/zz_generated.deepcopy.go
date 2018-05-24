@@ -5,6 +5,7 @@
 package v1alpha2
 
 import (
+	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -45,7 +46,7 @@ func (in *RedisFailover) DeepCopyInto(out *RedisFailover) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.Spec = in.Spec
+	in.Spec.DeepCopyInto(&out.Spec)
 	in.Status.DeepCopyInto(&out.Status)
 	return
 }
@@ -126,6 +127,15 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 	*out = *in
 	out.Redis = in.Redis
 	out.Sentinel = in.Sentinel
+	if in.NodeAffinity != nil {
+		in, out := &in.NodeAffinity, &out.NodeAffinity
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(v1.NodeAffinity)
+			(*in).DeepCopyInto(*out)
+		}
+	}
 	return
 }
 

@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -36,13 +34,6 @@ func NewRedisFailoverKubeClient(k8sService k8s.Services, logger log.Logger) *Red
 		K8SService: k8sService,
 		logger:     logger,
 	}
-}
-
-func getRedisImage(rf *redisfailoverv1alpha2.RedisFailover) string {
-	if rf.Spec.Redis.Version != "" {
-		return fmt.Sprintf("%s:%s", RedisImage, rf.Spec.Redis.Version)
-	}
-	return fmt.Sprintf("%s:%s", RedisImage, RedisImageVersion)
 }
 
 func generateLabels(component, role string) map[string]string {

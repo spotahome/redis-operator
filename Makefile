@@ -143,7 +143,7 @@ ifndef DOCKER
 endif
 
 # Generate kubernetes code for types..
-.PHONY: update-codege
+.PHONY: update-codegen
 update-codegen: build
 	@echo ">> Generating code for Kubernetes CRD types..."
 	docker run --rm -v $(PWD):/go/src/github.com/spotahome/redis-operator/ $(REPOSITORY)-dev /bin/bash -c '$(UPDATE_CODEGEN_CMD)'

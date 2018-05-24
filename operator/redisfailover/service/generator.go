@@ -220,7 +220,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	}
 
 	if rf.Spec.Redis.Exporter {
-		exporter := createRedisExporterContainer()
+		exporter := createRedisExporterContainer(rf)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
 	}
 
@@ -415,7 +415,8 @@ func generateResourceList(cpu string, memory string) corev1.ResourceList {
 	return resources
 }
 
-func createRedisExporterContainer() corev1.Container {
+func createRedisExporterContainer(rf *redisfailoverv1alpha2.RedisFailover) corev1.Container {
+	exporterImage := getRedisExporterImage(rf)
 	return corev1.Container{
 		Name:            exporterContainerName,
 		Image:           exporterImage,
@@ -502,4 +503,32 @@ func createPodAntiAffinity(hard bool, labels map[string]string) *corev1.PodAntiA
 
 func getQuorum(rf *redisfailoverv1alpha2.RedisFailover) int32 {
 	return rf.Spec.Sentinel.Replicas/2 + 1
+}
+
+func getRedisImage(rf *redisfailoverv1alpha2.RedisFailover) string {
+	image := RedisImage
+	if rf.Spec.Redis.Image != "" {
+		image = rf.Spec.Redis.Image
+	}
+
+	version := RedisImageVersion
+	if rf.Spec.Redis.Version != "" {
+		version = rf.Spec.Redis.Version
+	}
+
+	return fmt.Sprintf("%s:%s", image, version)
+}
+
+func getRedisExporterImage(rf *redisfailoverv1alpha2.RedisFailover) string {
+	image := ExporterImage
+	if rf.Spec.Redis.ExporterImage != "" {
+		image = rf.Spec.Redis.ExporterImage
+	}
+
+	version := ExporterImageVersion
+	if rf.Spec.Redis.ExporterVersion != "" {
+		version = rf.Spec.Redis.ExporterVersion
+	}
+
+	return fmt.Sprintf("%s:%s", image, version)
 }

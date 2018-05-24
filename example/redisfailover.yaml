@@ -3,21 +3,25 @@ kind: RedisFailover
 metadata:
   name: redisfailover
 spec:
-  hardAntiAffinity: false  # Optional. Value by default. If true, the pods will not be scheduled on the same node.
+  hardAntiAffinity: false                    # Optional. Value by default. If true, the pods will not be scheduled on the same node.
   sentinel:
-    replicas: 3            # Optional. 3 by default, can be set higher.
-    resources:             # Optional. If not set, it won't be defined on created reosurces.
+    replicas: 3                              # Optional. 3 by default, can be set higher.
+    resources:                               # Optional. If not set, it won't be defined on created reosurces.
       requests:
         cpu: 100m
       limits:
         memory: 100Mi
   redis:
-    replicas: 3            # Optional. 3 by default, can be set higher.
-    resources:             # Optional. If not set, it won't be defined on created reosurces
+    replicas: 3                              # Optional. 3 by default, can be set higher.
+    image: redis                             # Optional. "redis" by default.
+    version: 3.2-alpine                      # Optional. "3.2-alpine" by default.
+    resources:                               # Optional. If not set, it won't be defined on created reosurces
       requests:
         cpu: 100m
         memory: 100Mi
       limits:
         cpu: 400m
         memory: 500Mi
-    exporter: false         # Optional. False by default. Adds a redis-exporter container to export metrics.
+    exporter: false                          # Optional. False by default. Adds a redis-exporter container to export metrics.
+    exporterImage: oliver006/redis_exporter  # Optional. oliver006/redis_exporter by default.
+    exporterVersion: v0.11.3                 # Optional. v0.11.3 by default.
