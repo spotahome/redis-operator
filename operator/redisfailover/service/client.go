@@ -52,8 +52,15 @@ func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1alpha
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateSentinelConfigMap(rf, labels, ownerRefs)
-	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	if rf.Spec.Sentinel.ConfigMap != "" {
+		if _, err := r.K8SService.GetConfigMap(rf.Namespace, rf.Spec.Sentinel.ConfigMap); err != nil {
+			return err
+		}
+	} else {
+		cm := generateSentinelConfigMap(rf, labels, ownerRefs)
+		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	}
+	return nil
 }
 
 // EnsureSentinelDeployment makes sure the sentinel deployment exists in the desired state
@@ -76,8 +83,15 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1alph
 
 // EnsureRedisConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateRedisConfigMap(rf, labels, ownerRefs)
-	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	if rf.Spec.Redis.ConfigMap != "" {
+		if _, err := r.K8SService.GetConfigMap(rf.Namespace, rf.Spec.Redis.ConfigMap); err != nil {
+			return err
+		}
+	} else {
+		cm := generateRedisConfigMap(rf, labels, ownerRefs)
+		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	}
+	return nil
 }
 
 // EnsureRedisService makes sure the redis statefulset exists
