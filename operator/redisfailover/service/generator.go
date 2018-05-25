@@ -262,7 +262,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
-							Image:           "alpine",
+							Image:           redisImage,
 							ImagePullPolicy: "IfNotPresent",
 							VolumeMounts: []corev1.VolumeMount{
 								{
