@@ -119,13 +119,14 @@ tcp-keepalive 60`,
 
 func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.StatefulSet {
 	name := GetRedisName(rf)
-	configMapName := GetRedisConfigMapName(rf)
 	namespace := rf.Namespace
 
 	spec := rf.Spec
 	redisImage := getRedisImage(rf)
 	resources := getRedisResources(spec)
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+	volumeMounts := getRedisVolumeMounts(rf)
+	volumes := getRedisVolumes(rf)
 
 	ss := &appsv1beta2.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -164,12 +165,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "redis-config",
-									MountPath: "/redis",
-								},
-							},
+							VolumeMounts: volumeMounts,
 							Command: []string{
 								"redis-server",
 								fmt.Sprintf("/redis/%s", redisConfigFileName),
@@ -203,18 +199,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 							Resources: resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "redis-config",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMapName,
-									},
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},
@@ -533,4 +518,47 @@ func getRedisExporterImage(rf *redisfailoverv1alpha2.RedisFailover) string {
 	}
 
 	return fmt.Sprintf("%s:%s", image, version)
+}
+
+func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "redis-config",
+			MountPath: "/redis",
+		},
+	}
+
+	// check if data volume is set, if set, mount to /data
+	if rf.Spec.Redis.DataVolume.Name != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      rf.Spec.Redis.DataVolume.Name,
+			MountPath: "/data",
+		})
+	}
+
+	return volumeMounts
+}
+
+func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
+	configMapName := GetRedisConfigMapName(rf)
+
+	volumes := []corev1.Volume{
+		{
+			Name: "redis-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMapName,
+					},
+				},
+			},
+		},
+	}
+
+	// check if data volume is set, if not set skip it
+	if rf.Spec.Redis.DataVolume.Name != "" {
+		volumes = append(volumes, rf.Spec.Redis.DataVolume)
+	}
+
+	return volumes
 }

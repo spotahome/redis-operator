@@ -43,6 +43,7 @@ type RedisSettings struct {
 	Image           string                 `json:"image,omitempty"`
 	Version         string                 `json:"version,omitempty"`
 	ConfigMap       string                 `json:"configMap,omitempty"`
+	DataVolume      corev1.Volume          `json:"dataVolume,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
