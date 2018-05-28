@@ -67,6 +67,9 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			return err3
 		}
 	}
+	// make redis role lable in pod
+	r.rfHealer.SetRoleLable(master, rf)
+	
 	sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
 	if err != nil {
 		return err
