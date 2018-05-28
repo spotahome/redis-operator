@@ -7,6 +7,7 @@ import (
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
 
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
@@ -15,6 +16,7 @@ type RedisFailoverHeal interface {
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	RestoreSentinel(ip string) error
+	SetRoleLable(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -75,6 +77,28 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+// SetRoleLable sets role tag for statful pod.
+func (r *RedisFailoverHealer) SetRoleLable(masterIP string, rf *redisfailoverv1alpha2.RedisFailover) error {
+	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
+	if err != nil {
+		return err
+	}
+	redisRoleLable := map[string]string{redisRoleLabelName: ""}
+	for _, pod := range ssp.Items{
+		labels := pod.GetLabels()
+		if pod.Status.PodIP == masterIP{
+			r.logger.Debugf("Pod %s is master, updating pod labels as master", pod.Name)
+			redisRoleLable[redisRoleLabelName] = redisMaster
+		}else{
+			r.logger.Debugf("Pod %s is slave, updating pod labels as salve", pod.Name)
+			redisRoleLable[redisRoleLabelName] = redisSlave
+		}
+		labels = util.MergeLabels(labels, redisRoleLable)
+		pod.SetLabels(labels)
 	}
 	return nil
 }
