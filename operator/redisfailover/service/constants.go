@@ -40,4 +40,7 @@ const (
 	redisGroupName         = "mymaster"
 	appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
+	redisRoleLabelName     = "RedisRole"
+	redisMaster            = "master"
+	redisSlave             = "slave"
 )

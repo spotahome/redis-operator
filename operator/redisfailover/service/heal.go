@@ -87,17 +87,17 @@ func (r *RedisFailoverHealer) SetRoleLable(masterIP string, rf *redisfailoverv1a
 	if err != nil {
 		return err
 	}
+	redisRoleLable := map[string]string{redisRoleLabelName: ""}
 	for _, pod := range ssp.Items{
 		labels := pod.GetLabels()
 		if pod.Status.PodIP == masterIP{
 			r.logger.Debugf("Pod %s is master, updating pod labels as master", pod.Name)
-			master_label := map[string]string{"RedisRole": "master"}
-			labels = util.MergeLabels(labels, master_label)
+			redisRoleLable[redisRoleLabelName] = redisMaster
 		}else{
 			r.logger.Debugf("Pod %s is slave, updating pod labels as salve", pod.Name)
-			slave_label := map[string]string{"RedisRole": "slave"}
-			labels = util.MergeLabels(labels, slave_label)
+			redisRoleLable[redisRoleLabelName] = redisSlave
 		}
+		labels = util.MergeLabels(labels, redisRoleLable)
 		pod.SetLabels(labels)
 	}
 	return nil
