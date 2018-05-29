@@ -127,6 +127,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
+	volumeClaimTemplates := getRedisVolumeClaimTemplates(rf)
 
 	ss := &appsv1beta2.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -202,6 +203,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 					Volumes: volumes,
 				},
 			},
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 
@@ -528,12 +530,8 @@ func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volu
 		},
 	}
 
-	// check if data volume is set, if set, mount to /data
-	if rf.Spec.Redis.DataVolume.Name != "" {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      rf.Spec.Redis.DataVolume.Name,
-			MountPath: "/data",
-		})
+	if len(rf.Spec.Redis.VolumeMounts) > 0 {
+		volumeMounts = append(volumeMounts, rf.Spec.Redis.VolumeMounts...)
 	}
 
 	return volumeMounts
@@ -555,10 +553,16 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 		},
 	}
 
-	// check if data volume is set, if not set skip it
-	if rf.Spec.Redis.DataVolume.Name != "" {
-		volumes = append(volumes, rf.Spec.Redis.DataVolume)
+	if len(rf.Spec.Redis.Volumes) > 0 {
+		volumes = append(volumes, rf.Spec.Redis.Volumes...)
 	}
 
 	return volumes
+}
+
+func getRedisVolumeClaimTemplates(rf *redisfailoverv1alpha2.RedisFailover) []corev1.PersistentVolumeClaim {
+	if len(rf.Spec.Redis.VolumeClaimTemplates) > 0 {
+		return rf.Spec.Redis.VolumeClaimTemplates
+	}
+	return []corev1.PersistentVolumeClaim{}
 }
