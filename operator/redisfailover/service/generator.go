@@ -54,11 +54,6 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
-			Annotations: map[string]string{
-				"prometheus.io/scrape": "true",
-				"prometheus.io/port":   "http",
-				"prometheus.io/path":   "/metrics",
-			},
 		},
 		Spec: corev1.ServiceSpec{
 			Type:      corev1.ServiceTypeClusterIP,
@@ -199,7 +194,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 							Resources: resources,
 						},
 					},
-					Volumes: volumes,
+					Volumes:      volumes,
+					NodeSelector: spec.Redis.NodeSelector,
 				},
 			},
 		},
@@ -208,6 +204,11 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	if rf.Spec.Redis.Exporter {
 		exporter := createRedisExporterContainer(rf)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
+		ss.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"prometheus.io/scrape": "true",
+			"prometheus.io/port":   "9121",
+			"prometheus.io/path":   "/metrics",
+		}
 	}
 
 	return ss
@@ -346,6 +347,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 							},
 						},
 					},
+					NodeSelector: spec.Sentinel.NodeSelector,
 				},
 			},
 		},

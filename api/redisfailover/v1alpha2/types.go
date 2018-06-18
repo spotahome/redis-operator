@@ -44,13 +44,15 @@ type RedisSettings struct {
 	Version         string                 `json:"version,omitempty"`
 	ConfigMap       string                 `json:"configMap,omitempty"`
 	DataVolume      corev1.Volume          `json:"dataVolume,omitempty"`
+	NodeSelector    map[string]string      `json:"nodeSelector,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
-	Replicas  int32                  `json:"replicas,omitempty"`
-	Resources RedisFailoverResources `json:"resources,omitempty"`
-	ConfigMap string                 `json:"configMap,omitempty"`
+	Replicas     int32                  `json:"replicas,omitempty"`
+	Resources    RedisFailoverResources `json:"resources,omitempty"`
+	ConfigMap    string                 `json:"configMap,omitempty"`
+	NodeSelector map[string]string      `json:"nodeSelector,omitempty"`
 }
 
 // RedisFailoverResources sets the limits and requests for a container
