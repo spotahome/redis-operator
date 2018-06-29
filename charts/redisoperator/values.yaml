@@ -3,6 +3,7 @@ image: quay.io/spotahome/redis-operator
 tag: latest
 pullPolicy: Always
 team: devops
+containerName: redisoperator
 resources:
   requests:
     cpu: 10m
