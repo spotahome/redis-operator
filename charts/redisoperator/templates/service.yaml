@@ -3,11 +3,11 @@ kind: Service
 metadata:
   name: {{ include "name" . | quote }}
   labels:
-    component: "{{ .Values.redisoperator.name }}"
+    component: app
 {{ include "common-labels" . | indent 4 }}
 spec:
   selector:
-    component: "{{ .Values.redisoperator.name }}"
+    component: app
 {{ include "common-labels" . | indent 4 }}
   ports:
   - name: metrics

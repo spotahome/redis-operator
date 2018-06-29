@@ -3,25 +3,25 @@ kind: Deployment
 metadata:
   name: {{ include "name" . | quote }}
   labels:
-    component: "{{ .Values.redisoperator.name }}"
+    component: app
 {{ include "helm-labels" . | indent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: "{{ .Values.redisoperator.name }}"
+      component: app
 {{ include "common-labels" . | indent 6 }}
   template:
     metadata:
       labels:
-        component: "{{ .Values.redisoperator.name }}"
+        component: app
 {{ include "common-labels" . | indent 8 }}
     spec:
 {{- if .Values.rbac.install }}
       serviceAccountName: {{ include "name" . | quote }}
 {{- end }}
       containers:
-      - name: "{{ .Values.redisoperator.name }}"
+      - name: "{{ .Values.containerName }}"
         image: {{ include "image" . | quote }}
         imagePullPolicy: {{ .Values.pullPolicy }}
         resources:
