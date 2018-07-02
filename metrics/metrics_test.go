@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spotahome/redis-operator/metrics"
@@ -95,7 +97,8 @@ func TestPrometheusMetrics(t *testing.T) {
 
 			// Create the muxer for testing.
 			mx := http.NewServeMux()
-			pm := metrics.NewPrometheusMetrics(path, mx)
+			reg := prometheus.NewRegistry()
+			pm := metrics.NewPrometheusMetrics(path, "redis_operator", mx, reg)
 
 			// Add metrics to prometheus.
 			test.addMetrics(pm)

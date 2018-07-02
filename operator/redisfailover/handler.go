@@ -1,6 +1,7 @@
 package redisfailover
 
 import (
+	"context"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +56,7 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 }
 
 // Add will ensure the redis failover is in the expected state.
-func (r *RedisFailoverHandler) Add(obj runtime.Object) error {
+func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error {
 	rf, ok := obj.(*redisfailoverv1alpha2.RedisFailover)
 	if !ok {
 		return fmt.Errorf("can't handle redis failover state, parentLabels map[string]string, ownerRefs []metav1.OwnerReferencenot a redisfailover object")
@@ -76,7 +77,7 @@ func (r *RedisFailoverHandler) Add(obj runtime.Object) error {
 }
 
 // Delete handles the deletion of a RF.
-func (r *RedisFailoverHandler) Delete(name string) error {
+func (r *RedisFailoverHandler) Delete(_ context.Context, name string) error {
 	// No need to do anything, it will be handled by the owner reference done
 	// on the creation.
 	r.logger.Debugf("ignoring, kubernetes GCs all using the objects OwnerReference metadata")

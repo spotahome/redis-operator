@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	promNamespace           = "redis_operator"
 	promControllerSubsystem = "controller"
 )
 
@@ -30,24 +29,20 @@ type PromMetrics struct {
 }
 
 // NewPrometheusMetrics returns a new PromMetrics object.
-func NewPrometheusMetrics(path string, mux *http.ServeMux) *PromMetrics {
+func NewPrometheusMetrics(path string, namespace string, mux *http.ServeMux, registry *prometheus.Registry) *PromMetrics {
 	// Create metrics.
 	clusterOK := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: promNamespace,
+		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
 		Name:      "cluster_ok",
 		Help:      "Number of failover clusters managed by the operator.",
 	}, []string{"namespace", "name"})
 
-	// Create Prometheus registry, use this instead of the prometheus default registry.
-	// TODO: Do we need go default instrumentation bout the go process metrics?
-	promReg := prometheus.NewRegistry()
-
 	// Create the instance.
 	p := &PromMetrics{
 		clusterOK: clusterOK,
 
-		registry: promReg,
+		registry: registry,
 		path:     path,
 		mux:      mux,
 	}
@@ -56,7 +51,7 @@ func NewPrometheusMetrics(path string, mux *http.ServeMux) *PromMetrics {
 	p.register()
 
 	// Register prometheus handler so we can serve the metrics.
-	handler := promhttp.HandlerFor(promReg, promhttp.HandlerOpts{})
+	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	mux.Handle(path, handler)
 
 	return p
