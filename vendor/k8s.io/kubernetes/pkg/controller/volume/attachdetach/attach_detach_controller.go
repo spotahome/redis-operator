@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package volume implements a controller to manage volume attach and detach
+// Package attachdetach implements a controller to manage volume attach and detach
 // operations.
 package attachdetach
 
@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,7 +48,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/operationexecutor"
-	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
+	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
 )
 
 // TimerConfig contains configuration of internal attach/detach timers and
@@ -135,9 +136,9 @@ func NewAttachDetachController(
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "attachdetach-controller"})
-	blkutil := volumeutil.NewBlockVolumePathHandler()
+	blkutil := volumepathhandler.NewBlockVolumePathHandler()
 
 	adc.desiredStateOfWorld = cache.NewDesiredStateOfWorld(&adc.volumePluginMgr)
 	adc.actualStateOfWorld = cache.NewActualStateOfWorld(&adc.volumePluginMgr)
@@ -335,7 +336,7 @@ func (adc *attachDetachController) populateDesiredStateOfWorld() error {
 	}
 	for _, pod := range pods {
 		podToAdd := pod
-		adc.podAdd(&podToAdd)
+		adc.podAdd(podToAdd)
 		for _, podVolume := range podToAdd.Spec.Volumes {
 			// The volume specs present in the ActualStateOfWorld are nil, let's replace those
 			// with the correct ones found on pods. The present in the ASW with no corresponding
@@ -361,7 +362,7 @@ func (adc *attachDetachController) populateDesiredStateOfWorld() error {
 					err)
 				continue
 			}
-			volumeName, err := volumehelper.GetUniqueVolumeNameFromSpec(plugin, volumeSpec)
+			volumeName, err := volumeutil.GetUniqueVolumeNameFromSpec(plugin, volumeSpec)
 			if err != nil {
 				glog.Errorf(
 					"Failed to find unique name for volume %q, pod %q/%q: %v",
@@ -522,6 +523,10 @@ func (adc *attachDetachController) GetVolumeDevicePluginDir(podUID string) strin
 	return ""
 }
 
+func (adc *attachDetachController) GetPodsDir() string {
+	return ""
+}
+
 func (adc *attachDetachController) GetPodVolumeDir(podUID types.UID, pluginName, volumeName string) string {
 	return ""
 }
@@ -582,15 +587,21 @@ func (adc *attachDetachController) GetConfigMapFunc() func(namespace, name strin
 	}
 }
 
+func (adc *attachDetachController) GetServiceAccountTokenFunc() func(_, _ string, _ *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
+	return func(_, _ string, _ *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
+		return nil, fmt.Errorf("GetServiceAccountToken unsupported in attachDetachController")
+	}
+}
+
 func (adc *attachDetachController) GetExec(pluginName string) mount.Exec {
 	return mount.NewOsExec()
 }
 
 func (adc *attachDetachController) addNodeToDswp(node *v1.Node, nodeName types.NodeName) {
-	if _, exists := node.Annotations[volumehelper.ControllerManagedAttachAnnotation]; exists {
+	if _, exists := node.Annotations[volumeutil.ControllerManagedAttachAnnotation]; exists {
 		keepTerminatedPodVolumes := false
 
-		if t, ok := node.Annotations[volumehelper.KeepTerminatedPodVolumesAnnotation]; ok {
+		if t, ok := node.Annotations[volumeutil.KeepTerminatedPodVolumesAnnotation]; ok {
 			keepTerminatedPodVolumes = (t == "true")
 		}
 
@@ -606,4 +617,8 @@ func (adc *attachDetachController) GetNodeLabels() (map[string]string, error) {
 
 func (adc *attachDetachController) GetNodeName() types.NodeName {
 	return ""
+}
+
+func (adc *attachDetachController) GetEventRecorder() record.EventRecorder {
+	return adc.recorder
 }

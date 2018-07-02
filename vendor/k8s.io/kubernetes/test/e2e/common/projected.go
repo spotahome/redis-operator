@@ -39,7 +39,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 	   Testname: projected-secret-no-defaultMode
 	   Description: Simple projected Secret test with no defaultMode set.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume", func() {
+	framework.ConformanceIt("should be consumable from pods in volume [NodeConformance]", func() {
 		doProjectedSecretE2EWithoutMapping(f, nil /* default mode */, "projected-secret-test-"+string(uuid.NewUUID()), nil, nil)
 	})
 
@@ -47,7 +47,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 	   Testname: projected-secret-with-defaultMode
 	   Description: Simple projected Secret test with defaultMode set.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set [NodeConformance]", func() {
 		defaultMode := int32(0400)
 		doProjectedSecretE2EWithoutMapping(f, &defaultMode, "projected-secret-test-"+string(uuid.NewUUID()), nil, nil)
 	})
@@ -57,7 +57,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Simple projected Secret test as non-root with
 			defaultMode and fsGroup set.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume as non-root with defaultMode and fsGroup set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume as non-root with defaultMode and fsGroup set [NodeConformance]", func() {
 		defaultMode := int32(0440) /* setting fsGroup sets mode to at least 440 */
 		fsGroup := int64(1001)
 		uid := int64(1000)
@@ -70,7 +70,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 			mounting it to a volume with a custom path (mapping) on the pod with
 			no other settings and make sure the pod actually consumes it.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings [NodeConformance]", func() {
 		doProjectedSecretE2EWithMapping(f, nil)
 	})
 
@@ -79,12 +79,12 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Repeat the projected-secret-simple-mapped but this time
 			with an item mode (e.g. 0400) for the secret map item.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item Mode set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item Mode set [NodeConformance]", func() {
 		mode := int32(0400)
 		doProjectedSecretE2EWithMapping(f, &mode)
 	})
 
-	It("should be able to mount in a volume regardless of a different secret existing with same name in different namespace", func() {
+	It("should be able to mount in a volume regardless of a different secret existing with same name in different namespace [NodeConformance]", func() {
 		var (
 			namespace2  *v1.Namespace
 			err         error
@@ -110,7 +110,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Make sure secrets works when mounted as two different
 			volumes on the same node.
 	*/
-	framework.ConformanceIt("should be consumable in multiple volumes in a pod", func() {
+	framework.ConformanceIt("should be consumable in multiple volumes in a pod [NodeConformance]", func() {
 		// This test ensures that the same secret can be mounted in multiple
 		// volumes in the same pod.  This test case exists to prevent
 		// regressions that break this use-case.
@@ -203,7 +203,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 	   Testname: projected-secret-simple-optional
 	   Description: Make sure secrets works when optional updates included.
 	*/
-	framework.ConformanceIt("optional updates should be reflected in volume", func() {
+	framework.ConformanceIt("optional updates should be reflected in volume [NodeConformance]", func() {
 		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
 		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
 		trueVal := true
@@ -405,7 +405,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Make sure that a projected volume with a configMap with
 			no mappings succeeds properly.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume", func() {
+	framework.ConformanceIt("should be consumable from pods in volume [NodeConformance]", func() {
 		doProjectedConfigMapE2EWithoutMappings(f, 0, 0, nil)
 	})
 
@@ -414,12 +414,12 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Make sure that a projected volume configMap is consumable
 			with defaultMode set.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set [NodeConformance]", func() {
 		defaultMode := int32(0400)
 		doProjectedConfigMapE2EWithoutMappings(f, 0, 0, &defaultMode)
 	})
 
-	It("should be consumable from pods in volume as non-root with defaultMode and fsGroup set [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume as non-root with defaultMode and fsGroup set [NodeFeature:FSGroup]", func() {
 		defaultMode := int32(0440) /* setting fsGroup sets mode to at least 440 */
 		doProjectedConfigMapE2EWithoutMappings(f, 1000, 1001, &defaultMode)
 	})
@@ -429,11 +429,11 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Make sure that a projected volume configMap is consumable
 			by a non-root userID.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume as non-root", func() {
+	framework.ConformanceIt("should be consumable from pods in volume as non-root [NodeConformance]", func() {
 		doProjectedConfigMapE2EWithoutMappings(f, 1000, 0, nil)
 	})
 
-	It("should be consumable from pods in volume as non-root with FSGroup [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume as non-root with FSGroup [NodeFeature:FSGroup]", func() {
 		doProjectedConfigMapE2EWithoutMappings(f, 1000, 1001, nil)
 	})
 
@@ -443,7 +443,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 			map and mounting it to a volume with a custom path (mapping) on the
 			pod with no other settings and make sure the pod actually consumes it.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings [NodeConformance]", func() {
 		doProjectedConfigMapE2EWithMappings(f, 0, 0, nil)
 	})
 
@@ -452,7 +452,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Repeat the projected-secret-simple-mapped but this time
 			with an item mode (e.g. 0400) for the secret map item
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item mode set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item mode set [NodeConformance]", func() {
 		mode := int32(0400)
 		doProjectedConfigMapE2EWithMappings(f, 0, 0, &mode)
 	})
@@ -462,21 +462,21 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Repeat the projected-config-map-simple-mapped but this
 			time with a user other than root.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings as non-root", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings as non-root [NodeConformance]", func() {
 		doProjectedConfigMapE2EWithMappings(f, 1000, 0, nil)
 	})
 
-	It("should be consumable from pods in volume with mappings as non-root with FSGroup [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume with mappings as non-root with FSGroup [NodeFeature:FSGroup]", func() {
 		doProjectedConfigMapE2EWithMappings(f, 1000, 1001, nil)
 	})
 
 	/*
-		    Testname: projected-volume-configMaps-updated-succesfully
+		    Testname: projected-volume-configMaps-updated-successfully
 		    Description: Make sure that if a projected volume has configMaps,
 			that the values in these configMaps can be updated, deleted,
 			and created.
 	*/
-	framework.ConformanceIt("updates should be reflected in volume", func() {
+	framework.ConformanceIt("updates should be reflected in volume [NodeConformance]", func() {
 		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
 		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
 
@@ -560,12 +560,12 @@ var _ = Describe("[sig-storage] Projected", func() {
 	})
 
 	/*
-		    Testname: projected-volume-optional-configMaps-updated-succesfully
+		    Testname: projected-volume-optional-configMaps-updated-successfully
 		    Description: Make sure that if a projected volume has optional
 			configMaps, that the values in these configMaps can be updated,
 			deleted, and created.
 	*/
-	framework.ConformanceIt("optional updates should be reflected in volume", func() {
+	framework.ConformanceIt("optional updates should be reflected in volume [NodeConformance]", func() {
 		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
 		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
 		trueVal := true
@@ -766,7 +766,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Make sure config map works when it mounted as two
 			different volumes on the same node.
 	*/
-	framework.ConformanceIt("should be consumable in multiple volumes in the same pod", func() {
+	framework.ConformanceIt("should be consumable in multiple volumes in the same pod [NodeConformance]", func() {
 		var (
 			name             = "projected-configmap-test-volume-" + string(uuid.NewUUID())
 			volumeName       = "projected-configmap-volume"
@@ -864,9 +864,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Ensure that downward API can provide pod's name through
 			DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should provide podname only", func() {
+	framework.ConformanceIt("should provide podname only [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumePodForSimpleTest(podName, "/etc/podname")
+		pod := downwardAPIVolumePodForSimpleTest(podName, "/etc/podinfo/podname")
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
 			fmt.Sprintf("%s\n", podName),
@@ -875,40 +875,40 @@ var _ = Describe("[sig-storage] Projected", func() {
 
 	/*
 		    Testname: projected-downwardapi-volume-set-default-mode
-		    Description: Ensure that downward API can set default file premission
+		    Description: Ensure that downward API can set default file permission
 			mode for DownwardAPIVolumeFiles if no mode is specified in a projected
 			volume.
 	*/
-	framework.ConformanceIt("should set DefaultMode on files", func() {
+	framework.ConformanceIt("should set DefaultMode on files [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
 		defaultMode := int32(0400)
-		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podname", nil, &defaultMode)
+		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podinfo/podname", nil, &defaultMode)
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
-			"mode of file \"/etc/podname\": -r--------",
+			"mode of file \"/etc/podinfo/podname\": -r--------",
 		})
 	})
 
 	/*
 		    Testname: projected-downwardapi-volume-set-mode
-		    Description: Ensure that downward API can set file premission mode for
+		    Description: Ensure that downward API can set file permission mode for
 			DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should set mode on item file", func() {
+	framework.ConformanceIt("should set mode on item file [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
 		mode := int32(0400)
-		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podname", &mode, nil)
+		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podinfo/podname", &mode, nil)
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
-			"mode of file \"/etc/podname\": -r--------",
+			"mode of file \"/etc/podinfo/podname\": -r--------",
 		})
 	})
 
-	It("should provide podname as non-root with fsgroup [Feature:FSGroup]", func() {
+	It("should provide podname as non-root with fsgroup [NodeFeature:FSGroup]", func() {
 		podName := "metadata-volume-" + string(uuid.NewUUID())
 		uid := int64(1001)
 		gid := int64(1234)
-		pod := downwardAPIVolumePodForSimpleTest(podName, "/etc/podname")
+		pod := downwardAPIVolumePodForSimpleTest(podName, "/etc/podinfo/podname")
 		pod.Spec.SecurityContext = &v1.PodSecurityContext{
 			RunAsUser: &uid,
 			FSGroup:   &gid,
@@ -918,18 +918,18 @@ var _ = Describe("[sig-storage] Projected", func() {
 		})
 	})
 
-	It("should provide podname as non-root with fsgroup and defaultMode [Feature:FSGroup]", func() {
+	It("should provide podname as non-root with fsgroup and defaultMode [NodeFeature:FSGroup]", func() {
 		podName := "metadata-volume-" + string(uuid.NewUUID())
 		uid := int64(1001)
 		gid := int64(1234)
 		mode := int32(0440) /* setting fsGroup sets mode to at least 440 */
-		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podname", &mode, nil)
+		pod := projectedDownwardAPIVolumePodForModeTest(podName, "/etc/podinfo/podname", &mode, nil)
 		pod.Spec.SecurityContext = &v1.PodSecurityContext{
 			RunAsUser: &uid,
 			FSGroup:   &gid,
 		}
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
-			"mode of file \"/etc/podname\": -r--r-----",
+			"mode of file \"/etc/podinfo/podname\": -r--r-----",
 		})
 	})
 
@@ -939,13 +939,13 @@ var _ = Describe("[sig-storage] Projected", func() {
 			DownwardAPIVolumeFiles when pod's labels get modified in a projected
 			volume.
 	*/
-	framework.ConformanceIt("should update labels on modification", func() {
+	framework.ConformanceIt("should update labels on modification [NodeConformance]", func() {
 		labels := map[string]string{}
 		labels["key1"] = "value1"
 		labels["key2"] = "value2"
 
 		podName := "labelsupdate" + string(uuid.NewUUID())
-		pod := projectedDownwardAPIVolumePodForUpdateTest(podName, labels, map[string]string{}, "/etc/labels")
+		pod := projectedDownwardAPIVolumePodForUpdateTest(podName, labels, map[string]string{}, "/etc/podinfo/labels")
 		containerName := "client-container"
 		By("Creating the pod")
 		podClient.CreateSync(pod)
@@ -972,11 +972,11 @@ var _ = Describe("[sig-storage] Projected", func() {
 			DownwardAPIVolumeFiles when pod's annotations get modified in a
 			projected volume.
 	*/
-	framework.ConformanceIt("should update annotations on modification", func() {
+	framework.ConformanceIt("should update annotations on modification [NodeConformance]", func() {
 		annotations := map[string]string{}
 		annotations["builder"] = "bar"
 		podName := "annotationupdate" + string(uuid.NewUUID())
-		pod := projectedDownwardAPIVolumePodForUpdateTest(podName, map[string]string{}, annotations, "/etc/annotations")
+		pod := projectedDownwardAPIVolumePodForUpdateTest(podName, map[string]string{}, annotations, "/etc/podinfo/annotations")
 
 		containerName := "client-container"
 		By("Creating the pod")
@@ -1006,9 +1006,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Ensure that downward API can provide container's CPU
 			limit through DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should provide container's cpu limit", func() {
+	framework.ConformanceIt("should provide container's cpu limit [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForContainerResources(podName, "/etc/cpu_limit")
+		pod := downwardAPIVolumeForContainerResources(podName, "/etc/podinfo/cpu_limit")
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
 			fmt.Sprintf("2\n"),
@@ -1020,9 +1020,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Ensure that downward API can provide container's memory
 			limit through DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should provide container's memory limit", func() {
+	framework.ConformanceIt("should provide container's memory limit [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForContainerResources(podName, "/etc/memory_limit")
+		pod := downwardAPIVolumeForContainerResources(podName, "/etc/podinfo/memory_limit")
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
 			fmt.Sprintf("67108864\n"),
@@ -1034,9 +1034,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Ensure that downward API can provide container's CPU
 			request through DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should provide container's cpu request", func() {
+	framework.ConformanceIt("should provide container's cpu request [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForContainerResources(podName, "/etc/cpu_request")
+		pod := downwardAPIVolumeForContainerResources(podName, "/etc/podinfo/cpu_request")
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
 			fmt.Sprintf("1\n"),
@@ -1048,9 +1048,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: Ensure that downward API can provide container's memory
 			request through DownwardAPIVolumeFiles in a projected volume.
 	*/
-	framework.ConformanceIt("should provide container's memory request", func() {
+	framework.ConformanceIt("should provide container's memory request [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForContainerResources(podName, "/etc/memory_request")
+		pod := downwardAPIVolumeForContainerResources(podName, "/etc/podinfo/memory_request")
 
 		f.TestContainerOutput("downward API volume plugin", pod, 0, []string{
 			fmt.Sprintf("33554432\n"),
@@ -1063,9 +1063,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 			allocatable value for CPU through DownwardAPIVolumeFiles if CPU limit
 			is not specified for a container in a projected volume.
 	*/
-	framework.ConformanceIt("should provide node allocatable (cpu) as default cpu limit if the limit is not set", func() {
+	framework.ConformanceIt("should provide node allocatable (cpu) as default cpu limit if the limit is not set [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForDefaultContainerResources(podName, "/etc/cpu_limit")
+		pod := downwardAPIVolumeForDefaultContainerResources(podName, "/etc/podinfo/cpu_limit")
 
 		f.TestContainerOutputRegexp("downward API volume plugin", pod, 0, []string{"[1-9]"})
 	})
@@ -1076,9 +1076,9 @@ var _ = Describe("[sig-storage] Projected", func() {
 			allocatable value for memory through DownwardAPIVolumeFiles if memory
 			limit is not specified for a container in a projected volume.
 	*/
-	framework.ConformanceIt("should provide node allocatable (memory) as default memory limit if the limit is not set", func() {
+	framework.ConformanceIt("should provide node allocatable (memory) as default memory limit if the limit is not set [NodeConformance]", func() {
 		podName := "downwardapi-volume-" + string(uuid.NewUUID())
-		pod := downwardAPIVolumeForDefaultContainerResources(podName, "/etc/memory_limit")
+		pod := downwardAPIVolumeForDefaultContainerResources(podName, "/etc/podinfo/memory_limit")
 
 		f.TestContainerOutputRegexp("downward API volume plugin", pod, 0, []string{"[1-9]"})
 	})
@@ -1089,7 +1089,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 		    Description: This test projects a secret and configmap into the same
 			directory to ensure projection is working as intended.
 	*/
-	framework.ConformanceIt("should project all components that make up the projection API [Projection]", func() {
+	framework.ConformanceIt("should project all components that make up the projection API [Projection][NodeConformance]", func() {
 		var err error
 		podName := "projected-volume-" + string(uuid.NewUUID())
 		secretName := "secret-projected-all-test-volume-" + string(uuid.NewUUID())
@@ -1495,7 +1495,7 @@ func projectedDownwardAPIVolumePodForModeTest(name, filePath string, itemMode, d
 			VolumeMounts: []v1.VolumeMount{
 				{
 					Name:      "podinfo",
-					MountPath: "/etc",
+					MountPath: "/etc/podinfo",
 				},
 			},
 		},
@@ -1517,11 +1517,11 @@ func projectedDownwardAPIVolumePodForUpdateTest(name string, labels, annotations
 		{
 			Name:    "client-container",
 			Image:   mountImage,
-			Command: []string{"/mounttest", "--break_on_expected_content=false", "--retry_time=120", "--file_content_in_loop=" + filePath},
+			Command: []string{"/mounttest", "--break_on_expected_content=false", "--retry_time=1200", "--file_content_in_loop=" + filePath},
 			VolumeMounts: []v1.VolumeMount{
 				{
 					Name:      "podinfo",
-					MountPath: "/etc",
+					MountPath: "/etc/podinfo",
 					ReadOnly:  false,
 				},
 			},

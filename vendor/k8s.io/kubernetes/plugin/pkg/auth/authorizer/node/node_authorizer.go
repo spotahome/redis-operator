@@ -21,11 +21,12 @@ import (
 
 	"github.com/golang/glog"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
+	storageapi "k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -37,6 +38,7 @@ import (
 // 1. If a request is not from a node (NodeIdentity() returns isNode=false), reject
 // 2. If a specific node cannot be identified (NodeIdentity() returns nodeName=""), reject
 // 3. If a request is for a secret, configmap, persistent volume or persistent volume claim, reject unless the verb is get, and the requested object is related to the requesting node:
+//    node <- configmap
 //    node <- pod
 //    node <- pod <- secret
 //    node <- pod <- configmap
@@ -47,15 +49,19 @@ import (
 type NodeAuthorizer struct {
 	graph      *Graph
 	identifier nodeidentifier.NodeIdentifier
-	nodeRules  []rbacapi.PolicyRule
+	nodeRules  []rbacv1.PolicyRule
+
+	// allows overriding for testing
+	features utilfeature.FeatureGate
 }
 
 // NewAuthorizer returns a new node authorizer
-func NewAuthorizer(graph *Graph, identifier nodeidentifier.NodeIdentifier, rules []rbacapi.PolicyRule) authorizer.Authorizer {
+func NewAuthorizer(graph *Graph, identifier nodeidentifier.NodeIdentifier, rules []rbacv1.PolicyRule) authorizer.Authorizer {
 	return &NodeAuthorizer{
 		graph:      graph,
 		identifier: identifier,
 		nodeRules:  rules,
+		features:   utilfeature.DefaultFeatureGate,
 	}
 }
 
@@ -64,6 +70,8 @@ var (
 	secretResource    = api.Resource("secrets")
 	pvcResource       = api.Resource("persistentvolumeclaims")
 	pvResource        = api.Resource("persistentvolumes")
+	vaResource        = storageapi.Resource("volumeattachments")
+	svcAcctResource   = api.Resource("serviceaccounts")
 )
 
 func (r *NodeAuthorizer) Authorize(attrs authorizer.Attributes) (authorizer.Decision, string, error) {
@@ -83,11 +91,11 @@ func (r *NodeAuthorizer) Authorize(attrs authorizer.Attributes) (authorizer.Deci
 		requestResource := schema.GroupResource{Group: attrs.GetAPIGroup(), Resource: attrs.GetResource()}
 		switch requestResource {
 		case secretResource:
-			return r.authorizeGet(nodeName, secretVertexType, attrs)
+			return r.authorizeReadNamespacedObject(nodeName, secretVertexType, attrs)
 		case configMapResource:
-			return r.authorizeGet(nodeName, configMapVertexType, attrs)
+			return r.authorizeReadNamespacedObject(nodeName, configMapVertexType, attrs)
 		case pvcResource:
-			if utilfeature.DefaultFeatureGate.Enabled(features.ExpandPersistentVolumes) {
+			if r.features.Enabled(features.ExpandPersistentVolumes) {
 				if attrs.GetSubresource() == "status" {
 					return r.authorizeStatusUpdate(nodeName, pvcVertexType, attrs)
 				}
@@ -95,6 +103,16 @@ func (r *NodeAuthorizer) Authorize(attrs authorizer.Attributes) (authorizer.Deci
 			return r.authorizeGet(nodeName, pvcVertexType, attrs)
 		case pvResource:
 			return r.authorizeGet(nodeName, pvVertexType, attrs)
+		case vaResource:
+			if r.features.Enabled(features.CSIPersistentVolume) {
+				return r.authorizeGet(nodeName, vaVertexType, attrs)
+			}
+			return authorizer.DecisionNoOpinion, fmt.Sprintf("disabled by feature gate %s", features.CSIPersistentVolume), nil
+		case svcAcctResource:
+			if r.features.Enabled(features.TokenRequest) {
+				return r.authorizeCreateToken(nodeName, serviceAccountVertexType, attrs)
+			}
+			return authorizer.DecisionNoOpinion, fmt.Sprintf("disabled by feature gate %s", features.TokenRequest), nil
 		}
 	}
 
@@ -136,10 +154,53 @@ func (r *NodeAuthorizer) authorizeGet(nodeName string, startingType vertexType, 
 	return r.authorize(nodeName, startingType, attrs)
 }
 
+// authorizeReadNamespacedObject authorizes "get", "list" and "watch" requests to single objects of a
+// specified types if they are related to the specified node.
+func (r *NodeAuthorizer) authorizeReadNamespacedObject(nodeName string, startingType vertexType, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
+	if attrs.GetVerb() != "get" && attrs.GetVerb() != "list" && attrs.GetVerb() != "watch" {
+		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "can only read resources of this type", nil
+	}
+	if len(attrs.GetSubresource()) > 0 {
+		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "cannot read subresource", nil
+	}
+	if len(attrs.GetNamespace()) == 0 {
+		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "can only read namespaced object of this type", nil
+	}
+	return r.authorize(nodeName, startingType, attrs)
+}
+
 func (r *NodeAuthorizer) authorize(nodeName string, startingType vertexType, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
 	if len(attrs.GetName()) == 0 {
 		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
 		return authorizer.DecisionNoOpinion, "No Object name found", nil
+	}
+
+	ok, err := r.hasPathFrom(nodeName, startingType, attrs.GetNamespace(), attrs.GetName())
+	if err != nil {
+		glog.V(2).Infof("NODE DENY: %v", err)
+		return authorizer.DecisionNoOpinion, "no path found to object", nil
+	}
+	if !ok {
+		glog.V(2).Infof("NODE DENY: %q %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "no path found to object", nil
+	}
+	return authorizer.DecisionAllow, "", nil
+}
+
+// authorizeCreateToken authorizes "create" requests to serviceaccounts 'token'
+// subresource of pods running on a node
+func (r *NodeAuthorizer) authorizeCreateToken(nodeName string, startingType vertexType, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
+	if attrs.GetVerb() != "create" || len(attrs.GetName()) == 0 {
+		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "can only create tokens for individual service accounts", nil
+	}
+
+	if attrs.GetSubresource() != "token" {
+		glog.V(2).Infof("NODE DENY: %s %#v", nodeName, attrs)
+		return authorizer.DecisionNoOpinion, "can only create token subresource of serviceaccount", nil
 	}
 
 	ok, err := r.hasPathFrom(nodeName, startingType, attrs.GetNamespace(), attrs.GetName())
@@ -167,6 +228,11 @@ func (r *NodeAuthorizer) hasPathFrom(nodeName string, startingType vertexType, s
 	startingVertex, exists := r.graph.getVertex_rlocked(startingType, startingNamespace, startingName)
 	if !exists {
 		return false, fmt.Errorf("node %q cannot get unknown %s %s/%s", nodeName, vertexTypes[startingType], startingNamespace, startingName)
+	}
+
+	// Fast check to see if we know of a destination edge
+	if r.graph.destinationEdgeIndex[startingVertex.ID()].has(nodeVertex.ID()) {
+		return true, nil
 	}
 
 	found := false

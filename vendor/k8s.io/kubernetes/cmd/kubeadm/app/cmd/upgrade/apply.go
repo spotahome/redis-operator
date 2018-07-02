@@ -21,10 +21,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	clientset "k8s.io/client-go/kubernetes"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -35,24 +37,28 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	dryrunutil "k8s.io/kubernetes/cmd/kubeadm/app/util/dryrun"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	etcdutil "k8s.io/kubernetes/cmd/kubeadm/app/util/etcd"
 	"k8s.io/kubernetes/pkg/util/version"
 )
 
 const (
-	upgradeManifestTimeout = 1 * time.Minute
+	upgradeManifestTimeout = 5 * time.Minute
+
+	defaultImagePullTimeout = 15 * time.Minute
 )
 
 // applyFlags holds the information about the flags that can be passed to apply
 type applyFlags struct {
+	*applyPlanFlags
+
 	nonInteractiveMode bool
 	force              bool
 	dryRun             bool
 	etcdUpgrade        bool
+	criSocket          string
 	newK8sVersionStr   string
 	newK8sVersion      *version.Version
 	imagePullTimeout   time.Duration
-	parent             *cmdUpgradeFlags
 }
 
 // SessionIsInteractive returns true if the session is of an interactive type (the default, can be opted out of with -y, -f or --dry-run)
@@ -61,30 +67,49 @@ func (f *applyFlags) SessionIsInteractive() bool {
 }
 
 // NewCmdApply returns the cobra command for `kubeadm upgrade apply`
-func NewCmdApply(parentFlags *cmdUpgradeFlags) *cobra.Command {
+func NewCmdApply(apf *applyPlanFlags) *cobra.Command {
 	flags := &applyFlags{
-		parent:           parentFlags,
-		imagePullTimeout: 15 * time.Minute,
+		applyPlanFlags:   apf,
+		imagePullTimeout: defaultImagePullTimeout,
 		etcdUpgrade:      true,
+		criSocket:        kubeadmapiv1alpha2.DefaultCRISocket,
 	}
 
 	cmd := &cobra.Command{
-		Use:   "apply [version]",
+		Use: "apply [version]",
+		DisableFlagsInUseLine: true,
 		Short: "Upgrade your Kubernetes cluster to the specified version.",
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
-			flags.parent.ignorePreflightErrorsSet, err = validation.ValidateIgnorePreflightErrors(flags.parent.ignorePreflightErrors, flags.parent.skipPreFlight)
+			flags.ignorePreflightErrorsSet, err = validation.ValidateIgnorePreflightErrors(flags.ignorePreflightErrors, flags.skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
 			// Ensure the user is root
-			err = runPreflightChecks(flags.parent.ignorePreflightErrorsSet)
+			glog.V(1).Infof("running preflight checks")
+			err = runPreflightChecks(flags.ignorePreflightErrorsSet)
 			kubeadmutil.CheckErr(err)
 
-			err = cmdutil.ValidateExactArgNumber(args, []string{"version"})
-			kubeadmutil.CheckErr(err)
+			// If the version is specified in config file, pick up that value.
+			if flags.cfgPath != "" {
+				glog.V(1).Infof("fetching configuration from file", flags.cfgPath)
+				cfg, err := configutil.ConfigFileAndDefaultsToInternalConfig(flags.cfgPath, &kubeadmapiv1alpha2.MasterConfiguration{})
+				kubeadmutil.CheckErr(err)
 
-			// It's safe to use args[0] here as the slice has been validated above
-			flags.newK8sVersionStr = args[0]
+				if cfg.KubernetesVersion != "" {
+					flags.newK8sVersionStr = cfg.KubernetesVersion
+				}
+			}
+
+			// If the new version is already specified in config file, version arg is optional.
+			if flags.newK8sVersionStr == "" {
+				err = cmdutil.ValidateExactArgNumber(args, []string{"version"})
+				kubeadmutil.CheckErr(err)
+			}
+
+			// If option was specified in both args and config file, args will overwrite the config file.
+			if len(args) == 1 {
+				flags.newK8sVersionStr = args[0]
+			}
 
 			// Default the flags dynamically, based on each others' value
 			err = SetImplicitFlags(flags)
@@ -95,13 +120,16 @@ func NewCmdApply(parentFlags *cmdUpgradeFlags) *cobra.Command {
 		},
 	}
 
+	// Register the common flags for apply and plan
+	addApplyPlanFlags(cmd.Flags(), flags.applyPlanFlags)
 	// Specify the valid flags specific for apply
 	cmd.Flags().BoolVarP(&flags.nonInteractiveMode, "yes", "y", flags.nonInteractiveMode, "Perform the upgrade and do not prompt for confirmation (non-interactive mode).")
 	cmd.Flags().BoolVarP(&flags.force, "force", "f", flags.force, "Force upgrading although some requirements might not be met. This also implies non-interactive mode.")
 	cmd.Flags().BoolVar(&flags.dryRun, "dry-run", flags.dryRun, "Do not change any state, just output what actions would be performed.")
 	cmd.Flags().BoolVar(&flags.etcdUpgrade, "etcd-upgrade", flags.etcdUpgrade, "Perform the upgrade of etcd.")
 	cmd.Flags().DurationVar(&flags.imagePullTimeout, "image-pull-timeout", flags.imagePullTimeout, "The maximum amount of time to wait for the control plane pods to be downloaded.")
-
+	// TODO: Register this flag in a generic place
+	cmd.Flags().StringVar(&flags.criSocket, "cri-socket", flags.criSocket, "Specify the CRI socket to connect to.")
 	return cmd
 }
 
@@ -120,33 +148,38 @@ func NewCmdApply(parentFlags *cmdUpgradeFlags) *cobra.Command {
 func RunApply(flags *applyFlags) error {
 
 	// Start with the basics, verify that the cluster is healthy and get the configuration from the cluster (using the ConfigMap)
-	upgradeVars, err := enforceRequirements(flags.parent, flags.dryRun, flags.newK8sVersionStr)
+	glog.V(1).Infof("[upgrade/apply] verifying health of cluster")
+	glog.V(1).Infof("[upgrade/apply] retrieving configuration from cluster")
+	upgradeVars, err := enforceRequirements(flags.applyPlanFlags, flags.dryRun, flags.newK8sVersionStr)
 	if err != nil {
 		return err
 	}
 
-	// Grab the external, versioned configuration and convert it to the internal type for usage here later
-	internalcfg := &kubeadmapi.MasterConfiguration{}
-	legacyscheme.Scheme.Convert(upgradeVars.cfg, internalcfg, nil)
+	if len(flags.criSocket) != 0 {
+		fmt.Println("[upgrade/apply] Respecting the --cri-socket flag that is set with higher priority than the config file.")
+		upgradeVars.cfg.NodeRegistration.CRISocket = flags.criSocket
+	}
 
 	// Validate requested and validate actual version
-	if err := configutil.NormalizeKubernetesVersion(internalcfg); err != nil {
+	glog.V(1).Infof("[upgrade/apply] validating requested and actual version")
+	if err := configutil.NormalizeKubernetesVersion(upgradeVars.cfg); err != nil {
 		return err
 	}
 
 	// Use normalized version string in all following code.
-	flags.newK8sVersionStr = internalcfg.KubernetesVersion
+	flags.newK8sVersionStr = upgradeVars.cfg.KubernetesVersion
 	k8sVer, err := version.ParseSemantic(flags.newK8sVersionStr)
 	if err != nil {
 		return fmt.Errorf("unable to parse normalized version %q as a semantic version", flags.newK8sVersionStr)
 	}
 	flags.newK8sVersion = k8sVer
 
-	if err := features.ValidateVersion(features.InitFeatureGates, internalcfg.FeatureGates, internalcfg.KubernetesVersion); err != nil {
+	if err := features.ValidateVersion(features.InitFeatureGates, upgradeVars.cfg.FeatureGates, upgradeVars.cfg.KubernetesVersion); err != nil {
 		return err
 	}
 
 	// Enforce the version skew policies
+	glog.V(1).Infof("[upgrade/version] enforcing version skew policies")
 	if err := EnforceVersionPolicies(flags, upgradeVars.versionGetter); err != nil {
 		return fmt.Errorf("[upgrade/version] FATAL: %v", err)
 	}
@@ -160,16 +193,19 @@ func RunApply(flags *applyFlags) error {
 
 	// Use a prepuller implementation based on creating DaemonSets
 	// and block until all DaemonSets are ready; then we know for sure that all control plane images are cached locally
-	prepuller := upgrade.NewDaemonSetPrepuller(upgradeVars.client, upgradeVars.waiter, internalcfg)
+	glog.V(1).Infof("[upgrade/apply] creating prepuller")
+	prepuller := upgrade.NewDaemonSetPrepuller(upgradeVars.client, upgradeVars.waiter, upgradeVars.cfg)
 	upgrade.PrepullImagesInParallel(prepuller, flags.imagePullTimeout)
 
 	// Now; perform the upgrade procedure
-	if err := PerformControlPlaneUpgrade(flags, upgradeVars.client, upgradeVars.waiter, internalcfg); err != nil {
+	glog.V(1).Infof("[upgrade/apply] performing upgrade")
+	if err := PerformControlPlaneUpgrade(flags, upgradeVars.client, upgradeVars.waiter, upgradeVars.cfg); err != nil {
 		return fmt.Errorf("[upgrade/apply] FATAL: %v", err)
 	}
 
 	// Upgrade RBAC rules and addons.
-	if err := upgrade.PerformPostUpgradeTasks(upgradeVars.client, internalcfg, flags.newK8sVersion, flags.dryRun); err != nil {
+	glog.V(1).Infof("[upgrade/postupgrade] upgrading RBAC rules and addons")
+	if err := upgrade.PerformPostUpgradeTasks(upgradeVars.client, upgradeVars.cfg, flags.newK8sVersion, flags.dryRun); err != nil {
 		return fmt.Errorf("[upgrade/postupgrade] FATAL post-upgrade error: %v", err)
 	}
 
@@ -181,7 +217,7 @@ func RunApply(flags *applyFlags) error {
 	fmt.Println("")
 	fmt.Printf("[upgrade/successful] SUCCESS! Your cluster was upgraded to %q. Enjoy!\n", flags.newK8sVersionStr)
 	fmt.Println("")
-	fmt.Println("[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets in turn.")
+	fmt.Println("[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.")
 
 	return nil
 }
@@ -205,7 +241,7 @@ func SetImplicitFlags(flags *applyFlags) error {
 func EnforceVersionPolicies(flags *applyFlags, versionGetter upgrade.VersionGetter) error {
 	fmt.Printf("[upgrade/version] You have chosen to change the cluster version to %q\n", flags.newK8sVersionStr)
 
-	versionSkewErrs := upgrade.EnforceVersionPolicies(versionGetter, flags.newK8sVersionStr, flags.newK8sVersion, flags.parent.allowExperimentalUpgrades, flags.parent.allowRCUpgrades)
+	versionSkewErrs := upgrade.EnforceVersionPolicies(versionGetter, flags.newK8sVersionStr, flags.newK8sVersion, flags.allowExperimentalUpgrades, flags.allowRCUpgrades)
 	if versionSkewErrs != nil {
 
 		if len(versionSkewErrs.Mandatory) > 0 {
@@ -228,10 +264,12 @@ func EnforceVersionPolicies(flags *applyFlags, versionGetter upgrade.VersionGett
 func PerformControlPlaneUpgrade(flags *applyFlags, client clientset.Interface, waiter apiclient.Waiter, internalcfg *kubeadmapi.MasterConfiguration) error {
 
 	// Check if the cluster is self-hosted and act accordingly
+	glog.V(1).Infoln("checking if cluster is self-hosted")
 	if upgrade.IsControlPlaneSelfHosted(client) {
 		fmt.Printf("[upgrade/apply] Upgrading your Self-Hosted control plane to version %q...\n", flags.newK8sVersionStr)
 
 		// Upgrade the self-hosted cluster
+		glog.V(1).Infoln("[upgrade/apply] ugrading self-hosted cluster")
 		return upgrade.SelfHostedControlPlane(client, waiter, internalcfg, flags.newK8sVersion)
 	}
 
@@ -242,17 +280,25 @@ func PerformControlPlaneUpgrade(flags *applyFlags, client clientset.Interface, w
 		return DryRunStaticPodUpgrade(internalcfg)
 	}
 
+	// Don't save etcd backup directory if etcd is HA, as this could cause corruption
 	return PerformStaticPodUpgrade(client, waiter, internalcfg, flags.etcdUpgrade)
+}
+
+// GetPathManagerForUpgrade returns a path manager properly configured for the given MasterConfiguration.
+func GetPathManagerForUpgrade(internalcfg *kubeadmapi.MasterConfiguration, etcdUpgrade bool) (upgrade.StaticPodPathManager, error) {
+	isHAEtcd := etcdutil.CheckConfigurationIsHA(&internalcfg.Etcd)
+	return upgrade.NewKubeStaticPodPathManagerUsingTempDirs(constants.GetStaticPodDirectory(), true, etcdUpgrade && !isHAEtcd)
 }
 
 // PerformStaticPodUpgrade performs the upgrade of the control plane components for a static pod hosted cluster
 func PerformStaticPodUpgrade(client clientset.Interface, waiter apiclient.Waiter, internalcfg *kubeadmapi.MasterConfiguration, etcdUpgrade bool) error {
-	pathManager, err := upgrade.NewKubeStaticPodPathManagerUsingTempDirs(constants.GetStaticPodDirectory())
+	pathManager, err := GetPathManagerForUpgrade(internalcfg, etcdUpgrade)
 	if err != nil {
 		return err
 	}
 
-	return upgrade.StaticPodControlPlane(waiter, pathManager, internalcfg, etcdUpgrade)
+	// The arguments oldEtcdClient and newEtdClient, are uninitialized because passing in the clients allow for mocking the client during testing
+	return upgrade.StaticPodControlPlane(waiter, pathManager, internalcfg, etcdUpgrade, nil, nil)
 }
 
 // DryRunStaticPodUpgrade fakes an upgrade of the control plane

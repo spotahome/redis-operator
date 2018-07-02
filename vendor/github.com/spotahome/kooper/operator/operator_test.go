@@ -109,19 +109,19 @@ func TestMultiOperatorRun(t *testing.T) {
 		{
 			name: "Running the operator should run without error if the controllers dont end.",
 			controllers: []*controllerBehaviour{
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
@@ -132,19 +132,19 @@ func TestMultiOperatorRun(t *testing.T) {
 		{
 			name: "Running the operator should end without error if one of the controllers ends.",
 			controllers: []*controllerBehaviour{
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 0, // The one that ends.
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
@@ -155,19 +155,19 @@ func TestMultiOperatorRun(t *testing.T) {
 		{
 			name: "Running the operator should end with error if one of the controllers ends with an error.",
 			controllers: []*controllerBehaviour{
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   true,
 					returnAfter: 0, // The one that ends.
 				},
-				&controllerBehaviour{
+				{
 					returnErr:   false,
 					returnAfter: 9999 * time.Hour,
 				},

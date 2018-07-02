@@ -20,7 +20,7 @@ func New(cfg Config, podTermCli podtermk8scli.Interface, crdCli crd.Interface, k
 	handler := newHandler(kubeCli, logger)
 
 	// Create controller.
-	ctrl := controller.NewSequential(cfg.ResyncPeriod, handler, ptCRD, logger)
+	ctrl := controller.NewSequential(cfg.ResyncPeriod, handler, ptCRD, nil, logger)
 
 	// Assemble CRD and controller to create the operator.
 	return operator.NewOperator(ptCRD, ctrl, logger), nil

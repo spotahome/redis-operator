@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
-	kubeadmapiext "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	api "k8s.io/kubernetes/pkg/apis/core"
@@ -90,23 +90,6 @@ func TestCreateServiceAccount(t *testing.T) {
 	}
 }
 
-func TestGetClusterCIDR(t *testing.T) {
-	emptyClusterCIDR := getClusterCIDR("")
-	if emptyClusterCIDR != "" {
-		t.Errorf("Invalid format: %s", emptyClusterCIDR)
-	}
-
-	clusterCIDR := getClusterCIDR("10.244.0.0/16")
-	if clusterCIDR != "- --cluster-cidr=10.244.0.0/16" {
-		t.Errorf("Invalid format: %s", clusterCIDR)
-	}
-
-	clusterIPv6CIDR := getClusterCIDR("2001:db8::/64")
-	if clusterIPv6CIDR != "- --cluster-cidr=2001:db8::/64" {
-		t.Errorf("Invalid format: %s", clusterIPv6CIDR)
-	}
-}
-
 func TestCompileManifests(t *testing.T) {
 	var tests = []struct {
 		manifest string
@@ -114,34 +97,12 @@ func TestCompileManifests(t *testing.T) {
 		expected bool
 	}{
 		{
-			manifest: KubeProxyConfigMap18,
-			data: struct {
-				MasterEndpoint, ProxyConfig string
-			}{
-				MasterEndpoint: "foo",
-			},
-			expected: true,
-		},
-		{
 			manifest: KubeProxyConfigMap19,
 			data: struct {
 				MasterEndpoint, ProxyConfig string
 			}{
 				MasterEndpoint: "foo",
 				ProxyConfig:    "  bindAddress: 0.0.0.0\n  clusterCIDR: 192.168.1.1\n  enableProfiling: false",
-			},
-			expected: true,
-		},
-		{
-			manifest: KubeProxyDaemonSet18,
-			data: struct{ ImageRepository, Arch, Version, ImageOverride, ClusterCIDR, MasterTaintKey, CloudTaintKey string }{
-				ImageRepository: "foo",
-				Arch:            "foo",
-				Version:         "foo",
-				ImageOverride:   "foo",
-				ClusterCIDR:     "foo",
-				MasterTaintKey:  "foo",
-				CloudTaintKey:   "foo",
 			},
 			expected: true,
 		},
@@ -213,12 +174,12 @@ func TestEnsureProxyAddon(t *testing.T) {
 		// Create a fake client and set up default test configuration
 		client := clientsetfake.NewSimpleClientset()
 
-		masterConfig := &kubeadmapiext.MasterConfiguration{
-			API: kubeadmapiext.API{
+		masterConfig := &kubeadmapiv1alpha2.MasterConfiguration{
+			API: kubeadmapiv1alpha2.API{
 				AdvertiseAddress: "1.2.3.4",
 				BindPort:         1234,
 			},
-			KubeProxy: kubeadmapiext.KubeProxy{
+			KubeProxy: kubeadmapiv1alpha2.KubeProxy{
 				Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
 					BindAddress:        "",
 					HealthzBindAddress: "0.0.0.0:10256",
@@ -232,15 +193,15 @@ func TestEnsureProxyAddon(t *testing.T) {
 					},
 				},
 			},
-			Networking: kubeadmapiext.Networking{
+			Networking: kubeadmapiv1alpha2.Networking{
 				PodSubnet: "5.6.7.8/24",
 			},
 			ImageRepository:          "someRepo",
-			KubernetesVersion:        "v1.9.0",
+			KubernetesVersion:        "v1.10.0",
 			UnifiedControlPlaneImage: "someImage",
 		}
 
-		// Simulate an error if neccessary
+		// Simulate an error if necessary
 		switch tc.simError {
 		case ServiceAccountError:
 			client.PrependReactor("create", "serviceaccounts", func(action core.Action) (bool, runtime.Object, error) {
@@ -253,7 +214,7 @@ func TestEnsureProxyAddon(t *testing.T) {
 			masterConfig.Networking.PodSubnet = "2001:101::/96"
 		}
 
-		kubeadmapiext.SetDefaults_MasterConfiguration(masterConfig)
+		kubeadmapiv1alpha2.SetDefaults_MasterConfiguration(masterConfig)
 		intMaster, err := cmdutil.ConfigFileAndDefaultsToInternalConfig("", masterConfig)
 		if err != nil {
 			t.Errorf(" test failed to convert v1alpha1 to internal version")

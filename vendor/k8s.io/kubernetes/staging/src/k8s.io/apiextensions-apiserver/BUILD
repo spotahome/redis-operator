@@ -8,8 +8,7 @@ load(
 
 go_binary(
     name = "apiextensions-apiserver",
-    importpath = "k8s.io/apiextensions-apiserver",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
 )
 
 go_library(
@@ -45,6 +44,7 @@ filegroup(
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/internalversion:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1beta1:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/cmd/server:all-srcs",
+        "//staging/src/k8s.io/apiextensions-apiserver/pkg/controller/establish:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/controller/finalizer:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/controller/status:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/features:all-srcs",

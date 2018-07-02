@@ -30,7 +30,7 @@ import (
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
 
-const execScriptTempl1 = `#!/bin/bash
+const execScriptTempl1 = `#!/usr/bin/env bash
 if [ "$1" == "init" -a $# -eq 1 ]; then
   echo -n '{
     "status": "Success"
@@ -73,7 +73,7 @@ exit 1
 echo -n $@ &> {{.OutputFile}}
 `
 
-const execScriptTempl2 = `#!/bin/bash
+const execScriptTempl2 = `#!/usr/bin/env bash
 if [ "$1" == "init" -a $# -eq 1 ]; then
   echo -n '{
     "status": "Success"
@@ -185,7 +185,7 @@ func TestCanSupport(t *testing.T) {
 	if !plugin.CanSupport(&volume.Spec{Volume: &v1.Volume{VolumeSource: v1.VolumeSource{FlexVolume: &v1.FlexVolumeSource{Driver: "kubernetes.io/fakeAttacher"}}}}) {
 		t.Errorf("Expected true")
 	}
-	if !plugin.CanSupport(&volume.Spec{PersistentVolume: &v1.PersistentVolume{Spec: v1.PersistentVolumeSpec{PersistentVolumeSource: v1.PersistentVolumeSource{FlexVolume: &v1.FlexVolumeSource{Driver: "kubernetes.io/fakeAttacher"}}}}}) {
+	if !plugin.CanSupport(&volume.Spec{PersistentVolume: &v1.PersistentVolume{Spec: v1.PersistentVolumeSpec{PersistentVolumeSource: v1.PersistentVolumeSource{FlexVolume: &v1.FlexPersistentVolumeSource{Driver: "kubernetes.io/fakeAttacher"}}}}}) {
 		t.Errorf("Expected true")
 	}
 	if plugin.CanSupport(&volume.Spec{Volume: &v1.Volume{VolumeSource: v1.VolumeSource{}}}) {

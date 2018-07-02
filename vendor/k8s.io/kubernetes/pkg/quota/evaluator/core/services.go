@@ -82,6 +82,17 @@ func (p *serviceEvaluator) MatchingResources(input []api.ResourceName) []api.Res
 	return quota.Intersection(input, serviceResources)
 }
 
+// MatchingScopes takes the input specified list of scopes and input object. Returns the set of scopes resource matches.
+func (p *serviceEvaluator) MatchingScopes(item runtime.Object, scopes []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	return []api.ScopedResourceSelectorRequirement{}, nil
+}
+
+// UncoveredQuotaScopes takes the input matched scopes which are limited by configuration and the matched quota scopes.
+// It returns the scopes which are in limited scopes but dont have a corresponding covering quota scope
+func (p *serviceEvaluator) UncoveredQuotaScopes(limitedScopes []api.ScopedResourceSelectorRequirement, matchedQuotaScopes []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	return []api.ScopedResourceSelectorRequirement{}, nil
+}
+
 // convert the input object to an internal service object or error.
 func toInternalServiceOrError(obj runtime.Object) (*api.Service, error) {
 	svc := &api.Service{}
@@ -131,15 +142,6 @@ func (p *serviceEvaluator) UsageStats(options quota.UsageStatsOptions) (quota.Us
 }
 
 var _ quota.Evaluator = &serviceEvaluator{}
-
-// QuotaServiceType returns true if the service type is eligible to track against a quota
-func QuotaServiceType(service *v1.Service) bool {
-	switch service.Spec.Type {
-	case v1.ServiceTypeNodePort, v1.ServiceTypeLoadBalancer:
-		return true
-	}
-	return false
-}
 
 //GetQuotaServiceType returns ServiceType if the service type is eligible to track against a quota, nor return ""
 func GetQuotaServiceType(service *v1.Service) v1.ServiceType {

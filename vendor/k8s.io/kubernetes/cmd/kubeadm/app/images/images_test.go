@@ -19,15 +19,17 @@ package images
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
+	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 )
 
 const (
 	testversion = "v10.1.2-alpha.1.100+0123456789abcdef+SOMETHING"
 	expected    = "v10.1.2-alpha.1.100_0123456789abcdef_SOMETHING"
-	gcrPrefix   = "gcr.io/google_containers"
+	gcrPrefix   = "k8s.gcr.io"
 )
 
 func TestGetCoreImage(t *testing.T) {
@@ -71,5 +73,48 @@ func TestGetCoreImage(t *testing.T) {
 				actual,
 			)
 		}
+	}
+}
+
+func TestGetAllImages(t *testing.T) {
+	testcases := []struct {
+		name   string
+		cfg    *kubeadmapi.MasterConfiguration
+		expect string
+	}{
+		{
+			name: "defined CIImageRepository",
+			cfg: &kubeadmapi.MasterConfiguration{
+				CIImageRepository: "test.repo",
+			},
+			expect: "test.repo",
+		},
+		{
+			name: "undefined CIImagerRepository should contain the default image prefix",
+			cfg: &kubeadmapi.MasterConfiguration{
+				ImageRepository: "real.repo",
+			},
+			expect: "real.repo",
+		},
+		{
+			name: "test that etcd is returned when it is not external",
+			cfg: &kubeadmapi.MasterConfiguration{
+				Etcd: kubeadmapi.Etcd{
+					Local: &kubeadmapi.LocalEtcd{},
+				},
+			},
+			expect: constants.Etcd,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			imgs := GetAllImages(tc.cfg)
+			for _, img := range imgs {
+				if strings.Contains(img, tc.expect) {
+					return
+				}
+			}
+			t.Fatalf("did not find %q in %q", tc.expect, imgs)
+		})
 	}
 }

@@ -1,35 +1,35 @@
 [[constraint]]
   name = "github.com/go-redis/redis"
-  version = "6.8.3"
+  version = "6.12.0"
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = "1.0.4"
+  version = "1.0.5"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "v1.2.1"
+  version = "v1.2.2"
 
 [[constraint]]
   name = "github.com/spotahome/kooper"
-  version = "v0.1.0"
+  version = "v0.3.0"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.9.1"
+  version = "kubernetes-1.10.5"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "6.0.0"
+  version = "kubernetes-1.10.5"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.9.1"
+  version = "kubernetes-1.10.5"
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.9.1"
+  version = "kubernetes-1.10.5"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
-  version = "0.8.0"
+  branch = "master"

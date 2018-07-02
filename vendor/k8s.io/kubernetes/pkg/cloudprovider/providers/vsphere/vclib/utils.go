@@ -46,7 +46,7 @@ func IsNotFound(err error) bool {
 }
 
 func getFinder(dc *Datacenter) *find.Finder {
-	finder := find.NewFinder(dc.Client(), true)
+	finder := find.NewFinder(dc.Client(), false)
 	finder.SetDatacenter(dc.Datacenter)
 	return finder
 }
@@ -146,18 +146,6 @@ func GetPathFromVMDiskPath(vmDiskPath string) string {
 	return datastorePathObj.Path
 }
 
-// GetDatastoreFromVMDiskPath retrieves the path from VM Disk Path.
-// Example: For vmDiskPath - [vsanDatastore] kubevols/volume.vmdk, the path is vsanDatastore
-func GetDatastoreFromVMDiskPath(vmDiskPath string) string {
-	datastorePathObj := new(object.DatastorePath)
-	isSuccess := datastorePathObj.FromString(vmDiskPath)
-	if !isSuccess {
-		glog.Errorf("Failed to parse vmDiskPath: %s", vmDiskPath)
-		return ""
-	}
-	return datastorePathObj.Datastore
-}
-
 //GetDatastorePathObjFromVMDiskPath gets the datastorePathObj from VM disk path.
 func GetDatastorePathObjFromVMDiskPath(vmDiskPath string) (*object.DatastorePath, error) {
 	datastorePathObj := new(object.DatastorePath)
@@ -182,6 +170,15 @@ func IsManagedObjectNotFoundError(err error) bool {
 		_, isManagedObjectNotFoundError = soap.ToSoapFault(err).VimFault().(types.ManagedObjectNotFound)
 	}
 	return isManagedObjectNotFoundError
+}
+
+// IsInvalidCredentialsError returns true if error is of type InvalidLogin
+func IsInvalidCredentialsError(err error) bool {
+	isInvalidCredentialsError := false
+	if soap.IsSoapFault(err) {
+		_, isInvalidCredentialsError = soap.ToSoapFault(err).VimFault().(types.InvalidLogin)
+	}
+	return isInvalidCredentialsError
 }
 
 // VerifyVolumePathsForVM verifies if the volume paths (volPaths) are attached to VM.

@@ -40,13 +40,8 @@ package_group(
         "//hack",
         "//hack/lib",
         "//hack/make-rules",
-        "//test/e2e",
-        "//test/e2e/framework",
-        "//test/e2e/kubectl",
-        "//test/e2e/workload",
-        "//test/integration/etcd",
-        "//test/integration/framework",
-        "//test/integration/kubectl",
+        "//test/e2e/...",
+        "//test/integration/...",
     ],
 )
 
@@ -79,22 +74,9 @@ package_group(
 )
 
 package_group(
-    name = "pkg_kubectl_CONSUMERS_BAD",
-    includes = [
-        ":KUBEADM_BAD",
-    ],
-    packages = [
-        "//cmd/clicheck",
-        "//cmd/hyperkube",
-        "//pkg",
-    ],
-)
-
-package_group(
     name = "pkg_kubectl_CONSUMERS",
     includes = [
         ":COMMON_generators",
-        ":pkg_kubectl_CONSUMERS_BAD",
     ],
     packages = [
         "//cmd/kubectl",
@@ -148,6 +130,20 @@ package_group(
 )
 
 package_group(
+    name = "pkg_kubectl_cmd_create_CONSUMERS",
+    packages = [
+        "//pkg/kubectl/cmd",
+    ],
+)
+
+package_group(
+    name = "pkg_kubectl_cmd_get_CONSUMERS",
+    packages = [
+        "//pkg/kubectl/cmd",
+    ],
+)
+
+package_group(
     name = "pkg_kubectl_cmd_rollout_CONSUMERS",
     packages = [
         "//pkg/kubectl/cmd",
@@ -174,12 +170,14 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
-        "//pkg/kubectl/cmd/resource",
+        "//pkg/kubectl/cmd/create",
+        "//pkg/kubectl/cmd/get",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/templates",
         "//pkg/kubectl/cmd/util",
         "//pkg/kubectl/cmd/util/sanity",
+        "//pkg/kubectl/cmd/wait",
     ],
 )
 
@@ -195,22 +193,12 @@ package_group(
     packages = [
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
-        "//pkg/kubectl/cmd/resource",
+        "//pkg/kubectl/cmd/create",
+        "//pkg/kubectl/cmd/get",
+        "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
+        "//pkg/kubectl/cmd/wait",
         "//pkg/kubectl/explain",
-    ],
-)
-
-package_group(
-    name = "pkg_kubectl_cmd_util_CONSUMERS_BAD",
-    includes = [
-        ":KUBEADM_BAD",
-    ],
-    packages = [
-        "//cmd/clicheck",
-        "//cmd/hyperkube",
-        "//cmd/kube-proxy/app",
-        "//plugin/cmd/kube-scheduler/app",
     ],
 )
 
@@ -219,7 +207,7 @@ package_group(
     includes = [
         ":COMMON_generators",
         ":COMMON_testing",
-        ":pkg_kubectl_cmd_util_CONSUMERS_BAD",
+        ":KUBEADM_BAD",
     ],
     packages = [
         "//cmd/kubectl",
@@ -227,12 +215,14 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
-        "//pkg/kubectl/cmd/resource",
+        "//pkg/kubectl/cmd/create",
+        "//pkg/kubectl/cmd/get",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/testing",
         "//pkg/kubectl/cmd/util",
         "//pkg/kubectl/cmd/util/editor",
+        "//pkg/kubectl/cmd/wait",
     ],
 )
 
@@ -240,6 +230,7 @@ package_group(
     name = "pkg_kubectl_cmd_util_editor_CONSUMERS",
     packages = [
         "//pkg/kubectl/cmd",
+        "//pkg/kubectl/cmd/create",
         "//pkg/kubectl/cmd/util",
     ],
 )
@@ -261,18 +252,9 @@ package_group(
 )
 
 package_group(
-    name = "pkg_kubectl_metricsutil_CONSUMERS_BAD",
-    packages = [
-        "//cmd/clicheck",
-        "//cmd/hyperkube",
-    ],
-)
-
-package_group(
     name = "pkg_kubectl_metricsutil_CONSUMERS",
     includes = [
         ":COMMON_generators",
-        ":pkg_kubectl_metricsutil_CONSUMERS_BAD",
     ],
     packages = [
         "//cmd/kubectl",
@@ -295,7 +277,8 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
-        "//pkg/kubectl/cmd/resource",
+        "//pkg/kubectl/cmd/create",
+        "//pkg/kubectl/cmd/get",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/testing",
@@ -325,6 +308,7 @@ package_group(
     name = "pkg_kubectl_validation_CONSUMERS",
     packages = [
         "//pkg/kubectl",
+        "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/testing",
         "//pkg/kubectl/cmd/util",
         "//pkg/kubectl/resource",

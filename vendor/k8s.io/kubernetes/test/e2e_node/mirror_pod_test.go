@@ -39,16 +39,16 @@ import (
 var _ = framework.KubeDescribe("MirrorPod", func() {
 	f := framework.NewDefaultFramework("mirror-pod")
 	Context("when create a mirror pod ", func() {
-		var ns, manifestPath, staticPodName, mirrorPodName string
+		var ns, podPath, staticPodName, mirrorPodName string
 		BeforeEach(func() {
 			ns = f.Namespace.Name
 			staticPodName = "static-pod-" + string(uuid.NewUUID())
 			mirrorPodName = staticPodName + "-" + framework.TestContext.NodeName
 
-			manifestPath = framework.TestContext.KubeletConfig.PodManifestPath
+			podPath = framework.TestContext.KubeletConfig.StaticPodPath
 
 			By("create the static pod")
-			err := createStaticPod(manifestPath, staticPodName, ns,
+			err := createStaticPod(podPath, staticPodName, ns,
 				imageutils.GetE2EImage(imageutils.NginxSlim), v1.RestartPolicyAlways)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -57,15 +57,15 @@ var _ = framework.KubeDescribe("MirrorPod", func() {
 				return checkMirrorPodRunning(f.ClientSet, mirrorPodName, ns)
 			}, 2*time.Minute, time.Second*4).Should(BeNil())
 		})
-		framework.ConformanceIt("should be updated when static pod updated", func() {
+		framework.ConformanceIt("should be updated when static pod updated [NodeConformance]", func() {
 			By("get mirror pod uid")
 			pod, err := f.ClientSet.CoreV1().Pods(ns).Get(mirrorPodName, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			uid := pod.UID
 
 			By("update the static pod container image")
-			image := framework.GetPauseImageNameForHostArch()
-			err = createStaticPod(manifestPath, staticPodName, ns, image, v1.RestartPolicyAlways)
+			image := imageutils.GetPauseImageName()
+			err = createStaticPod(podPath, staticPodName, ns, image, v1.RestartPolicyAlways)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("wait for the mirror pod to be updated")
@@ -79,7 +79,7 @@ var _ = framework.KubeDescribe("MirrorPod", func() {
 			Expect(len(pod.Spec.Containers)).Should(Equal(1))
 			Expect(pod.Spec.Containers[0].Image).Should(Equal(image))
 		})
-		framework.ConformanceIt("should be recreated when mirror pod gracefully deleted", func() {
+		framework.ConformanceIt("should be recreated when mirror pod gracefully deleted [NodeConformance]", func() {
 			By("get mirror pod uid")
 			pod, err := f.ClientSet.CoreV1().Pods(ns).Get(mirrorPodName, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -94,7 +94,7 @@ var _ = framework.KubeDescribe("MirrorPod", func() {
 				return checkMirrorPodRecreatedAndRunnig(f.ClientSet, mirrorPodName, ns, uid)
 			}, 2*time.Minute, time.Second*4).Should(BeNil())
 		})
-		framework.ConformanceIt("should be recreated when mirror pod forcibly deleted", func() {
+		framework.ConformanceIt("should be recreated when mirror pod forcibly deleted [NodeConformance]", func() {
 			By("get mirror pod uid")
 			pod, err := f.ClientSet.CoreV1().Pods(ns).Get(mirrorPodName, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -111,7 +111,7 @@ var _ = framework.KubeDescribe("MirrorPod", func() {
 		})
 		AfterEach(func() {
 			By("delete the static pod")
-			err := deleteStaticPod(manifestPath, staticPodName, ns)
+			err := deleteStaticPod(podPath, staticPodName, ns)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("wait for the mirror pod to disappear")

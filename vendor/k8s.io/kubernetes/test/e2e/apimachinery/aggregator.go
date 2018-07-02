@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
+	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +41,7 @@ import (
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
 	"k8s.io/kubernetes/test/e2e/framework"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 	samplev1alpha1 "k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1"
 
 	. "github.com/onsi/ginkgo"
@@ -52,14 +53,20 @@ var _ = SIGDescribe("Aggregator", func() {
 	var ns string
 	var c clientset.Interface
 	var aggrclient *aggregatorclient.Clientset
-	f := framework.NewDefaultFramework("aggregator")
-	framework.AddCleanupAction(func() {
-		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
-		if len(ns) > 0 {
-			cleanTest(c, aggrclient, ns)
-		}
+
+	// BeforeEachs run in LIFO order, AfterEachs run in FIFO order.
+	// We want cleanTest to happen before the namespace cleanup AfterEach
+	// inserted by NewDefaultFramework, so we put this AfterEach in front
+	// of NewDefaultFramework.
+	AfterEach(func() {
+		cleanTest(c, aggrclient, ns)
 	})
 
+	f := framework.NewDefaultFramework("aggregator")
+
+	// We want namespace initialization BeforeEach inserted by
+	// NewDefaultFramework to happen before this, so we put this BeforeEach
+	// after NewDefaultFramework.
 	BeforeEach(func() {
 		c = f.ClientSet
 		ns = f.Namespace.Name
@@ -72,7 +79,7 @@ var _ = SIGDescribe("Aggregator", func() {
 		framework.SkipUnlessProviderIs("gce", "gke")
 
 		// Testing a 1.7 version of the sample-apiserver
-		TestSampleAPIServer(f, "gcr.io/kubernetes-e2e-test-images/k8s-aggregator-sample-apiserver-amd64:1.7v2")
+		TestSampleAPIServer(f, imageutils.GetE2EImage(imageutils.APIServer))
 	})
 })
 
@@ -80,7 +87,7 @@ func cleanTest(client clientset.Interface, aggrclient *aggregatorclient.Clientse
 	// delete the APIService first to avoid causing discovery errors
 	_ = aggrclient.ApiregistrationV1beta1().APIServices().Delete("v1alpha1.wardle.k8s.io", nil)
 
-	_ = client.ExtensionsV1beta1().Deployments(namespace).Delete("sample-apiserver", nil)
+	_ = client.AppsV1().Deployments(namespace).Delete("sample-apiserver", nil)
 	_ = client.CoreV1().Secrets(namespace).Delete("sample-apiserver-secret", nil)
 	_ = client.CoreV1().Services(namespace).Delete("sample-api", nil)
 	_ = client.CoreV1().ServiceAccounts(namespace).Delete("sample-apiserver", nil)
@@ -126,7 +133,7 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 
 	// kubectl create -f deploy.yaml
 	deploymentName := "sample-apiserver-deployment"
-	etcdImage := "quay.io/coreos/etcd:v3.1.11"
+	etcdImage := "quay.io/coreos/etcd:v3.2.18"
 	podLabels := map[string]string{"app": "sample-apiserver", "apiserver": "true"}
 	replicas := int32(1)
 	zero := int64(0)
@@ -164,14 +171,18 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 			Image: etcdImage,
 		},
 	}
-	d := &extensions.Deployment{
+	d := &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: deploymentName,
+			Name:   deploymentName,
+			Labels: podLabels,
 		},
-		Spec: extensions.DeploymentSpec{
+		Spec: apps.DeploymentSpec{
 			Replicas: &replicas,
-			Strategy: extensions.DeploymentStrategy{
-				Type: extensions.RollingUpdateDeploymentStrategyType,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: podLabels,
+			},
+			Strategy: apps.DeploymentStrategy{
+				Type: apps.RollingUpdateDeploymentStrategyType,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -185,7 +196,7 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 			},
 		},
 	}
-	deployment, err := client.ExtensionsV1beta1().Deployments(namespace).Create(d)
+	deployment, err := client.AppsV1().Deployments(namespace).Create(d)
 	framework.ExpectNoError(err, "creating deployment %s in namespace %s", deploymentName, namespace)
 	err = framework.WaitForDeploymentRevisionAndImage(client, namespace, deploymentName, "1", image)
 	framework.ExpectNoError(err, "waiting for the deployment of image %s in %s in %s to complete", image, deploymentName, namespace)
@@ -284,6 +295,13 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 	})
 	framework.ExpectNoError(err, "creating role binding %s:sample-apiserver to access configMap", namespace)
 
+	// Wait for the extension apiserver to be up and healthy
+	// kubectl get deployments -n <aggregated-api-namespace> && status == Running
+	// NOTE: aggregated apis should generally be set up in there own namespace (<aggregated-api-namespace>). As the test framework
+	// is setting up a new namespace, we are just using that.
+	err = framework.WaitForDeploymentComplete(client, deployment)
+	framework.ExpectNoError(err, "deploying extension apiserver in namespace %s", namespace)
+
 	// kubectl create -f apiservice.yaml
 	_, err = aggrclient.ApiregistrationV1beta1().APIServices().Create(&apiregistrationv1beta1.APIService{
 		ObjectMeta: metav1.ObjectMeta{Name: "v1alpha1.wardle.k8s.io"},
@@ -301,14 +319,16 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 	})
 	framework.ExpectNoError(err, "creating apiservice %s with namespace %s", "v1alpha1.wardle.k8s.io", namespace)
 
-	// Wait for the extension apiserver to be up and healthy
-	// kubectl get deployments -n <aggregated-api-namespace> && status == Running
-	// NOTE: aggregated apis should generally be set up in there own namespace (<aggregated-api-namespace>). As the test framework
-	// is setting up a new namespace, we are just using that.
-	err = framework.WaitForDeploymentComplete(client, deployment)
+	var (
+		currentAPIService *apiregistrationv1beta1.APIService
+		currentPods       *v1.PodList
+	)
 
-	// We seem to need to do additional waiting until the extension api service is actually up.
-	err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
+	err = pollTimed(100*time.Millisecond, 60*time.Second, func() (bool, error) {
+
+		currentAPIService, _ = aggrclient.ApiregistrationV1beta1().APIServices().Get("v1alpha1.wardle.k8s.io", metav1.GetOptions{})
+		currentPods, _ = client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+
 		request := restClient.Get().AbsPath("/apis/wardle.k8s.io/v1alpha1/namespaces/default/flunders")
 		request.SetHeader("Accept", "application/json")
 		_, err := request.DoRaw()
@@ -317,13 +337,32 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 			if !ok {
 				return false, err
 			}
+			if status.Status().Code == 503 {
+				return false, nil
+			}
 			if status.Status().Code == 404 && strings.HasPrefix(err.Error(), "the server could not find the requested resource") {
 				return false, nil
 			}
 			return false, err
 		}
 		return true, nil
-	})
+	}, "Waited %s for the sample-apiserver to be ready to handle requests.")
+	if err != nil {
+		currentAPIServiceJSON, _ := json.Marshal(currentAPIService)
+		framework.Logf("current APIService: %s", string(currentAPIServiceJSON))
+
+		currentPodsJSON, _ := json.Marshal(currentPods)
+		framework.Logf("current pods: %s", string(currentPodsJSON))
+
+		if currentPods != nil {
+			for _, pod := range currentPods.Items {
+				for _, container := range pod.Spec.Containers {
+					logs, err := framework.GetPodLogs(client, namespace, pod.Name, container.Name)
+					framework.Logf("logs of %s/%s (error: %v): %s", pod.Name, container.Name, err, logs)
+				}
+			}
+		}
+	}
 	framework.ExpectNoError(err, "gave up waiting for apiservice wardle to come up successfully")
 
 	flunderName := generateFlunderName("rest-flunder")
@@ -372,19 +411,15 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 	flunderName = generateFlunderName("dynamic-flunder")
 
 	// Rerun the Create/List/Delete tests using the Dynamic client.
-	resources, err := client.Discovery().ServerPreferredNamespacedResources()
-	framework.ExpectNoError(err, "getting server preferred namespaces resources for dynamic client")
+	resources, discoveryErr := client.Discovery().ServerPreferredNamespacedResources()
 	groupVersionResources, err := discovery.GroupVersionResources(resources)
 	framework.ExpectNoError(err, "getting group version resources for dynamic client")
 	gvr := schema.GroupVersionResource{Group: "wardle.k8s.io", Version: "v1alpha1", Resource: "flunders"}
 	_, ok := groupVersionResources[gvr]
 	if !ok {
-		framework.Failf("could not find group version resource for dynamic client and wardle/flunders.")
+		framework.Failf("could not find group version resource for dynamic client and wardle/flunders (discovery error: %v, discovery results: %#v)", discoveryErr, groupVersionResources)
 	}
-	clientPool := f.ClientPool
-	dynamicClient, err := clientPool.ClientForGroupVersionResource(gvr)
-	framework.ExpectNoError(err, "getting group version resources for dynamic client")
-	apiResource := metav1.APIResource{Name: gvr.Resource, Namespaced: true}
+	dynamicClient := f.DynamicClient.Resource(gvr).Namespace(namespace)
 
 	// kubectl create -f flunders-1.yaml
 	// Request Body: {"apiVersion":"wardle.k8s.io/v1alpha1","kind":"Flunder","metadata":{"labels":{"sample-label":"true"},"name":"test-flunder","namespace":"default"}}
@@ -401,32 +436,39 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 	unstruct := &unstructuredv1.Unstructured{}
 	err = unstruct.UnmarshalJSON(jsonFlunder)
 	framework.ExpectNoError(err, "unmarshalling test-flunder as unstructured for create using dynamic client")
-	unstruct, err = dynamicClient.Resource(&apiResource, namespace).Create(unstruct)
+	unstruct, err = dynamicClient.Create(unstruct)
 	framework.ExpectNoError(err, "listing flunders using dynamic client")
 
 	// kubectl get flunders
-	obj, err := dynamicClient.Resource(&apiResource, namespace).List(metav1.ListOptions{})
+	unstructuredList, err := dynamicClient.List(metav1.ListOptions{})
 	framework.ExpectNoError(err, "listing flunders using dynamic client")
-	unstructuredList, ok := obj.(*unstructuredv1.UnstructuredList)
-	validateErrorWithDebugInfo(f, err, pods, "casting flunders list(%T) as unstructuredList using dynamic client", obj)
 	if len(unstructuredList.Items) != 1 {
 		framework.Failf("failed to get back the correct flunders list %v from the dynamic client", unstructuredList)
 	}
 
 	// kubectl delete flunder test-flunder
-	err = dynamicClient.Resource(&apiResource, namespace).Delete(flunderName, &metav1.DeleteOptions{})
+	err = dynamicClient.Delete(flunderName, &metav1.DeleteOptions{})
 	validateErrorWithDebugInfo(f, err, pods, "deleting flunders(%v) using dynamic client", unstructuredList.Items)
 
 	// kubectl get flunders
-	obj, err = dynamicClient.Resource(&apiResource, namespace).List(metav1.ListOptions{})
+	unstructuredList, err = dynamicClient.List(metav1.ListOptions{})
 	framework.ExpectNoError(err, "listing flunders using dynamic client")
-	unstructuredList, ok = obj.(*unstructuredv1.UnstructuredList)
-	validateErrorWithDebugInfo(f, err, pods, "casting flunders list(%T) as unstructuredList using dynamic client", obj)
 	if len(unstructuredList.Items) != 0 {
 		framework.Failf("failed to get back the correct deleted flunders list %v from the dynamic client", unstructuredList)
 	}
 
 	cleanTest(client, aggrclient, namespace)
+}
+
+// pollTimed will call Poll but time how long Poll actually took.
+// It will then framework.logf the msg with the duration of the Poll.
+// It is assumed that msg will contain one %s for the elapsed time.
+func pollTimed(interval, timeout time.Duration, condition wait.ConditionFunc, msg string) error {
+	defer func(start time.Time, msg string) {
+		elapsed := time.Since(start)
+		framework.Logf(msg, elapsed)
+	}(time.Now(), msg)
+	return wait.Poll(interval, timeout, condition)
 }
 
 func validateErrorWithDebugInfo(f *framework.Framework, err error, pods *v1.PodList, msg string, fields ...interface{}) {

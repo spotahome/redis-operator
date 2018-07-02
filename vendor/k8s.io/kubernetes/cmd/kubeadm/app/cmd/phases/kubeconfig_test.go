@@ -23,9 +23,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	// required for triggering api machinery startup when running unit tests
-	_ "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/install"
-
 	"k8s.io/client-go/tools/clientcmd"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
@@ -170,10 +167,10 @@ func TestKubeConfigSubCommandsThatCreateFilesWithFlags(t *testing.T) {
 
 		outputdir := tmpdir
 
-		// Retrives ca cert for assertions
+		// Retrieves ca cert for assertions
 		caCert, _, err := pkiutil.TryLoadCertAndKeyFromDisk(pkidir, kubeadmconstants.CACertAndKeyBaseName)
 		if err != nil {
-			t.Fatalf("couldn't retrive ca cert: %v", err)
+			t.Fatalf("couldn't retrieve ca cert: %v", err)
 		}
 
 		// Get subcommands working in the temporary directory
@@ -196,7 +193,7 @@ func TestKubeConfigSubCommandsThatCreateFilesWithFlags(t *testing.T) {
 			// reads generated files
 			config, err := clientcmd.LoadFromFile(filepath.Join(tmpdir, file))
 			if err != nil {
-				t.Errorf("Couldn't load generated kubeconfig file: %v", err)
+				t.Errorf("couldn't load generated kubeconfig file: %v", err)
 			}
 
 			// checks that CLI flags are properly propagated and kubeconfig properties are correct
@@ -272,17 +269,17 @@ func TestKubeConfigSubCommandsThatCreateFilesWithConfigFile(t *testing.T) {
 		// Adds a pki folder with a ca certs to the temp folder
 		pkidir := testutil.SetupPkiDirWithCertificateAuthorithy(t, tmpdir)
 
-		// Retrives ca cert for assertions
+		// Retrieves ca cert for assertions
 		caCert, _, err := pkiutil.TryLoadCertAndKeyFromDisk(pkidir, kubeadmconstants.CACertAndKeyBaseName)
 		if err != nil {
-			t.Fatalf("couldn't retrive ca cert: %v", err)
+			t.Fatalf("couldn't retrieve ca cert: %v", err)
 		}
 
 		// Adds a master configuration file
 		cfg := &kubeadmapi.MasterConfiguration{
-			API:             kubeadmapi.API{AdvertiseAddress: "1.2.3.4", BindPort: 1234},
-			CertificatesDir: pkidir,
-			NodeName:        "valid-node-name",
+			API:              kubeadmapi.API{AdvertiseAddress: "1.2.3.4", BindPort: 1234},
+			CertificatesDir:  pkidir,
+			NodeRegistration: kubeadmapi.NodeRegistrationOptions{Name: "valid-node-name"},
 		}
 		cfgPath := testutil.SetupMasterConfigurationFile(t, tmpdir, cfg)
 
@@ -302,7 +299,7 @@ func TestKubeConfigSubCommandsThatCreateFilesWithConfigFile(t *testing.T) {
 			// reads generated files
 			config, err := clientcmd.LoadFromFile(filepath.Join(tmpdir, file))
 			if err != nil {
-				t.Errorf("Couldn't load generated kubeconfig file: %v", err)
+				t.Errorf("couldn't load generated kubeconfig file: %v", err)
 			}
 
 			// checks that config file properties are properly propagated and kubeconfig properties are correct
@@ -327,10 +324,10 @@ func TestKubeConfigSubCommandsThatWritesToOut(t *testing.T) {
 
 	outputdir := tmpdir
 
-	// Retrives ca cert for assertions
+	// Retrieves ca cert for assertions
 	caCert, _, err := pkiutil.TryLoadCertAndKeyFromDisk(pkidir, kubeadmconstants.CACertAndKeyBaseName)
 	if err != nil {
-		t.Fatalf("couldn't retrive ca cert: %v", err)
+		t.Fatalf("couldn't retrieve ca cert: %v", err)
 	}
 
 	commonFlags := []string{
@@ -371,7 +368,7 @@ func TestKubeConfigSubCommandsThatWritesToOut(t *testing.T) {
 		// reads kubeconfig written to stdout
 		config, err := clientcmd.Load(buf.Bytes())
 		if err != nil {
-			t.Errorf("Couldn't read kubeconfig file from buffer: %v", err)
+			t.Errorf("couldn't read kubeconfig file from buffer: %v", err)
 			continue
 		}
 

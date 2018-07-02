@@ -1,10 +1,11 @@
 reviewers:
   - bowei
+  - rramkumar1
+  - MrHohn
   - deads2k
   - enisoc
   - enj # for test/integration/etcd/etcd_storage_path_test.go
   - erictune
-  - fabianofranz # for test/e2e/kubectl.go
   - foxish # for test/e2e/network-partition.go
   - gmarek
   - janetkuo
@@ -27,12 +28,14 @@ reviewers:
   - vishh
 approvers:
   - bowei # for test/e2e/{dns*,network}.go
+  - cblecker
+  - rramkumar1
+  - MrHohn
   - deads2k
   - enisoc
   - enj # for test/integration/etcd/etcd_storage_path_test.go
   - eparis
   - erictune
-  - fabianofranz # for test/e2e/kubectl.go
   - foxish # for test/e2e/network-partition.go
   - gmarek
   - janetkuo
@@ -52,4 +55,4 @@ approvers:
   - sttts
   - timothysc
   - zmerlynn
-  - vishh 
+  - vishh

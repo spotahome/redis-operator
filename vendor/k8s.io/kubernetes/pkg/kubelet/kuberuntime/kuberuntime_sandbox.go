@@ -25,7 +25,9 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	kubetypes "k8s.io/apimachinery/pkg/types"
-	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/kubernetes/pkg/features"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -134,10 +136,15 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod) (
 		},
 	}
 
-	sysctls, err := getSysctlsFromAnnotations(pod.Annotations)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get sysctls from annotations %v for pod %q: %v", pod.Annotations, format.Pod(pod), err)
+	sysctls := make(map[string]string)
+	if utilfeature.DefaultFeatureGate.Enabled(features.Sysctls) {
+		if pod.Spec.SecurityContext != nil {
+			for _, c := range pod.Spec.SecurityContext.Sysctls {
+				sysctls[c.Name] = c.Value
+			}
+		}
 	}
+
 	lc.Sysctls = sysctls
 
 	if pod.Spec.SecurityContext != nil {
@@ -145,11 +152,7 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod) (
 		if sc.RunAsUser != nil {
 			lc.SecurityContext.RunAsUser = &runtimeapi.Int64Value{Value: int64(*sc.RunAsUser)}
 		}
-		lc.SecurityContext.NamespaceOptions = &runtimeapi.NamespaceOption{
-			HostNetwork: pod.Spec.HostNetwork,
-			HostIpc:     pod.Spec.HostIPC,
-			HostPid:     pod.Spec.HostPID,
-		}
+		lc.SecurityContext.NamespaceOptions = namespacesForPod(pod)
 
 		if sc.FSGroup != nil {
 			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, int64(*sc.FSGroup))

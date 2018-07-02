@@ -1,13 +1,15 @@
 package handler
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/spotahome/kooper/log"
 )
 
 // Logger will log the handling events. This handler can be sued to test that a
-//  controller receives resource events..
+// controller receives resource events..
 type Logger struct {
 	logger log.Logger
 }
@@ -20,13 +22,13 @@ func NewLogger(logger log.Logger) *Logger {
 }
 
 // Add satisfies Handler interface.
-func (l *Logger) Add(obj runtime.Object) error {
+func (l *Logger) Add(_ context.Context, obj runtime.Object) error {
 	l.logger.Infof("event add: %#v", obj)
 	return nil
 }
 
 // Delete satisfies Handler interface.
-func (l *Logger) Delete(objKey string) error {
+func (l *Logger) Delete(_ context.Context, objKey string) error {
 	l.logger.Infof("event delete: %#v", objKey)
 	return nil
 }

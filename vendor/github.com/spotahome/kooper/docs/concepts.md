@@ -2,17 +2,22 @@
 Start
 =====
 
-This project is a simple project with a simple task: Help creating Kubernetes operators and controllers by giving a framework, libraries or a set of tools (pick the name that you prefer).
+Kooper motivation: Help creating Kubernetes operators and controllers by giving a framework, libraries or a set of tools (pick the name that you prefer).
 
-To explain the library first we need to explain the basic concepts and structure of this toolkit, after that you will be redirected to some operators and controllers so you can see what can you do with this toolkit.
-
+If you are new to kooper first get familiar with the basic concepts and design of this toolkit, after that you will be redirected to some simple operators and controllers explained so you can see what can you do with this toolkit.
+	
 ## Concepts
 
 These will be the pieces of the framework required to implement and know to create an operator.
+The required pieces you need to implement and know to create an operator are:
+* `controller`: Take actions to comply the needs of resources.
+* `retriever`: Knows how to list, watch and create a void object.
+* `CRD`: A retriever that knows how to Initialize.
+* `Handler`: Will be called when were events in the resources.
 
 ### Controller
 
-A Kubernetes controller is something that listens/watch the status of a Kubernetes controller and takes actions so it meets the state required by the resource. Example:
+A Kubernetes controller is something that listens/watch the status of a Kubernetes resource and takes actions so it meets the state required by the resource. Example:
 
 I listen to a `replicaset` resource that wants N instances of X `pod`. My controller should take whatever action it considers so the cluster has N instances of X. In this case It will create N `pod` resources.
 
@@ -44,7 +49,7 @@ type Retriever interface {
 
 A `crd` is a Custom Resource Definition (the evolution of the TPRs). It's a Kubernetes resource that is not a Kubernetes base resource (`pod`, `deployment`, `secret`...). It's used so we (as Kubernetes users) can create our custom resources (in the end a manifest/spec/definition) and use new resource kinds inside the cluster.
 
-In this framework we have the concept of `CRD`. It's just a Retriever that knows how to Initialize.
+In this framework we have the concept of `CRD`. It's just a retriever that knows how to Initialize.
 The Initialize exists because when you want to use it in a Kubernetes cluster you need to ensure that the CRD is previously present (registered).
 
 ```go
@@ -60,8 +65,8 @@ The Handler is where our operator/controller logic will be placed. In other word
 
 ```go
 type Handler interface {
-	Add(obj runtime.Object) error
-	Delete(string) error
+	Add(context.Context, runtime.Object) error
+	Delete(context.Context, string) error
 }
 ```
 
@@ -73,6 +78,10 @@ if the resource is new or not, only that the state should be this and eventually
 
 * What happens if it errors my handling?
 The event will be requeued for a new handling in the future until it rate limits the maximum times allowed (if this isn't rate limited you could get stuck forever handling same resources)
+
+* A context as parameter?
+The context can be ignored if you don't need it at all, but if tracing is active the context will have the parent span.
+
 
 ### Operator
 

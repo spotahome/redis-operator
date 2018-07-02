@@ -33,7 +33,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	batchinternal "k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/controller/job"
-	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -51,7 +50,7 @@ var _ = SIGDescribe("CronJob", func() {
 	successCommand := []string{"/bin/true"}
 
 	BeforeEach(func() {
-		framework.SkipIfMissingResource(f.ClientPool, CronJobGroupVersionResourceBeta, f.Namespace.Name)
+		framework.SkipIfMissingResource(f.DynamicClient, CronJobGroupVersionResourceBeta, f.Namespace.Name)
 	})
 
 	// multiple jobs running at once
@@ -207,11 +206,7 @@ var _ = SIGDescribe("CronJob", func() {
 
 		By("Deleting the job")
 		job := cronJob.Status.Active[0]
-		reaper, err := kubectl.ReaperFor(batchinternal.Kind("Job"), f.InternalClientset)
-		Expect(err).NotTo(HaveOccurred())
-		timeout := 1 * time.Minute
-		err = reaper.Stop(f.Namespace.Name, job.Name, timeout, metav1.NewDeleteOptions(0))
-		Expect(err).NotTo(HaveOccurred())
+		framework.ExpectNoError(framework.DeleteResourceAndWaitForGC(f.ClientSet, batchinternal.Kind("Job"), f.Namespace.Name, job.Name))
 
 		By("Ensuring job was deleted")
 		_, err = framework.GetJob(f.ClientSet, f.Namespace.Name, job.Name)
@@ -222,7 +217,7 @@ var _ = SIGDescribe("CronJob", func() {
 		err = waitForNoJobs(f.ClientSet, f.Namespace.Name, cronJob.Name, true)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Ensuring MissingJob event has occured")
+		By("Ensuring MissingJob event has occurred")
 		err = checkNoEventWithReason(f.ClientSet, f.Namespace.Name, cronJob.Name, []string{"MissingJob"})
 		Expect(err).To(HaveOccurred())
 
@@ -430,7 +425,7 @@ func waitForAnyFinishedJob(c clientset.Interface, ns string) error {
 	})
 }
 
-// checkNoEventWithReason checks no events with a reason within a list has occured
+// checkNoEventWithReason checks no events with a reason within a list has occurred
 func checkNoEventWithReason(c clientset.Interface, ns, cronJobName string, reasons []string) error {
 	sj, err := c.BatchV1beta1().CronJobs(ns).Get(cronJobName, metav1.GetOptions{})
 	if err != nil {
