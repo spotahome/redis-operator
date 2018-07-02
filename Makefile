@@ -1,4 +1,4 @@
-VERSION := 0.2.5
+VERSION := 0.3.0
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
