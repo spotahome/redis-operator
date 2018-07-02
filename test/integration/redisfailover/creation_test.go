@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +95,7 @@ func TestRedisFailover(t *testing.T) {
 	time.Sleep(15 * time.Second)
 
 	// Create operator and run.
-	redisfailoverOperator := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
+	redisfailoverOperator := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, kmetrics.Dummy, log.Dummy)
 	go func() {
 		errC <- redisfailoverOperator.Run(stopC)
 	}()
