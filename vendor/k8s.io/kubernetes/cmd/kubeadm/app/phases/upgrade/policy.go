@@ -116,6 +116,11 @@ func EnforceVersionPolicies(versionGetter VersionGetter, newK8sVersionStr string
 		}
 	}
 
+	if kubeadmVersion.Major() > newK8sVersion.Major() ||
+		kubeadmVersion.Minor() > newK8sVersion.Minor() {
+		skewErrors.Skippable = append(skewErrors.Skippable, fmt.Errorf("Kubeadm version %s can only be used to upgrade to Kubernetes version %d.%d", kubeadmVersionStr, kubeadmVersion.Major(), kubeadmVersion.Minor()))
+	}
+
 	// Detect if the version is unstable and the user didn't allow that
 	if err = detectUnstableVersionError(newK8sVersion, newK8sVersionStr, allowExperimentalUpgrades, allowRCUpgrades); err != nil {
 		skewErrors.Skippable = append(skewErrors.Skippable, err)

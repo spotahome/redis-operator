@@ -20,6 +20,7 @@ UID := $(shell id -u)
 # cmds
 UNIT_TEST_CMD := ./hack/scripts/unit-test.sh
 INTEGRATION_TEST_CMD := ./hack/scripts/integration-test.sh 
+CI_INTEGRATION_TEST_CMD := ./hack/scripts/integration-test-minikube.sh
 MOCKS_CMD := ./hack/scripts/mockgen.sh
 DOCKER_RUN_CMD := docker run -v ${PWD}:$(DOCKER_GO_SERVICE_PATH) --rm -it $(SERVICE_NAME)
 RUN_EXAMPLE_POD_ECHO := go run ./examples/echo-pod-controller/cmd/* --development
@@ -52,9 +53,10 @@ unit-test: build
 	$(DOCKER_RUN_CMD) /bin/sh -c '$(UNIT_TEST_CMD)'
 .PHONY: integration-test
 integration-test: build
-	$(DOCKER_RUN_CMD) /bin/sh -c '$(INTEGRATION_TEST_CMD)'
+	echo "[WARNING] Requires a kubernetes cluster configured (and running) on your kubeconfig!!"
+	$(INTEGRATION_TEST_CMD)
 .PHONY: test
-test: integration-test
+test: unit-test
 
 # Test stuff in ci
 .PHONY: ci-unit-test
@@ -62,9 +64,9 @@ ci-unit-test:
 	$(UNIT_TEST_CMD)
 .PHONY: ci-integration-test
 ci-integration-test:
-	$(INTEGRATION_TEST_CMD)
+	$(CI_INTEGRATION_TEST_CMD)
 .PHONY: ci
-ci: ci-integration-test
+ci: ci-unit-test ci-integration-test
 
 # Mocks stuff in dev
 .PHONY: mocks

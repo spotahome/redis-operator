@@ -1,22 +1,79 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "nsenter_unsupported.go",
-    ] + select({
-        "@io_bazel_rules_go//go/platform:linux_amd64": [
+    srcs = select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
             "nsenter.go",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "nsenter_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "nsenter_unsupported.go",
         ],
         "//conditions:default": [],
     }),
     importpath = "k8s.io/kubernetes/pkg/util/nsenter",
     visibility = ["//visibility:public"],
-    deps = [
-        "//vendor/k8s.io/utils/exec:go_default_library",
-    ] + select({
-        "@io_bazel_rules_go//go/platform:linux_amd64": [
+    deps = select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
             "//vendor/github.com/golang/glog:go_default_library",
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
         ],
         "//conditions:default": [],
     }),
@@ -34,4 +91,21 @@ filegroup(
     srcs = [":package-srcs"],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = select({
+        "@io_bazel_rules_go//go/platform:linux": [
+            "nsenter_test.go",
+        ],
+        "//conditions:default": [],
+    }),
+    embed = [":go_default_library"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:linux": [
+            "//vendor/k8s.io/utils/exec:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
 )

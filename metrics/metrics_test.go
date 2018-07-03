@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spotahome/redis-operator/metrics"
@@ -25,7 +27,7 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterOK("testns", "test")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns"} 1`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -35,7 +37,7 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterError("testns", "test")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns"} 0`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 0`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -46,7 +48,7 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterError("testns", "test")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns"} 0`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 0`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -57,7 +59,7 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterOK("testns", "test")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns"} 1`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -68,8 +70,8 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterOK("testns", "test2")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns"} 1`,
-				`redis_operator_controller_cluster_ok{name="test2",namespace="testns"} 1`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
+				`my_metrics_controller_cluster_ok{name="test2",namespace="testns"} 1`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -80,8 +82,8 @@ func TestPrometheusMetrics(t *testing.T) {
 				pm.SetClusterOK("testns2", "test")
 			},
 			expMetrics: []string{
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns1"} 1`,
-				`redis_operator_controller_cluster_ok{name="test",namespace="testns2"} 1`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns1"} 1`,
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns2"} 1`,
 			},
 			expCode: http.StatusOK,
 		},
@@ -95,7 +97,8 @@ func TestPrometheusMetrics(t *testing.T) {
 
 			// Create the muxer for testing.
 			mx := http.NewServeMux()
-			pm := metrics.NewPrometheusMetrics(path, mx)
+			reg := prometheus.NewRegistry()
+			pm := metrics.NewPrometheusMetrics(path, "my_metrics", mx, reg)
 
 			// Add metrics to prometheus.
 			test.addMetrics(pm)

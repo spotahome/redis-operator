@@ -15,10 +15,8 @@ import (
 )
 
 const (
-	checkCRDInterval     = 2 * time.Second
-	crdReadyTimeout      = 3 * time.Minute
-	k8sValidVersionMajor = 1
-	k8sValidVersionMinor = 7
+	checkCRDInterval = 2 * time.Second
+	crdReadyTimeout  = 3 * time.Minute
 )
 
 var (
@@ -116,7 +114,9 @@ func (c *Client) EnsurePresent(conf Conf) error {
 	}
 
 	c.logger.Infof("crd %s created, waiting to be ready...", crdName)
-	c.WaitToBePresent(crdName, crdReadyTimeout)
+	if err := c.WaitToBePresent(crdName, crdReadyTimeout); err != nil {
+		return err
+	}
 	c.logger.Infof("crd %s ready", crdName)
 
 	return nil

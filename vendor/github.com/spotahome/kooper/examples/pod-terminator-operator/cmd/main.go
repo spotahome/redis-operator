@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spotahome/kooper/client/crd"
 	applogger "github.com/spotahome/kooper/log"
@@ -119,5 +120,6 @@ func main() {
 	case <-signalC:
 		logger.Infof("Signal captured, exiting...")
 	}
-
+	close(stopC)
+	time.Sleep(5 * time.Second)
 }

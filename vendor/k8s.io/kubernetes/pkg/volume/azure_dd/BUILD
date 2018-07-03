@@ -11,15 +11,42 @@ go_library(
     srcs = [
         "attacher.go",
         "azure_common.go",
-        "azure_common_unsupported.go",
         "azure_dd.go",
+        "azure_dd_block.go",
         "azure_mounter.go",
         "azure_provision.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:linux_amd64": [
+        "@io_bazel_rules_go//go/platform:android": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
             "azure_common_linux.go",
         ],
-        "@io_bazel_rules_go//go/platform:windows_amd64": [
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "azure_common_unsupported.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
             "azure_common_windows.go",
         ],
         "//conditions:default": [],
@@ -29,14 +56,15 @@ go_library(
         "//pkg/apis/core:go_default_library",
         "//pkg/cloudprovider:go_default_library",
         "//pkg/cloudprovider/providers/azure:go_default_library",
+        "//pkg/features:go_default_library",
         "//pkg/util/keymutex:go_default_library",
         "//pkg/util/mount:go_default_library",
         "//pkg/util/strings:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/util:go_default_library",
-        "//pkg/volume/util/volumehelper:go_default_library",
-        "//vendor/github.com/Azure/azure-sdk-for-go/arm/compute:go_default_library",
-        "//vendor/github.com/Azure/azure-sdk-for-go/arm/storage:go_default_library",
+        "//pkg/volume/util/volumepathhandler:go_default_library",
+        "//vendor/github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute:go_default_library",
+        "//vendor/github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2017-10-01/storage:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/resource:go_default_library",
@@ -44,6 +72,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/util/feature:go_default_library",
     ],
 )
 
@@ -64,15 +93,17 @@ go_test(
     name = "go_default_test",
     srcs = [
         "azure_common_test.go",
+        "azure_dd_block_test.go",
         "azure_dd_test.go",
     ],
-    importpath = "k8s.io/kubernetes/pkg/volume/azure_dd",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//pkg/util/mount:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/testing:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
         "//vendor/k8s.io/client-go/util/testing:go_default_library",
     ],
 )

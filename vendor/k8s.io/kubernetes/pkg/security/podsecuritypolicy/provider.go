@@ -22,10 +22,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
 	psputil "k8s.io/kubernetes/pkg/security/podsecuritypolicy/util"
 	"k8s.io/kubernetes/pkg/securitycontext"
-	"k8s.io/kubernetes/pkg/util/maps"
 )
 
 // used to pass in the field being validated for reusable group strategies so they
@@ -37,7 +36,7 @@ const (
 
 // simpleProvider is the default implementation of Provider.
 type simpleProvider struct {
-	psp        *extensions.PodSecurityPolicy
+	psp        *policy.PodSecurityPolicy
 	strategies *ProviderStrategies
 }
 
@@ -45,7 +44,7 @@ type simpleProvider struct {
 var _ Provider = &simpleProvider{}
 
 // NewSimpleProvider creates a new Provider instance.
-func NewSimpleProvider(psp *extensions.PodSecurityPolicy, namespace string, strategyFactory StrategyFactory) (Provider, error) {
+func NewSimpleProvider(psp *policy.PodSecurityPolicy, namespace string, strategyFactory StrategyFactory) (Provider, error) {
 	if psp == nil {
 		return nil, fmt.Errorf("NewSimpleProvider requires a PodSecurityPolicy")
 	}
@@ -64,17 +63,16 @@ func NewSimpleProvider(psp *extensions.PodSecurityPolicy, namespace string, stra
 	}, nil
 }
 
-// Create a PodSecurityContext based on the given constraints.  If a setting is already set
-// on the PodSecurityContext it will not be changed.  Validate should be used after the context
-// is created to ensure it complies with the required restrictions.
-func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurityContext, map[string]string, error) {
+// DefaultPodSecurityContext sets the default values of the required but not filled fields.
+// It modifies the SecurityContext and annotations of the provided pod. Validation should be
+// used after the context is defaulted to ensure it complies with the required restrictions.
+func (s *simpleProvider) DefaultPodSecurityContext(pod *api.Pod) error {
 	sc := securitycontext.NewPodSecurityContextMutator(pod.Spec.SecurityContext)
-	annotations := maps.CopySS(pod.Annotations)
 
 	if sc.SupplementalGroups() == nil {
 		supGroups, err := s.strategies.SupplementalGroupStrategy.Generate(pod)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		sc.SetSupplementalGroups(supGroups)
 	}
@@ -82,7 +80,7 @@ func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurit
 	if sc.FSGroup() == nil {
 		fsGroup, err := s.strategies.FSGroupStrategy.GenerateSingle(pod)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		sc.SetFSGroup(fsGroup)
 	}
@@ -90,41 +88,42 @@ func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurit
 	if sc.SELinuxOptions() == nil {
 		seLinux, err := s.strategies.SELinuxStrategy.Generate(pod, nil)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		sc.SetSELinuxOptions(seLinux)
 	}
 
 	// This is only generated on the pod level.  Containers inherit the pod's profile.  If the
 	// container has a specific profile set then it will be caught in the validation step.
-	seccompProfile, err := s.strategies.SeccompStrategy.Generate(annotations, pod)
+	seccompProfile, err := s.strategies.SeccompStrategy.Generate(pod.Annotations, pod)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	if seccompProfile != "" {
-		if annotations == nil {
-			annotations = map[string]string{}
+		if pod.Annotations == nil {
+			pod.Annotations = map[string]string{}
 		}
-		annotations[api.SeccompPodAnnotationKey] = seccompProfile
+		pod.Annotations[api.SeccompPodAnnotationKey] = seccompProfile
 	}
-	return sc.PodSecurityContext(), annotations, nil
+
+	pod.Spec.SecurityContext = sc.PodSecurityContext()
+
+	return nil
 }
 
-// Create a SecurityContext based on the given constraints.  If a setting is already set on the
-// container's security context then it will not be changed.  Validation should be used after
-// the context is created to ensure it complies with the required restrictions.
-func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, map[string]string, error) {
+// DefaultContainerSecurityContext sets the default values of the required but not filled fields.
+// It modifies the SecurityContext of the container and annotations of the pod. Validation should
+// be used after the context is defaulted to ensure it complies with the required restrictions.
+func (s *simpleProvider) DefaultContainerSecurityContext(pod *api.Pod, container *api.Container) error {
 	sc := securitycontext.NewEffectiveContainerSecurityContextMutator(
 		securitycontext.NewPodSecurityContextAccessor(pod.Spec.SecurityContext),
 		securitycontext.NewContainerSecurityContextMutator(container.SecurityContext),
 	)
 
-	annotations := maps.CopySS(pod.Annotations)
-
 	if sc.RunAsUser() == nil {
 		uid, err := s.strategies.RunAsUserStrategy.Generate(pod, container)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		sc.SetRunAsUser(uid)
 	}
@@ -132,27 +131,27 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 	if sc.SELinuxOptions() == nil {
 		seLinux, err := s.strategies.SELinuxStrategy.Generate(pod, container)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		sc.SetSELinuxOptions(seLinux)
 	}
 
-	annotations, err := s.strategies.AppArmorStrategy.Generate(annotations, container)
+	annotations, err := s.strategies.AppArmorStrategy.Generate(pod.Annotations, container)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	// if we're using the non-root strategy set the marker that this container should not be
 	// run as root which will signal to the kubelet to do a final check either on the runAsUser
 	// or, if runAsUser is not set, the image UID will be checked.
-	if sc.RunAsNonRoot() == nil && sc.RunAsUser() == nil && s.psp.Spec.RunAsUser.Rule == extensions.RunAsUserStrategyMustRunAsNonRoot {
+	if sc.RunAsNonRoot() == nil && sc.RunAsUser() == nil && s.psp.Spec.RunAsUser.Rule == policy.RunAsUserStrategyMustRunAsNonRoot {
 		nonRoot := true
 		sc.SetRunAsNonRoot(&nonRoot)
 	}
 
 	caps, err := s.strategies.CapabilitiesStrategy.Generate(pod, container)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	sc.SetCapabilities(caps)
 
@@ -174,11 +173,14 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 		sc.SetAllowPrivilegeEscalation(&s.psp.Spec.AllowPrivilegeEscalation)
 	}
 
-	return sc.ContainerSecurityContext(), annotations, nil
+	pod.Annotations = annotations
+	container.SecurityContext = sc.ContainerSecurityContext()
+
+	return nil
 }
 
-// Ensure a pod's SecurityContext is in compliance with the given constraints.
-func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field.Path) field.ErrorList {
+// ValidatePod ensure a pod is in compliance with the given constraints.
+func (s *simpleProvider) ValidatePod(pod *api.Pod, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	sc := securitycontext.NewPodSecurityContextAccessor(pod.Spec.SecurityContext)
@@ -207,8 +209,6 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 
 	allErrs = append(allErrs, s.strategies.SysctlsStrategy.Validate(pod)...)
 
-	// TODO(tallclair): ValidatePodSecurityContext should be renamed to ValidatePod since its scope
-	// is not limited to the PodSecurityContext.
 	if len(pod.Spec.Volumes) > 0 {
 		allowsAllVolumeTypes := psputil.PSPAllowsAllVolumes(s.psp)
 		allowedVolumes := psputil.FSTypeToStringSet(s.psp.Spec.Volumes)
@@ -226,15 +226,38 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 				continue
 			}
 
-			if fsType == extensions.HostPath {
-				if !psputil.AllowsHostVolumePath(s.psp, v.HostPath.Path) {
+			if fsType == policy.HostPath {
+				allows, mustBeReadOnly := psputil.AllowsHostVolumePath(s.psp, v.HostPath.Path)
+				if !allows {
 					allErrs = append(allErrs, field.Invalid(
 						field.NewPath("spec", "volumes").Index(i).Child("hostPath", "pathPrefix"), v.HostPath.Path,
 						fmt.Sprintf("is not allowed to be used")))
+				} else if mustBeReadOnly {
+					// Ensure all the VolumeMounts that use this volume are read-only
+					for i, c := range pod.Spec.InitContainers {
+						for j, cv := range c.VolumeMounts {
+							if cv.Name == v.Name && !cv.ReadOnly {
+								allErrs = append(allErrs, field.Invalid(
+									field.NewPath("spec", "initContainers").Index(i).Child("volumeMounts").Index(j).Child("readOnly"),
+									cv.ReadOnly, "must be read-only"),
+								)
+							}
+						}
+					}
+					for i, c := range pod.Spec.Containers {
+						for j, cv := range c.VolumeMounts {
+							if cv.Name == v.Name && !cv.ReadOnly {
+								allErrs = append(allErrs, field.Invalid(
+									field.NewPath("spec", "containers").Index(i).Child("volumeMounts").Index(j).Child("readOnly"),
+									cv.ReadOnly, "must be read-only"),
+								)
+							}
+						}
+					}
 				}
 			}
 
-			if fsType == extensions.FlexVolume && len(s.psp.Spec.AllowedFlexVolumes) > 0 {
+			if fsType == policy.FlexVolume && len(s.psp.Spec.AllowedFlexVolumes) > 0 {
 				found := false
 				driver := v.FlexVolume.Driver
 				for _, allowedFlexVolume := range s.psp.Spec.AllowedFlexVolumes {
@@ -273,10 +296,6 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 
 	allErrs = append(allErrs, s.strategies.CapabilitiesStrategy.Validate(pod, container, sc.Capabilities())...)
 
-	if !s.psp.Spec.HostNetwork && podSC.HostNetwork() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), podSC.HostNetwork(), "Host network is not allowed to be used"))
-	}
-
 	containersPath := fldPath.Child("containers")
 	for idx, c := range pod.Spec.Containers {
 		idxPath := containersPath.Index(idx)
@@ -287,14 +306,6 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	for idx, c := range pod.Spec.InitContainers {
 		idxPath := containersPath.Index(idx)
 		allErrs = append(allErrs, s.hasInvalidHostPort(&c, idxPath)...)
-	}
-
-	if !s.psp.Spec.HostPID && podSC.HostPID() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostPID"), podSC.HostPID(), "Host PID is not allowed to be used"))
-	}
-
-	if !s.psp.Spec.HostIPC && podSC.HostIPC() {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostIPC"), podSC.HostIPC(), "Host IPC is not allowed to be used"))
 	}
 
 	if s.psp.Spec.ReadOnlyRootFilesystem {
@@ -345,7 +356,7 @@ func (s *simpleProvider) GetPSPName() string {
 	return s.psp.Name
 }
 
-func hostPortRangesToString(ranges []extensions.HostPortRange) string {
+func hostPortRangesToString(ranges []policy.HostPortRange) string {
 	formattedString := ""
 	if ranges != nil {
 		strRanges := []string{}

@@ -11,11 +11,9 @@ go_library(
     srcs = ["install.go"],
     importpath = "k8s.io/apiserver/pkg/apis/example2/install",
     deps = [
-        "//vendor/k8s.io/apimachinery/pkg/apimachinery/announced:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/apimachinery/registered:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/apis/example:go_default_library",
-        "//vendor/k8s.io/apiserver/pkg/apis/example2:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/apis/example2/v1:go_default_library",
     ],
 )
@@ -23,8 +21,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["roundtrip_test.go"],
-    importpath = "k8s.io/apiserver/pkg/apis/example2/install",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/k8s.io/apimachinery/pkg/api/testing/roundtrip:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/apis/example/fuzzer:go_default_library",

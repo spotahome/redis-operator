@@ -26,13 +26,13 @@ import (
 	"testing"
 
 	api "k8s.io/api/core/v1"
-	storage "k8s.io/api/storage/v1alpha1"
+	storage "k8s.io/api/storage/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/kubernetes/pkg/volume/csi/fake"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
+	"k8s.io/kubernetes/pkg/volume/util"
 )
 
 var (
@@ -64,7 +64,7 @@ func TestMounterGetPath(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		t.Log("test case:", tc.name)
+		t.Logf("test case: %s", tc.name)
 		pv := makeTestPV(tc.specVolumeName, 10, testDriver, testVol)
 		spec := volume.NewSpecFromPersistentVolume(pv, pv.Spec.PersistentVolumeSource.CSI.ReadOnly)
 		mounter, err := plug.NewMounter(
@@ -78,7 +78,6 @@ func TestMounterGetPath(t *testing.T) {
 		csiMounter := mounter.(*csiMountMgr)
 
 		path := csiMounter.GetPath()
-		t.Log("*** GetPath: ", path)
 
 		if tc.path != path {
 			t.Errorf("expecting path %s, got %s", tc.path, path)
@@ -114,7 +113,7 @@ func TestMounterSetUp(t *testing.T) {
 	}
 
 	csiMounter := mounter.(*csiMountMgr)
-	csiMounter.csiClient = setupClient(t)
+	csiMounter.csiClient = setupClient(t, true)
 
 	attachID := getAttachmentName(csiMounter.volumeID, csiMounter.driverName, string(plug.host.GetNodeName()))
 
@@ -135,13 +134,14 @@ func TestMounterSetUp(t *testing.T) {
 			DetachError: nil,
 		},
 	}
-	_, err = csiMounter.k8s.StorageV1alpha1().VolumeAttachments().Create(attachment)
+	_, err = csiMounter.k8s.StorageV1beta1().VolumeAttachments().Create(attachment)
 	if err != nil {
 		t.Fatalf("failed to setup VolumeAttachment: %v", err)
 	}
 
 	// Mounter.SetUp()
-	if err := csiMounter.SetUp(nil); err != nil {
+	fsGroup := int64(2000)
+	if err := csiMounter.SetUp(&fsGroup); err != nil {
 		t.Fatalf("mounter.Setup failed: %v", err)
 	}
 	path := csiMounter.GetPath()
@@ -154,7 +154,7 @@ func TestMounterSetUp(t *testing.T) {
 	}
 
 	// ensure call went all the way
-	pubs := csiMounter.csiClient.(*csiDriverClient).nodeClient.(*fake.NodeClient).GetNodePublishedVolumes()
+	pubs := csiMounter.csiClient.(*fakeCsiDriverClient).nodeClient.GetNodePublishedVolumes()
 	if pubs[csiMounter.volumeID] != csiMounter.GetPath() {
 		t.Error("csi server may not have received NodePublishVolume call")
 	}
@@ -163,8 +163,31 @@ func TestMounterSetUp(t *testing.T) {
 func TestUnmounterTeardown(t *testing.T) {
 	plug, tmpDir := newTestPlugin(t)
 	defer os.RemoveAll(tmpDir)
-
 	pv := makeTestPV("test-pv", 10, testDriver, testVol)
+
+	// save the data file prior to unmount
+	dir := path.Join(getTargetPath(testPodUID, pv.ObjectMeta.Name, plug.host), "/mount")
+	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsNotExist(err) {
+		t.Errorf("failed to create dir [%s]: %v", dir, err)
+	}
+
+	// do a fake local mount
+	diskMounter := util.NewSafeFormatAndMountFromHost(plug.GetPluginName(), plug.host)
+	if err := diskMounter.FormatAndMount("/fake/device", dir, "testfs", nil); err != nil {
+		t.Errorf("failed to mount dir [%s]: %v", dir, err)
+	}
+
+	if err := saveVolumeData(
+		path.Dir(dir),
+		volDataFileName,
+		map[string]string{
+			volDataKey.specVolID:  pv.ObjectMeta.Name,
+			volDataKey.driverName: testDriver,
+			volDataKey.volHandle:  testVol,
+		},
+	); err != nil {
+		t.Fatalf("failed to save volume data: %v", err)
+	}
 
 	unmounter, err := plug.NewUnmounter(pv.ObjectMeta.Name, testPodUID)
 	if err != nil {
@@ -172,81 +195,18 @@ func TestUnmounterTeardown(t *testing.T) {
 	}
 
 	csiUnmounter := unmounter.(*csiMountMgr)
-	csiUnmounter.csiClient = setupClient(t)
-
-	dir := csiUnmounter.GetPath()
-
-	// save the data file prior to unmount
-	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsNotExist(err) {
-		t.Errorf("failed to create dir [%s]: %v", dir, err)
-	}
-	if err := saveVolumeData(
-		plug,
-		testPodUID,
-		"test-pv",
-		map[string]string{volDataKey.specVolID: "test-pv", volDataKey.driverName: "driver", volDataKey.volHandle: "vol-handle"},
-	); err != nil {
-		t.Fatal("failed to save volume data:", err)
-	}
-
+	csiUnmounter.csiClient = setupClient(t, true)
 	err = csiUnmounter.TearDownAt(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// ensure csi client call
-	pubs := csiUnmounter.csiClient.(*csiDriverClient).nodeClient.(*fake.NodeClient).GetNodePublishedVolumes()
+	pubs := csiUnmounter.csiClient.(*fakeCsiDriverClient).nodeClient.GetNodePublishedVolumes()
 	if _, ok := pubs[csiUnmounter.volumeID]; ok {
 		t.Error("csi server may not have received NodeUnpublishVolume call")
 	}
 
-}
-
-func TestGetVolAttribsFromSpec(t *testing.T) {
-	testCases := []struct {
-		name        string
-		annotations map[string]string
-		attribs     map[string]string
-		shouldFail  bool
-	}{
-		{
-			name:        "attribs ok",
-			annotations: map[string]string{"key0": "val0", csiVolAttribsAnnotationKey: `{"k0":"attr0","k1":"attr1","k2":"attr2"}`, "keyN": "valN"},
-			attribs:     map[string]string{"k0": "attr0", "k1": "attr1", "k2": "attr2"},
-		},
-
-		{
-			name:        "missing attribs",
-			annotations: map[string]string{"key0": "val0", "keyN": "valN"},
-		},
-		{
-			name: "missing annotations",
-		},
-		{
-			name:        "bad json",
-			annotations: map[string]string{"key0": "val0", csiVolAttribsAnnotationKey: `{"k0""attr0","k1":"attr1,"k2":"attr2"`, "keyN": "valN"},
-			attribs:     map[string]string{"k0": "attr0", "k1": "attr1", "k2": "attr2"},
-			shouldFail:  true,
-		},
-	}
-	spec := volume.NewSpecFromPersistentVolume(makeTestPV("test-pv", 10, testDriver, testVol), false)
-	for _, tc := range testCases {
-		t.Log("test case:", tc.name)
-		spec.PersistentVolume.Annotations = tc.annotations
-		attribs, err := getVolAttribsFromSpec(spec)
-		if !tc.shouldFail && err != nil {
-			t.Error("test case should not fail, but err != nil", err)
-		}
-		eq := true
-		for k, v := range attribs {
-			if tc.attribs[k] != v {
-				eq = false
-			}
-		}
-		if !eq {
-			t.Errorf("expecting attribs %#v, but got %#v", tc.attribs, attribs)
-		}
-	}
 }
 
 func TestSaveVolumeData(t *testing.T) {
@@ -262,34 +222,34 @@ func TestSaveVolumeData(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		t.Log("test case:", tc.name)
+		t.Logf("test case: %s", tc.name)
 		specVolID := fmt.Sprintf("spec-volid-%d", i)
 		mountDir := path.Join(getTargetPath(testPodUID, specVolID, plug.host), "/mount")
 		if err := os.MkdirAll(mountDir, 0755); err != nil && !os.IsNotExist(err) {
 			t.Errorf("failed to create dir [%s]: %v", mountDir, err)
 		}
 
-		err := saveVolumeData(plug, testPodUID, specVolID, tc.data)
+		err := saveVolumeData(path.Dir(mountDir), volDataFileName, tc.data)
 
 		if !tc.shouldFail && err != nil {
-			t.Error("unexpected failure: ", err)
+			t.Errorf("unexpected failure: %v", err)
 		}
 		// did file get created
 		dataDir := getTargetPath(testPodUID, specVolID, plug.host)
 		file := path.Join(dataDir, volDataFileName)
 		if _, err := os.Stat(file); err != nil {
-			t.Error("failed to create data dir:", err)
+			t.Errorf("failed to create data dir: %v", err)
 		}
 
 		// validate content
 		data, err := ioutil.ReadFile(file)
 		if !tc.shouldFail && err != nil {
-			t.Error("failed to read data file:", err)
+			t.Errorf("failed to read data file: %v", err)
 		}
 
 		jsonData := new(bytes.Buffer)
 		if err := json.NewEncoder(jsonData).Encode(tc.data); err != nil {
-			t.Error("failed to encode json:", err)
+			t.Errorf("failed to encode json: %v", err)
 		}
 		if string(data) != jsonData.String() {
 			t.Errorf("expecting encoded data %v, got %v", string(data), jsonData)

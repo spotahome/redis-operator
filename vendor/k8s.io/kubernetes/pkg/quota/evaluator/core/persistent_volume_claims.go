@@ -42,7 +42,7 @@ import (
 var pvcObjectCountName = generic.ObjectCountQuotaResourceNameFor(v1.SchemeGroupVersion.WithResource("persistentvolumeclaims").GroupResource())
 
 // pvcResources are the set of static resources managed by quota associated with pvcs.
-// for each resouce in this list, it may be refined dynamically based on storage class.
+// for each resource in this list, it may be refined dynamically based on storage class.
 var pvcResources = []api.ResourceName{
 	api.ResourcePersistentVolumeClaims,
 	api.ResourceRequestsStorage,
@@ -121,6 +121,17 @@ func (p *pvcEvaluator) Handles(a admission.Attributes) bool {
 // Matches returns true if the evaluator matches the specified quota with the provided input item
 func (p *pvcEvaluator) Matches(resourceQuota *api.ResourceQuota, item runtime.Object) (bool, error) {
 	return generic.Matches(resourceQuota, item, p.MatchingResources, generic.MatchesNoScopeFunc)
+}
+
+// MatchingScopes takes the input specified list of scopes and input object. Returns the set of scopes resource matches.
+func (p *pvcEvaluator) MatchingScopes(item runtime.Object, scopes []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	return []api.ScopedResourceSelectorRequirement{}, nil
+}
+
+// UncoveredQuotaScopes takes the input matched scopes which are limited by configuration and the matched quota scopes.
+// It returns the scopes which are in limited scopes but dont have a corresponding covering quota scope
+func (p *pvcEvaluator) UncoveredQuotaScopes(limitedScopes []api.ScopedResourceSelectorRequirement, matchedQuotaScopes []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	return []api.ScopedResourceSelectorRequirement{}, nil
 }
 
 // MatchingResources takes the input specified list of resources and returns the set of resources it matches.

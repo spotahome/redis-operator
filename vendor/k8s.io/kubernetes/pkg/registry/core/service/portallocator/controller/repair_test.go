@@ -55,7 +55,7 @@ func TestRepair(t *testing.T) {
 		item: &api.RangeAllocation{Range: "100-200"},
 	}
 	pr, _ := net.ParsePortRange(registry.item.Range)
-	r := NewRepair(0, fakeClient.Core(), *pr, registry)
+	r := NewRepair(0, fakeClient.Core(), fakeClient.Core(), *pr, registry)
 
 	if err := r.RunOnce(); err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestRepair(t *testing.T) {
 		item:      &api.RangeAllocation{Range: "100-200"},
 		updateErr: fmt.Errorf("test error"),
 	}
-	r = NewRepair(0, fakeClient.Core(), *pr, registry)
+	r = NewRepair(0, fakeClient.Core(), fakeClient.Core(), *pr, registry)
 	if err := r.RunOnce(); !strings.Contains(err.Error(), ": test error") {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestRepairLeak(t *testing.T) {
 		},
 	}
 
-	r := NewRepair(0, fakeClient.Core(), *pr, registry)
+	r := NewRepair(0, fakeClient.Core(), fakeClient.Core(), *pr, registry)
 	// Run through the "leak detection holdoff" loops.
 	for i := 0; i < (numRepairsBeforeLeakCleanup - 1); i++ {
 		if err := r.RunOnce(); err != nil {
@@ -164,6 +164,12 @@ func TestRepairWithExisting(t *testing.T) {
 				Ports: []api.ServicePort{{NodePort: 111}},
 			},
 		},
+		&api.Service{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "six", Name: "six"},
+			Spec: api.ServiceSpec{
+				HealthCheckNodePort: 144,
+			},
+		},
 	)
 
 	registry := &mockRangeRegistry{
@@ -175,7 +181,7 @@ func TestRepairWithExisting(t *testing.T) {
 			Data:  dst.Data,
 		},
 	}
-	r := NewRepair(0, fakeClient.Core(), *pr, registry)
+	r := NewRepair(0, fakeClient.Core(), fakeClient.Core(), *pr, registry)
 	if err := r.RunOnce(); err != nil {
 		t.Fatal(err)
 	}
@@ -183,10 +189,10 @@ func TestRepairWithExisting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !after.Has(111) || !after.Has(122) || !after.Has(133) {
+	if !after.Has(111) || !after.Has(122) || !after.Has(133) || !after.Has(144) {
 		t.Errorf("unexpected portallocator state: %#v", after)
 	}
-	if free := after.Free(); free != 98 {
+	if free := after.Free(); free != 97 {
 		t.Errorf("unexpected portallocator state: %d free", free)
 	}
 }

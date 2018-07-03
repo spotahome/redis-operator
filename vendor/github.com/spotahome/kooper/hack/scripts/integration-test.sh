@@ -3,4 +3,4 @@
 set -o errexit
 set -o nounset
 
-go test `go list ./... | grep -v vendor` -v -tags='integration'
+go test `go list ./... | grep test/integration` -v -tags='integration'

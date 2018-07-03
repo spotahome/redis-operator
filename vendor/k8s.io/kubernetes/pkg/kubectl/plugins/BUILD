@@ -16,6 +16,7 @@ go_library(
     ],
     importpath = "k8s.io/kubernetes/pkg/kubectl/plugins",
     deps = [
+        "//pkg/kubectl/genericclioptions:go_default_library",
         "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
@@ -44,7 +45,9 @@ go_test(
         "plugins_test.go",
         "runner_test.go",
     ],
-    importpath = "k8s.io/kubernetes/pkg/kubectl/plugins",
-    library = ":go_default_library",
-    deps = ["//vendor/github.com/spf13/pflag:go_default_library"],
+    embed = [":go_default_library"],
+    deps = [
+        "//pkg/kubectl/genericclioptions:go_default_library",
+        "//vendor/github.com/spf13/pflag:go_default_library",
+    ],
 )

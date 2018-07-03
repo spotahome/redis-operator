@@ -37,7 +37,7 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure config map without mappings works by mounting it
 			to a volume with a custom path (mapping) on the pod with no other settings.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume ", func() {
+	framework.ConformanceIt("should be consumable from pods in volume [NodeConformance]", func() {
 		doConfigMapE2EWithoutMappings(f, 0, 0, nil)
 	})
 
@@ -46,12 +46,12 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure config map without mappings works by mounting it
 			to a volume with a custom path (mapping) on the pod with defaultMode set
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set ", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with defaultMode set [NodeConformance]", func() {
 		defaultMode := int32(0400)
 		doConfigMapE2EWithoutMappings(f, 0, 0, &defaultMode)
 	})
 
-	It("should be consumable from pods in volume as non-root with defaultMode and fsGroup set [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume as non-root with defaultMode and fsGroup set [NodeFeature:FSGroup]", func() {
 		defaultMode := int32(0440) /* setting fsGroup sets mode to at least 440 */
 		doConfigMapE2EWithoutMappings(f, 1000, 1001, &defaultMode)
 	})
@@ -61,11 +61,11 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure config map without mappings works by mounting it
 			to a volume with a custom path (mapping) on the pod as non-root.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume as non-root ", func() {
+	framework.ConformanceIt("should be consumable from pods in volume as non-root [NodeConformance]", func() {
 		doConfigMapE2EWithoutMappings(f, 1000, 0, nil)
 	})
 
-	It("should be consumable from pods in volume as non-root with FSGroup [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume as non-root with FSGroup [NodeFeature:FSGroup]", func() {
 		doConfigMapE2EWithoutMappings(f, 1000, 1001, nil)
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 			a custom path (mapping) on the pod with no other settings and make sure
 			the pod actually consumes it.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings ", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings [NodeConformance]", func() {
 		doConfigMapE2EWithMappings(f, 0, 0, nil)
 	})
 
@@ -84,7 +84,7 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure config map works with an item mode (e.g. 0400)
 			for the config map item.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item mode set", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings and Item mode set [NodeConformance]", func() {
 		mode := int32(0400)
 		doConfigMapE2EWithMappings(f, 0, 0, &mode)
 	})
@@ -93,11 +93,11 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 	   Testname: configmap-simple-user-mapped
 	   Description: Make sure config map works when it is mounted as non-root.
 	*/
-	framework.ConformanceIt("should be consumable from pods in volume with mappings as non-root ", func() {
+	framework.ConformanceIt("should be consumable from pods in volume with mappings as non-root [NodeConformance]", func() {
 		doConfigMapE2EWithMappings(f, 1000, 0, nil)
 	})
 
-	It("should be consumable from pods in volume with mappings as non-root with FSGroup [Feature:FSGroup]", func() {
+	It("should be consumable from pods in volume with mappings as non-root with FSGroup [NodeFeature:FSGroup]", func() {
 		doConfigMapE2EWithMappings(f, 1000, 1001, nil)
 	})
 
@@ -106,7 +106,7 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure update operation is working on config map and
 			the result is observed on volumes mounted in containers.
 	*/
-	framework.ConformanceIt("updates should be reflected in volume ", func() {
+	framework.ConformanceIt("updates should be reflected in volume [NodeConformance]", func() {
 		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
 		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
 
@@ -184,12 +184,103 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		Eventually(pollLogs, podLogTimeout, framework.Poll).Should(ContainSubstring("value-2"))
 	})
 
+	It("binary data should be reflected in volume [NodeConformance]", func() {
+		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
+		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
+
+		name := "configmap-test-upd-" + string(uuid.NewUUID())
+		volumeName := "configmap-volume"
+		volumeMountPath := "/etc/configmap-volume"
+		containerName1 := "configmap-volume-data-test"
+		containerName2 := "configmap-volume-binary-test"
+
+		configMap := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: f.Namespace.Name,
+				Name:      name,
+			},
+			Data: map[string]string{
+				"data-1": "value-1",
+			},
+			BinaryData: map[string][]byte{
+				"dump.bin": {0xde, 0xca, 0xfe, 0xba, 0xd0, 0xfe, 0xff},
+			},
+		}
+
+		By(fmt.Sprintf("Creating configMap with name %s", configMap.Name))
+		var err error
+		if configMap, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
+			framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
+		}
+
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pod-configmaps-" + string(uuid.NewUUID()),
+			},
+			Spec: v1.PodSpec{
+				Volumes: []v1.Volume{
+					{
+						Name: volumeName,
+						VolumeSource: v1.VolumeSource{
+							ConfigMap: &v1.ConfigMapVolumeSource{
+								LocalObjectReference: v1.LocalObjectReference{
+									Name: name,
+								},
+							},
+						},
+					},
+				},
+				Containers: []v1.Container{
+					{
+						Name:    containerName1,
+						Image:   mountImage,
+						Command: []string{"/mounttest", "--break_on_expected_content=false", containerTimeoutArg, "--file_content_in_loop=/etc/configmap-volume/data-1"},
+						VolumeMounts: []v1.VolumeMount{
+							{
+								Name:      volumeName,
+								MountPath: volumeMountPath,
+								ReadOnly:  true,
+							},
+						},
+					},
+					{
+						Name:    containerName2,
+						Image:   "busybox",
+						Command: []string{"hexdump", "-C", "/etc/configmap-volume/dump.bin"},
+						VolumeMounts: []v1.VolumeMount{
+							{
+								Name:      volumeName,
+								MountPath: volumeMountPath,
+								ReadOnly:  true,
+							},
+						},
+					},
+				},
+				RestartPolicy: v1.RestartPolicyNever,
+			},
+		}
+		By("Creating the pod")
+		f.PodClient().CreateSync(pod)
+
+		pollLogs1 := func() (string, error) {
+			return framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, containerName1)
+		}
+		pollLogs2 := func() (string, error) {
+			return framework.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, containerName2)
+		}
+
+		By("Waiting for pod with text data")
+		Eventually(pollLogs1, podLogTimeout, framework.Poll).Should(ContainSubstring("value-1"))
+		By("Waiting for pod with binary data")
+		Eventually(pollLogs2, podLogTimeout, framework.Poll).Should(ContainSubstring("de ca fe ba d0 fe ff"))
+	})
+
 	/*
 		    Testname: configmap-CUD-test
 		    Description: Make sure Create, Update, Delete operations are all working
 			on config map and the result is observed on volumes mounted in containers.
 	*/
-	framework.ConformanceIt("optional updates should be reflected in volume ", func() {
+	framework.ConformanceIt("optional updates should be reflected in volume [NodeConformance]", func() {
 		podLogTimeout := framework.GetPodSecretUpdateTimeout(f.ClientSet)
 		containerTimeoutArg := fmt.Sprintf("--retry_time=%v", int(podLogTimeout.Seconds()))
 		trueVal := true
@@ -372,7 +463,7 @@ var _ = Describe("[sig-storage] ConfigMap", func() {
 		    Description: Make sure config map works when it mounted as two different
 			volumes on the same node.
 	*/
-	framework.ConformanceIt("should be consumable in multiple volumes in the same pod ", func() {
+	framework.ConformanceIt("should be consumable in multiple volumes in the same pod [NodeConformance]", func() {
 		var (
 			name             = "configmap-test-volume-" + string(uuid.NewUUID())
 			volumeName       = "configmap-volume"

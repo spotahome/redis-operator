@@ -3,6 +3,7 @@ package redisfailover
 import (
 	"time"
 
+	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	"github.com/spotahome/kooper/operator"
 	"github.com/spotahome/kooper/operator/controller"
 
@@ -21,7 +22,7 @@ const (
 
 // New will create an operator that is responsible of managing all the required stuff
 // to create redis failovers.
-func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, mClient metrics.Instrumenter, logger log.Logger) operator.Operator {
+func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, mClient metrics.Instrumenter, kooperMetricsRecorder kmetrics.Recorder, logger log.Logger) operator.Operator {
 	logger = logger.With("operator", operatorName)
 
 	// Create our CRDs.
@@ -36,7 +37,7 @@ func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, mClient 
 	rfHandler := NewRedisFailoverHandler(cfg, rfService, rfChecker, rfHealer, k8sService, mClient, logger)
 
 	// Create our controller.
-	ctrl := controller.NewSequential(resync, rfHandler, watchedCRD, logger.WithField("controller", "redisfailover"))
+	ctrl := controller.NewSequential(resync, rfHandler, watchedCRD, kooperMetricsRecorder, logger.WithField("controller", "redisfailover"))
 
 	// Assemble all in an operator.
 	return operator.NewOperator(watchedCRD, ctrl, logger)

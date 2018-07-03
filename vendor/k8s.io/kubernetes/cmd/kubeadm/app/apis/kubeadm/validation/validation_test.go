@@ -17,6 +17,9 @@ limitations under the License.
 package validation
 
 import (
+	"io/ioutil"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,29 +28,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeletconfigv1alpha1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1alpha1"
+	kubeletconfigv1beta1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1beta1"
 	kubeproxyconfigv1alpha1 "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/v1alpha1"
 	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
 )
 
-func TestValidateTokenDiscovery(t *testing.T) {
+func TestValidateToken(t *testing.T) {
 	var tests = []struct {
 		c        *kubeadm.NodeConfiguration
 		f        *field.Path
 		expected bool
 	}{
-		{&kubeadm.NodeConfiguration{Token: "772ef5.6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"192.168.122.100:9898"}}, nil, true},
-		{&kubeadm.NodeConfiguration{Token: ".6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"192.168.122.100:9898"}}, nil, false},
-		{&kubeadm.NodeConfiguration{Token: "772ef5.", DiscoveryTokenAPIServers: []string{"192.168.122.100:9898"}}, nil, false},
-		{&kubeadm.NodeConfiguration{Token: "772ef5.6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"2001:db8::100:9898"}}, nil, true},
-		{&kubeadm.NodeConfiguration{Token: ".6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"2001:db8::100:9898"}}, nil, false},
-		{&kubeadm.NodeConfiguration{Token: "772ef5.", DiscoveryTokenAPIServers: []string{"2001:db8::100:9898"}}, nil, false},
+		{&kubeadm.NodeConfiguration{Token: "772ef5.6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"}}, nil, true},
+		{&kubeadm.NodeConfiguration{Token: ".6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"}}, nil, false},
+		{&kubeadm.NodeConfiguration{Token: "772ef5.", DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"}}, nil, false},
+		{&kubeadm.NodeConfiguration{Token: "772ef5.6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"2001:db8::100:6443"}}, nil, true},
+		{&kubeadm.NodeConfiguration{Token: ".6b6baab1d4a0a171", DiscoveryTokenAPIServers: []string{"2001:db8::100:6443"}}, nil, false},
+		{&kubeadm.NodeConfiguration{Token: "772ef5.", DiscoveryTokenAPIServers: []string{"2001:db8::100:6443"}}, nil, false},
+		{&kubeadm.NodeConfiguration{Token: "abcdef.1234567890123456@foobar", DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"}}, nil, false},
 	}
 	for _, rt := range tests {
 		err := ValidateToken(rt.c.Token, rt.f).ToAggregate()
 		if (err == nil) != rt.expected {
 			t.Errorf(
-				"failed ValidateTokenDiscovery:\n\texpected: %t\n\t  actual: %t",
+				"failed ValidateToken:\n\texpected: %t\n\t  actual: %t",
 				rt.expected,
 				(err == nil),
 			)
@@ -55,27 +59,21 @@ func TestValidateTokenDiscovery(t *testing.T) {
 	}
 }
 
-func TestValidateAuthorizationModes(t *testing.T) {
+func TestValidateValidateTokenUsages(t *testing.T) {
 	var tests = []struct {
-		s        []string
+		u        []string
 		f        *field.Path
 		expected bool
 	}{
-		{[]string{""}, nil, false},
-		{[]string{"rBAC"}, nil, false},                               // mode not supported
-		{[]string{"rBAC", "Webhook"}, nil, false},                    // mode not supported
-		{[]string{"RBAC", "Webhook"}, nil, false},                    // mode Node required
-		{[]string{"Node", "RBAC", "Webhook", "Webhook"}, nil, false}, // no duplicates allowed
-		{[]string{"not valid"}, nil, false},                          // invalid mode
-		{[]string{"Node", "RBAC"}, nil, true},                        // supported
-		{[]string{"RBAC", "Node"}, nil, true},                        // supported
-		{[]string{"Node", "RBAC", "Webhook", "ABAC"}, nil, true},     // supported
+		{[]string{}, nil, true},                            // supported (no usages)
+		{[]string{"signing", "authentication"}, nil, true}, // supported
+		{[]string{"something else"}, nil, false},           // usage not supported
 	}
 	for _, rt := range tests {
-		actual := ValidateAuthorizationModes(rt.s, rt.f)
+		actual := ValidateTokenUsages(rt.u, rt.f)
 		if (len(actual) == 0) != rt.expected {
 			t.Errorf(
-				"failed ValidateAuthorizationModes:\n\texpected: %t\n\t  actual: %t",
+				"failed ValidateTokenUsages:\n\texpected: %t\n\t  actual: %t",
 				rt.expected,
 				(len(actual) == 0),
 			)
@@ -83,22 +81,22 @@ func TestValidateAuthorizationModes(t *testing.T) {
 	}
 }
 
-func TestValidateNodeName(t *testing.T) {
+func TestValidateTokenGroups(t *testing.T) {
 	var tests = []struct {
-		s        string
+		u        []string
+		g        []string
 		f        *field.Path
 		expected bool
 	}{
-		{"", nil, false},                 // ok if not provided
-		{"1234", nil, true},              // supported
-		{"valid-nodename", nil, true},    // supported
-		{"INVALID-NODENAME", nil, false}, // Upper cases is invalid
+		{[]string{"some usage"}, []string{"some group"}, nil, false},                       // groups doesn't makes sense if usage authentication
+		{[]string{"authentication"}, []string{"some group"}, nil, false},                   // group not supported
+		{[]string{"authentication"}, []string{"system:bootstrappers:anygroup"}, nil, true}, // supported
 	}
 	for _, rt := range tests {
-		actual := ValidateNodeName(rt.s, rt.f)
+		actual := ValidateTokenGroups(rt.u, rt.g, rt.f)
 		if (len(actual) == 0) != rt.expected {
 			t.Errorf(
-				"failed ValidateNodeName:\n\texpected: %t\n\t  actual: %t",
+				"failed ValidateTokenGroups:\n\texpected: %t\n\t  actual: %t",
 				rt.expected,
 				(len(actual) == 0),
 			)
@@ -106,31 +104,37 @@ func TestValidateNodeName(t *testing.T) {
 	}
 }
 
-func TestValidateCloudProvider(t *testing.T) {
+func TestValidateNodeRegistrationOptions(t *testing.T) {
 	var tests = []struct {
-		s        string
-		f        *field.Path
-		expected bool
+		nodeName       string
+		criSocket      string
+		expectedErrors bool
 	}{
-		{"", nil, true},      // if not provided, ok, it's optional
-		{"1234", nil, false}, // not supported
-		{"awws", nil, false}, // not supported
-		{"aws", nil, true},   // supported
-		{"gce", nil, true},   // supported
+		{"", "/some/path", true},                                                      // node name can't be empty
+		{"valid-nodename", "", true},                                                  // crisocket can't be empty
+		{"INVALID-NODENAME", "/some/path", true},                                      // Upper cases is invalid
+		{"invalid-nodename-", "/some/path", true},                                     // Can't have trailing dashes
+		{"invalid-node?name", "/some/path", true},                                     // Unsupported characters
+		{"valid-nodename", "relative/path", true},                                     // crisocket must be an absolute path
+		{"valid-nodename", "/some/path", false},                                       // supported
+		{"valid-nodename-with-numbers01234", "/some/path/with/numbers/01234/", false}, // supported, with numbers as well
 	}
 	for _, rt := range tests {
-		actual := ValidateCloudProvider(rt.s, rt.f)
-		if (len(actual) == 0) != rt.expected {
+		nro := kubeadm.NodeRegistrationOptions{Name: rt.nodeName, CRISocket: rt.criSocket}
+		actual := ValidateNodeRegistrationOptions(&nro, field.NewPath("nodeRegistration"))
+		actualErrors := len(actual) > 0
+		if actualErrors != rt.expectedErrors {
 			t.Errorf(
-				"failed ValidateCloudProvider:\n\texpected: %t\n\t  actual: %t",
-				rt.expected,
-				(len(actual) == 0),
+				"failed ValidateNodeRegistrationOptions: value: %v\n\texpected: %t\n\t  actual: %t",
+				nro,
+				rt.expectedErrors,
+				actualErrors,
 			)
 		}
 	}
 }
 
-func TestValidateAPIServerCertSANs(t *testing.T) {
+func TestValidateCertSANs(t *testing.T) {
 	var tests = []struct {
 		sans     []string
 		expected bool
@@ -144,10 +148,10 @@ func TestValidateAPIServerCertSANs(t *testing.T) {
 		{[]string{"my-hostname2", "my.other.subdomain", "2001:db8::10"}, true}, // supported
 	}
 	for _, rt := range tests {
-		actual := ValidateAPIServerCertSANs(rt.sans, nil)
+		actual := ValidateCertSANs(rt.sans, nil)
 		if (len(actual) == 0) != rt.expected {
 			t.Errorf(
-				"failed ValidateAPIServerCertSANs:\n\texpected: %t\n\t  actual: %t",
+				"failed ValidateCertSANs:\n\texpected: %t\n\t  actual: %t",
 				rt.expected,
 				(len(actual) == 0),
 			)
@@ -226,7 +230,73 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Valid IPv4 address and default port",
+			name: "Valid DNS ControlPlaneEndpoint (with port), AdvertiseAddress and default port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "cp.k8s.io:8081",
+					AdvertiseAddress:     "4.5.6.7",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid IPv4 ControlPlaneEndpoint (with port), AdvertiseAddress and default port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "1.2.3.4:8081",
+					AdvertiseAddress:     "4.5.6.7",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid IPv6 ControlPlaneEndpoint (with port), ControlPlaneEndpoint and port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "[2001:db7::1]:8081",
+					AdvertiseAddress:     "2001:db7::2",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid DNS ControlPlaneEndpoint (without port), AdvertiseAddress and default port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "cp.k8s.io",
+					AdvertiseAddress:     "4.5.6.7",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid IPv4 ControlPlaneEndpoint (without port), AdvertiseAddress and default port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "1.2.3.4",
+					AdvertiseAddress:     "4.5.6.7",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid IPv6 ControlPlaneEndpoint (without port), ControlPlaneEndpoint and port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "2001:db7::1",
+					AdvertiseAddress:     "2001:db7::2",
+					BindPort:             6443,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Valid IPv4 AdvertiseAddress and default port",
 			s: &kubeadm.MasterConfiguration{
 				API: kubeadm.API{
 					AdvertiseAddress: "1.2.3.4",
@@ -236,7 +306,7 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "Valid IPv6 address and port",
+			name: "Valid IPv6 AdvertiseAddress and port",
 			s: &kubeadm.MasterConfiguration{
 				API: kubeadm.API{
 					AdvertiseAddress: "2001:db7::1",
@@ -246,7 +316,7 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "Invalid IPv4 address",
+			name: "Invalid IPv4 AdvertiseAddress",
 			s: &kubeadm.MasterConfiguration{
 				API: kubeadm.API{
 					AdvertiseAddress: "1.2.34",
@@ -256,7 +326,7 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Invalid IPv6 address",
+			name: "Invalid IPv6 AdvertiseAddress",
 			s: &kubeadm.MasterConfiguration{
 				API: kubeadm.API{
 					AdvertiseAddress: "2001:db7:1",
@@ -265,9 +335,55 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name: "Invalid BindPort",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					AdvertiseAddress: "1.2.3.4",
+					BindPort:         0,
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Invalid DNS ControlPlaneEndpoint",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "bad!!.k8s.io",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Invalid ipv4 ControlPlaneEndpoint",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "1..3.4",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Invalid ipv6 ControlPlaneEndpoint",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "1200::AB00:1234::2552:7777:1313",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Invalid ControlPlaneEndpoint port",
+			s: &kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					ControlPlaneEndpoint: "1.2.3.4:0",
+				},
+			},
+			expected: false,
+		},
 	}
 	for _, rt := range tests {
-		actual := ValidateAPIEndpoint(rt.s, nil)
+		actual := ValidateAPIEndpoint(&rt.s.API, nil)
 		if (len(actual) == 0) != rt.expected {
 			t.Errorf(
 				"%s test case failed:\n\texpected: %t\n\t  actual: %t",
@@ -294,13 +410,12 @@ func TestValidateMasterConfiguration(t *testing.T) {
 					AdvertiseAddress: "1.2.3.4",
 					BindPort:         6443,
 				},
-				AuthorizationModes: []string{"Node", "RBAC"},
 				Networking: kubeadm.Networking{
 					ServiceSubnet: "10.96.0.1/12",
 					DNSDomain:     "cluster.local",
 				},
-				CertificatesDir: "/some/cert/dir",
-				NodeName:        nodename,
+				CertificatesDir:  "/some/cert/dir",
+				NodeRegistration: kubeadm.NodeRegistrationOptions{Name: nodename, CRISocket: "/some/path"},
 			}, false},
 		{"invalid missing token with IPv6 service subnet",
 			&kubeadm.MasterConfiguration{
@@ -308,13 +423,12 @@ func TestValidateMasterConfiguration(t *testing.T) {
 					AdvertiseAddress: "1.2.3.4",
 					BindPort:         6443,
 				},
-				AuthorizationModes: []string{"Node", "RBAC"},
 				Networking: kubeadm.Networking{
 					ServiceSubnet: "2001:db8::1/98",
 					DNSDomain:     "cluster.local",
 				},
-				CertificatesDir: "/some/cert/dir",
-				NodeName:        nodename,
+				CertificatesDir:  "/some/cert/dir",
+				NodeRegistration: kubeadm.NodeRegistrationOptions{Name: nodename, CRISocket: "/some/path"},
 			}, false},
 		{"invalid missing node name",
 			&kubeadm.MasterConfiguration{
@@ -322,13 +436,25 @@ func TestValidateMasterConfiguration(t *testing.T) {
 					AdvertiseAddress: "1.2.3.4",
 					BindPort:         6443,
 				},
-				AuthorizationModes: []string{"Node", "RBAC"},
 				Networking: kubeadm.Networking{
 					ServiceSubnet: "10.96.0.1/12",
 					DNSDomain:     "cluster.local",
 				},
 				CertificatesDir: "/some/other/cert/dir",
-				Token:           "abcdef.0123456789abcdef",
+			}, false},
+		{"valid master configuration with incorrect IPv4 pod subnet",
+			&kubeadm.MasterConfiguration{
+				API: kubeadm.API{
+					AdvertiseAddress: "1.2.3.4",
+					BindPort:         6443,
+				},
+				Networking: kubeadm.Networking{
+					ServiceSubnet: "10.96.0.1/12",
+					DNSDomain:     "cluster.local",
+					PodSubnet:     "10.0.1.15",
+				},
+				CertificatesDir:  "/some/other/cert/dir",
+				NodeRegistration: kubeadm.NodeRegistrationOptions{Name: nodename, CRISocket: "/some/path"},
 			}, false},
 		{"valid master configuration with IPv4 service subnet",
 			&kubeadm.MasterConfiguration{
@@ -336,6 +462,11 @@ func TestValidateMasterConfiguration(t *testing.T) {
 					AdvertiseAddress: "1.2.3.4",
 					BindPort:         6443,
 				},
+				Etcd: kubeadm.Etcd{
+					Local: &kubeadm.LocalEtcd{
+						DataDir: "/some/path",
+					},
+				},
 				KubeProxy: kubeadm.KubeProxy{
 					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
 						BindAddress:        "192.168.59.103",
@@ -362,14 +493,13 @@ func TestValidateMasterConfiguration(t *testing.T) {
 						},
 					},
 				},
-				AuthorizationModes: []string{"Node", "RBAC"},
 				Networking: kubeadm.Networking{
 					ServiceSubnet: "10.96.0.1/12",
 					DNSDomain:     "cluster.local",
+					PodSubnet:     "10.0.1.15/16",
 				},
-				CertificatesDir: "/some/other/cert/dir",
-				Token:           "abcdef.0123456789abcdef",
-				NodeName:        nodename,
+				CertificatesDir:  "/some/other/cert/dir",
+				NodeRegistration: kubeadm.NodeRegistrationOptions{Name: nodename, CRISocket: "/some/path"},
 			}, true},
 		{"valid master configuration using IPv6 service subnet",
 			&kubeadm.MasterConfiguration{
@@ -377,6 +507,11 @@ func TestValidateMasterConfiguration(t *testing.T) {
 					AdvertiseAddress: "1:2:3::4",
 					BindPort:         3446,
 				},
+				Etcd: kubeadm.Etcd{
+					Local: &kubeadm.LocalEtcd{
+						DataDir: "/some/path",
+					},
+				},
 				KubeProxy: kubeadm.KubeProxy{
 					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
 						BindAddress:        "192.168.59.103",
@@ -403,14 +538,12 @@ func TestValidateMasterConfiguration(t *testing.T) {
 						},
 					},
 				},
-				AuthorizationModes: []string{"Node", "RBAC"},
 				Networking: kubeadm.Networking{
 					ServiceSubnet: "2001:db8::1/98",
 					DNSDomain:     "cluster.local",
 				},
-				CertificatesDir: "/some/other/cert/dir",
-				Token:           "abcdef.0123456789abcdef",
-				NodeName:        nodename,
+				CertificatesDir:  "/some/other/cert/dir",
+				NodeRegistration: kubeadm.NodeRegistrationOptions{Name: nodename, CRISocket: "/some/path"},
 			}, true},
 	}
 	for _, rt := range tests {
@@ -547,12 +680,11 @@ func TestValidateIgnorePreflightErrors(t *testing.T) {
 
 func TestValidateKubeletConfiguration(t *testing.T) {
 	successCase := &kubeadm.KubeletConfiguration{
-		BaseConfig: &kubeletconfigv1alpha1.KubeletConfiguration{
+		BaseConfig: &kubeletconfigv1beta1.KubeletConfiguration{
 			CgroupsPerQOS:               utilpointer.BoolPtr(true),
 			EnforceNodeAllocatable:      []string{"pods", "system-reserved", "kube-reserved"},
 			SystemCgroups:               "",
 			CgroupRoot:                  "",
-			CAdvisorPort:                utilpointer.Int32Ptr(0),
 			EventBurst:                  10,
 			EventRecordQPS:              utilpointer.Int32Ptr(5),
 			HealthzPort:                 utilpointer.Int32Ptr(10248),
@@ -567,9 +699,10 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 			OOMScoreAdj:                 utilpointer.Int32Ptr(-999),
 			PodsPerCore:                 100,
 			Port:                        65535,
-			ReadOnlyPort:                utilpointer.Int32Ptr(0),
+			ReadOnlyPort:                0,
 			RegistryBurst:               10,
 			RegistryPullQPS:             utilpointer.Int32Ptr(5),
+			HairpinMode:                 "promiscuous-bridge",
 		},
 	}
 	if allErrors := ValidateKubeletConfiguration(successCase, nil); len(allErrors) != 0 {
@@ -577,12 +710,11 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 	}
 
 	errorCase := &kubeadm.KubeletConfiguration{
-		BaseConfig: &kubeletconfigv1alpha1.KubeletConfiguration{
+		BaseConfig: &kubeletconfigv1beta1.KubeletConfiguration{
 			CgroupsPerQOS:               utilpointer.BoolPtr(false),
 			EnforceNodeAllocatable:      []string{"pods", "system-reserved", "kube-reserved", "illegal-key"},
 			SystemCgroups:               "/",
 			CgroupRoot:                  "",
-			CAdvisorPort:                utilpointer.Int32Ptr(-10),
 			EventBurst:                  -10,
 			EventRecordQPS:              utilpointer.Int32Ptr(-10),
 			HealthzPort:                 utilpointer.Int32Ptr(-10),
@@ -597,12 +729,423 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 			OOMScoreAdj:                 utilpointer.Int32Ptr(-1001),
 			PodsPerCore:                 -10,
 			Port:                        0,
-			ReadOnlyPort:                utilpointer.Int32Ptr(-10),
+			ReadOnlyPort:                -10,
 			RegistryBurst:               -10,
 			RegistryPullQPS:             utilpointer.Int32Ptr(-10),
 		},
 	}
 	if allErrors := ValidateKubeletConfiguration(errorCase, nil); len(allErrors) == 0 {
 		t.Errorf("failed ValidateKubeletConfiguration: expect errors but got no error")
+	}
+}
+
+func TestValidateKubeProxyConfiguration(t *testing.T) {
+	successCases := []kubeadm.MasterConfiguration{
+		{
+			KubeProxy: kubeadm.KubeProxy{
+				Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+					BindAddress:        "192.168.59.103",
+					HealthzBindAddress: "0.0.0.0:10256",
+					MetricsBindAddress: "127.0.0.1:10249",
+					ClusterCIDR:        "192.168.59.0/24",
+					UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
+					ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
+					IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+						MasqueradeAll: true,
+						SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+						MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+					},
+					IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+						SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+						MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+					},
+					Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+						Max:        utilpointer.Int32Ptr(2),
+						MaxPerCore: utilpointer.Int32Ptr(1),
+						Min:        utilpointer.Int32Ptr(1),
+						TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+						TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+					},
+				},
+			},
+		},
+	}
+
+	for _, successCase := range successCases {
+		if errs := ValidateProxy(successCase.KubeProxy.Config, nil); len(errs) != 0 {
+			t.Errorf("failed ValidateProxy: expect no errors but got %v", errs)
+		}
+	}
+
+	errorCases := []struct {
+		masterConfig kubeadm.MasterConfiguration
+		msg          string
+	}{
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						// only BindAddress is invalid
+						BindAddress:        "10.10.12.11:2000",
+						HealthzBindAddress: "0.0.0.0:10256",
+						MetricsBindAddress: "127.0.0.1:10249",
+						ClusterCIDR:        "192.168.59.0/24",
+						UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
+						ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "not a valid textual representation of an IP address",
+		},
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						BindAddress: "10.10.12.11",
+						// only HealthzBindAddress is invalid
+						HealthzBindAddress: "0.0.0.0",
+						MetricsBindAddress: "127.0.0.1:10249",
+						ClusterCIDR:        "192.168.59.0/24",
+						UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
+						ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "must be IP:port",
+		},
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						BindAddress:        "10.10.12.11",
+						HealthzBindAddress: "0.0.0.0:12345",
+						// only MetricsBindAddress is invalid
+						MetricsBindAddress: "127.0.0.1",
+						ClusterCIDR:        "192.168.59.0/24",
+						UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
+						ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "must be IP:port",
+		},
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						BindAddress:        "10.10.12.11",
+						HealthzBindAddress: "0.0.0.0:12345",
+						MetricsBindAddress: "127.0.0.1:10249",
+						// only ClusterCIDR is invalid
+						ClusterCIDR:      "192.168.59.0",
+						UDPIdleTimeout:   metav1.Duration{Duration: 1 * time.Second},
+						ConfigSyncPeriod: metav1.Duration{Duration: 1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "must be a valid CIDR block (e.g. 10.100.0.0/16)",
+		},
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						BindAddress:        "10.10.12.11",
+						HealthzBindAddress: "0.0.0.0:12345",
+						MetricsBindAddress: "127.0.0.1:10249",
+						ClusterCIDR:        "192.168.59.0/24",
+						// only UDPIdleTimeout is invalid
+						UDPIdleTimeout:   metav1.Duration{Duration: -1 * time.Second},
+						ConfigSyncPeriod: metav1.Duration{Duration: 1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "must be greater than 0",
+		},
+		{
+			masterConfig: kubeadm.MasterConfiguration{
+				KubeProxy: kubeadm.KubeProxy{
+					Config: &kubeproxyconfigv1alpha1.KubeProxyConfiguration{
+						BindAddress:        "10.10.12.11",
+						HealthzBindAddress: "0.0.0.0:12345",
+						MetricsBindAddress: "127.0.0.1:10249",
+						ClusterCIDR:        "192.168.59.0/24",
+						UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
+						// only ConfigSyncPeriod is invalid
+						ConfigSyncPeriod: metav1.Duration{Duration: -1 * time.Second},
+						IPTables: kubeproxyconfigv1alpha1.KubeProxyIPTablesConfiguration{
+							MasqueradeAll: true,
+							SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+						},
+						IPVS: kubeproxyconfigv1alpha1.KubeProxyIPVSConfiguration{
+							SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+						},
+						Conntrack: kubeproxyconfigv1alpha1.KubeProxyConntrackConfiguration{
+							Max:        utilpointer.Int32Ptr(2),
+							MaxPerCore: utilpointer.Int32Ptr(1),
+							Min:        utilpointer.Int32Ptr(1),
+							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
+							TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+						},
+					},
+				},
+			},
+			msg: "must be greater than 0",
+		},
+	}
+
+	for i, errorCase := range errorCases {
+		if errs := ValidateProxy(errorCase.masterConfig.KubeProxy.Config, nil); len(errs) == 0 {
+			t.Errorf("%d failed ValidateProxy: expected error for %s, but got no error", i, errorCase.msg)
+		} else if !strings.Contains(errs[0].Error(), errorCase.msg) {
+			t.Errorf("%d failed ValidateProxy: unexpected error: %v, expected: %s", i, errs[0], errorCase.msg)
+		}
+	}
+}
+
+func TestValidateArgSelection(t *testing.T) {
+	var tests = []struct {
+		name     string
+		c        *kubeadm.NodeConfiguration
+		expected bool
+	}{
+		{
+			"invalid: DiscoveryToken and DiscoveryFile cannot both be set",
+			&kubeadm.NodeConfiguration{
+				DiscoveryFile:  "https://url/file.conf",
+				DiscoveryToken: "abcdef.1234567890123456",
+			},
+			false,
+		},
+		{
+			"invalid: DiscoveryToken or DiscoveryFile must be set",
+			&kubeadm.NodeConfiguration{
+				DiscoveryFile:  "",
+				DiscoveryToken: "",
+			},
+			false,
+		},
+		{
+			"invalid: DiscoveryTokenAPIServers not set",
+			&kubeadm.NodeConfiguration{
+				DiscoveryToken: "abcdef.1234567890123456",
+			},
+			false,
+		},
+		{
+			"invalid: DiscoveryTokenCACertHashes cannot be used with DiscoveryFile",
+			&kubeadm.NodeConfiguration{
+				DiscoveryFile:              "https://url/file.conf",
+				DiscoveryTokenCACertHashes: []string{"sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+			},
+			false,
+		},
+		{
+			"invalid: using token-based discovery without DiscoveryTokenCACertHashes and DiscoveryTokenUnsafeSkipCAVerification",
+			&kubeadm.NodeConfiguration{
+				DiscoveryToken:                         "abcdef.1234567890123456",
+				DiscoveryTokenUnsafeSkipCAVerification: false,
+				DiscoveryTokenAPIServers:               []string{"192.168.122.100:6443"},
+			},
+			false,
+		},
+		{
+			"WARNING: kubeadm doesn't fully support multiple API Servers yet",
+			&kubeadm.NodeConfiguration{
+				DiscoveryToken:                         "abcdef.1234567890123456",
+				DiscoveryTokenUnsafeSkipCAVerification: true,
+				DiscoveryTokenAPIServers:               []string{"192.168.122.100:6443", "192.168.122.88:6443"},
+			},
+			true,
+		},
+		{
+			"valid: DiscoveryFile with DiscoveryTokenAPIServers",
+			&kubeadm.NodeConfiguration{
+				DiscoveryFile:            "https://url/file.conf",
+				DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"},
+			},
+			true,
+		},
+		{
+			"valid: DiscoveryFile without DiscoveryTokenAPIServers",
+			&kubeadm.NodeConfiguration{
+				DiscoveryFile: "https://url/file.conf",
+			},
+			true,
+		},
+		{
+			"valid: using token-based discovery with DiscoveryTokenCACertHashes",
+			&kubeadm.NodeConfiguration{
+				DiscoveryToken:                         "abcdef.1234567890123456",
+				DiscoveryTokenAPIServers:               []string{"192.168.122.100:6443"},
+				DiscoveryTokenCACertHashes:             []string{"sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+				DiscoveryTokenUnsafeSkipCAVerification: false,
+			},
+			true,
+		},
+		{
+			"valid: using token-based discovery with DiscoveryTokenCACertHashe but skip ca verification",
+			&kubeadm.NodeConfiguration{
+				DiscoveryToken:                         "abcdef.1234567890123456",
+				DiscoveryTokenAPIServers:               []string{"192.168.122.100:6443"},
+				DiscoveryTokenCACertHashes:             []string{"sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+				DiscoveryTokenUnsafeSkipCAVerification: true,
+			},
+			true,
+		},
+	}
+	for _, rt := range tests {
+		err := ValidateArgSelection(rt.c, nil).ToAggregate()
+		if (err == nil) != rt.expected {
+			t.Errorf(
+				"%s test case failed: ValidateArgSelection:\n\texpected: %t\n\t  actual: %t",
+				rt.name,
+				rt.expected,
+				(err == nil),
+			)
+		}
+	}
+}
+
+func TestValidateJoinDiscoveryTokenAPIServer(t *testing.T) {
+	var tests = []struct {
+		s        *kubeadm.NodeConfiguration
+		expected bool
+	}{
+		{
+			&kubeadm.NodeConfiguration{
+				DiscoveryTokenAPIServers: []string{"192.168.122.100"},
+			},
+			false,
+		},
+		{
+			&kubeadm.NodeConfiguration{
+				DiscoveryTokenAPIServers: []string{"192.168.122.100:6443"},
+			},
+			true,
+		},
+	}
+	for _, rt := range tests {
+		actual := ValidateJoinDiscoveryTokenAPIServer(rt.s.DiscoveryTokenAPIServers, nil)
+		if (len(actual) == 0) != rt.expected {
+			t.Errorf(
+				"failed ValidateJoinDiscoveryTokenAPIServer:\n\texpected: %t\n\t  actual: %t",
+				rt.expected,
+				(len(actual) == 0),
+			)
+		}
+	}
+}
+
+func TestValidateDiscoveryFile(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("/tmp", "test_discovery_file")
+	if err != nil {
+		t.Errorf("Error creating temporary file: %v", err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	var tests = []struct {
+		s        string
+		expected bool
+	}{
+		{"foo", false},
+		{"/foo/bar/file_which_i_believe_not_existing.conf", false},
+		{tmpfile.Name(), true},
+		{"http://[::1]a", false},
+		{"http://url/file.conf", false},
+		{"https://u r l/file.conf", false},
+		{"https://url/file.conf", true},
+	}
+	for i, rt := range tests {
+		actual := ValidateDiscoveryFile(rt.s, nil)
+		if (len(actual) == 0) != rt.expected {
+			t.Errorf(
+				"%d: failed ValidateDiscoveryFile:\n\texpected: %t\n\t  actual: %t",
+				i,
+				rt.expected,
+				(len(actual) == 0),
+			)
+		}
 	}
 }

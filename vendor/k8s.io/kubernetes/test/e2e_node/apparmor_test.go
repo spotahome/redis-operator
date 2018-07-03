@@ -40,7 +40,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = framework.KubeDescribe("AppArmor [Feature:AppArmor]", func() {
+var _ = framework.KubeDescribe("AppArmor [Feature:AppArmor][NodeFeature:AppArmor]", func() {
 	if isAppArmorEnabled() {
 		BeforeEach(func() {
 			By("Loading AppArmor profiles for testing")
@@ -50,7 +50,7 @@ var _ = framework.KubeDescribe("AppArmor [Feature:AppArmor]", func() {
 			f := framework.NewDefaultFramework("apparmor-test")
 
 			It("should reject an unloaded profile", func() {
-				status := runAppArmorTest(f, false, apparmor.ProfileNamePrefix+"non-existant-profile")
+				status := runAppArmorTest(f, false, apparmor.ProfileNamePrefix+"non-existent-profile")
 				expectSoftRejection(status)
 			})
 			It("should enforce a profile blocking writes", func() {

@@ -30,6 +30,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
 const (
@@ -51,7 +53,7 @@ const (
 	wrappedVolumeRaceRCNamePrefix            = "wrapped-volume-race-"
 )
 
-var _ = SIGDescribe("EmptyDir wrapper volumes", func() {
+var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 	f := framework.NewDefaultFramework("emptydir-wrapper")
 
 	It("should not conflict", func() {
@@ -372,7 +374,7 @@ func testNoWrappedVolumeRace(f *framework.Framework, volumes []v1.Volume, volume
 	Expect(err).NotTo(HaveOccurred(), "error creating replication controller")
 
 	defer func() {
-		err := framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.Namespace.Name, rcName)
+		err := framework.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, rcName)
 		framework.ExpectNoError(err)
 	}()
 

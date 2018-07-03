@@ -115,11 +115,11 @@ type handler struct {
 	echoSrv service.Echo
 }
 
-func (h *handler) Add(obj runtime.Object) error {
+func (h *handler) Add(_ context.Context, obj runtime.Object) error {
 	h.echoSrv.EchoObj(addPrefix, obj)
 	return nil
 }
-func (h *handler) Delete(s string) error {
+func (h *handler) Delete(_ context.Context, s string) error {
 	h.echoSrv.EchoS(deletePrefix, s)
 	return nil
 }
@@ -166,7 +166,7 @@ Then we create our simple handler that will have our service.
 And... finally we create the controller!
 
 ```go
-ctrl := controller.NewSequential(config.ResyncPeriod, handler, ret, logger)
+ctrl := controller.NewSequential(config.ResyncPeriod, handler, ret, nil, logger)
 ```
 
 We are using a sequential controller constructor (`NewSequential`) from `"github.com/spotahome/kooper/operator/controller"` package. It receives a handler, a retriever, a logger and a resync period.

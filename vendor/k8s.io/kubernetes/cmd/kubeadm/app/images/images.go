@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"runtime"
 
+	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
@@ -41,4 +43,29 @@ func GetCoreImage(image, repoPrefix, k8sVersion, overrideImage string) string {
 		constants.KubeControllerManager: fmt.Sprintf("%s/%s-%s:%s", repoPrefix, "kube-controller-manager", runtime.GOARCH, kubernetesImageTag),
 		constants.KubeScheduler:         fmt.Sprintf("%s/%s-%s:%s", repoPrefix, "kube-scheduler", runtime.GOARCH, kubernetesImageTag),
 	}[image]
+}
+
+// GetAllImages returns a list of container images kubeadm expects to use on a control plane node
+func GetAllImages(cfg *kubeadmapi.MasterConfiguration) []string {
+	repoPrefix := cfg.GetControlPlaneImageRepository()
+	imgs := []string{}
+	imgs = append(imgs, GetCoreImage(constants.KubeAPIServer, repoPrefix, cfg.KubernetesVersion, cfg.UnifiedControlPlaneImage))
+	imgs = append(imgs, GetCoreImage(constants.KubeControllerManager, repoPrefix, cfg.KubernetesVersion, cfg.UnifiedControlPlaneImage))
+	imgs = append(imgs, GetCoreImage(constants.KubeScheduler, repoPrefix, cfg.KubernetesVersion, cfg.UnifiedControlPlaneImage))
+	imgs = append(imgs, fmt.Sprintf("%v/%v-%v:%v", repoPrefix, constants.KubeProxy, runtime.GOARCH, kubeadmutil.KubernetesVersionToImageTag(cfg.KubernetesVersion)))
+
+	// pause, etcd and kube-dns are not available on the ci image repository so use the default image repository.
+	imgs = append(imgs, fmt.Sprintf("%v/pause-%v:%v", cfg.ImageRepository, runtime.GOARCH, "3.1"))
+
+	// if etcd is not external then add the image as it will be required
+	if cfg.Etcd.Local != nil {
+		imgs = append(imgs, GetCoreImage(constants.Etcd, cfg.ImageRepository, cfg.KubernetesVersion, cfg.Etcd.Local.Image))
+	}
+
+	dnsImage := fmt.Sprintf("%v/k8s-dns-kube-dns-%v:%v", cfg.ImageRepository, runtime.GOARCH, constants.KubeDNSVersion)
+	if features.Enabled(cfg.FeatureGates, features.CoreDNS) {
+		dnsImage = fmt.Sprintf("%v/coredns:%v", cfg.ImageRepository, constants.CoreDNSVersion)
+	}
+	imgs = append(imgs, dnsImage)
+	return imgs
 }

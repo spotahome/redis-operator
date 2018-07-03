@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
-	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // HasPrivilegedRequest returns the value of SecurityContext.Privileged, taking into account
@@ -68,27 +67,6 @@ func ParseSELinuxOptions(context string) (*v1.SELinuxOptions, error) {
 	}, nil
 }
 
-// HasNonRootUID returns true if the runAsUser is set and is greater than 0.
-func HasRootUID(container *v1.Container) bool {
-	if container.SecurityContext == nil {
-		return false
-	}
-	if container.SecurityContext.RunAsUser == nil {
-		return false
-	}
-	return *container.SecurityContext.RunAsUser == 0
-}
-
-// HasRunAsUser determines if the sc's runAsUser field is set.
-func HasRunAsUser(container *v1.Container) bool {
-	return container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil
-}
-
-// HasRootRunAsUser returns true if the run as user is set and it is set to 0.
-func HasRootRunAsUser(container *v1.Container) bool {
-	return HasRunAsUser(container) && HasRootUID(container)
-}
-
 func DetermineEffectiveSecurityContext(pod *v1.Pod, container *v1.Container) *v1.SecurityContext {
 	effectiveSc := securityContextFromPodSecurityContext(pod)
 	containerSc := container.SecurityContext
@@ -121,6 +99,11 @@ func DetermineEffectiveSecurityContext(pod *v1.Pod, container *v1.Container) *v1
 	if containerSc.RunAsUser != nil {
 		effectiveSc.RunAsUser = new(int64)
 		*effectiveSc.RunAsUser = *containerSc.RunAsUser
+	}
+
+	if containerSc.RunAsGroup != nil {
+		effectiveSc.RunAsGroup = new(int64)
+		*effectiveSc.RunAsGroup = *containerSc.RunAsGroup
 	}
 
 	if containerSc.RunAsNonRoot != nil {
@@ -157,81 +140,9 @@ func securityContextFromPodSecurityContext(pod *v1.Pod) *v1.SecurityContext {
 		*synthesized.RunAsUser = *pod.Spec.SecurityContext.RunAsUser
 	}
 
-	if pod.Spec.SecurityContext.RunAsNonRoot != nil {
-		synthesized.RunAsNonRoot = new(bool)
-		*synthesized.RunAsNonRoot = *pod.Spec.SecurityContext.RunAsNonRoot
-	}
-
-	return synthesized
-}
-
-// TODO: remove the duplicate code
-func InternalDetermineEffectiveSecurityContext(pod *api.Pod, container *api.Container) *api.SecurityContext {
-	effectiveSc := internalSecurityContextFromPodSecurityContext(pod)
-	containerSc := container.SecurityContext
-
-	if effectiveSc == nil && containerSc == nil {
-		return nil
-	}
-	if effectiveSc != nil && containerSc == nil {
-		return effectiveSc
-	}
-	if effectiveSc == nil && containerSc != nil {
-		return containerSc
-	}
-
-	if containerSc.SELinuxOptions != nil {
-		effectiveSc.SELinuxOptions = new(api.SELinuxOptions)
-		*effectiveSc.SELinuxOptions = *containerSc.SELinuxOptions
-	}
-
-	if containerSc.Capabilities != nil {
-		effectiveSc.Capabilities = new(api.Capabilities)
-		*effectiveSc.Capabilities = *containerSc.Capabilities
-	}
-
-	if containerSc.Privileged != nil {
-		effectiveSc.Privileged = new(bool)
-		*effectiveSc.Privileged = *containerSc.Privileged
-	}
-
-	if containerSc.RunAsUser != nil {
-		effectiveSc.RunAsUser = new(int64)
-		*effectiveSc.RunAsUser = *containerSc.RunAsUser
-	}
-
-	if containerSc.RunAsNonRoot != nil {
-		effectiveSc.RunAsNonRoot = new(bool)
-		*effectiveSc.RunAsNonRoot = *containerSc.RunAsNonRoot
-	}
-
-	if containerSc.ReadOnlyRootFilesystem != nil {
-		effectiveSc.ReadOnlyRootFilesystem = new(bool)
-		*effectiveSc.ReadOnlyRootFilesystem = *containerSc.ReadOnlyRootFilesystem
-	}
-
-	if containerSc.AllowPrivilegeEscalation != nil {
-		effectiveSc.AllowPrivilegeEscalation = new(bool)
-		*effectiveSc.AllowPrivilegeEscalation = *containerSc.AllowPrivilegeEscalation
-	}
-
-	return effectiveSc
-}
-
-func internalSecurityContextFromPodSecurityContext(pod *api.Pod) *api.SecurityContext {
-	if pod.Spec.SecurityContext == nil {
-		return nil
-	}
-
-	synthesized := &api.SecurityContext{}
-
-	if pod.Spec.SecurityContext.SELinuxOptions != nil {
-		synthesized.SELinuxOptions = &api.SELinuxOptions{}
-		*synthesized.SELinuxOptions = *pod.Spec.SecurityContext.SELinuxOptions
-	}
-	if pod.Spec.SecurityContext.RunAsUser != nil {
-		synthesized.RunAsUser = new(int64)
-		*synthesized.RunAsUser = *pod.Spec.SecurityContext.RunAsUser
+	if pod.Spec.SecurityContext.RunAsGroup != nil {
+		synthesized.RunAsGroup = new(int64)
+		*synthesized.RunAsGroup = *pod.Spec.SecurityContext.RunAsGroup
 	}
 
 	if pod.Spec.SecurityContext.RunAsNonRoot != nil {

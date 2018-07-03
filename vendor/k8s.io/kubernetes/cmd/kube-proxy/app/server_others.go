@@ -30,9 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/proxy"
 	proxyconfigapi "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
@@ -83,6 +81,7 @@ func newProxyServer(
 
 	var iptInterface utiliptables.Interface
 	var ipvsInterface utilipvs.Interface
+	var kernelHandler ipvs.KernelHandler
 	var ipsetInterface utilipset.Interface
 	var dbus utildbus.Interface
 
@@ -91,8 +90,11 @@ func newProxyServer(
 
 	dbus = utildbus.New()
 	iptInterface = utiliptables.New(execer, dbus, protocol)
-	ipvsInterface = utilipvs.New(execer)
+	kernelHandler = ipvs.NewLinuxKernelHandler()
 	ipsetInterface = utilipset.New(execer)
+	if canUse, _ := ipvs.CanUseIPVSProxier(kernelHandler, ipsetInterface); canUse {
+		ipvsInterface = utilipvs.New(execer)
+	}
 
 	// We omit creation of pretty much everything if we run in cleanup mode
 	if cleanupAndExit {
@@ -133,7 +135,7 @@ func newProxyServer(
 	var serviceEventHandler proxyconfig.ServiceHandler
 	var endpointsEventHandler proxyconfig.EndpointsHandler
 
-	proxyMode := getProxyMode(string(config.Mode), iptInterface, ipsetInterface, iptables.LinuxKernelCompatTester{})
+	proxyMode := getProxyMode(string(config.Mode), iptInterface, kernelHandler, ipsetInterface, iptables.LinuxKernelCompatTester{})
 	if proxyMode == proxyModeIPTables {
 		glog.V(0).Info("Using iptables Proxier.")
 		nodeIP := net.ParseIP(config.BindAddress)
@@ -159,6 +161,7 @@ func newProxyServer(
 			nodeIP,
 			recorder,
 			healthzUpdater,
+			config.NodePortAddresses,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create proxier: %v", err)
@@ -186,6 +189,7 @@ func newProxyServer(
 			execer,
 			config.IPVS.SyncPeriod.Duration,
 			config.IPVS.MinSyncPeriod.Duration,
+			config.IPVS.ExcludeCIDRs,
 			config.IPTables.MasqueradeAll,
 			int(*config.IPTables.MasqueradeBit),
 			config.ClusterCIDR,
@@ -194,6 +198,7 @@ func newProxyServer(
 			recorder,
 			healthzServer,
 			config.IPVS.Scheduler,
+			config.NodePortAddresses,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create proxier: %v", err)
@@ -224,6 +229,7 @@ func newProxyServer(
 			config.IPTables.SyncPeriod.Duration,
 			config.IPTables.MinSyncPeriod.Duration,
 			config.UDPIdleTimeout.Duration,
+			config.NodePortAddresses,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create proxier: %v", err)
@@ -269,31 +275,23 @@ func newProxyServer(
 	}, nil
 }
 
-func getProxyMode(proxyMode string, iptver iptables.IPTablesVersioner, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
-	if proxyMode == proxyModeUserspace {
+func getProxyMode(proxyMode string, iptver iptables.IPTablesVersioner, khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
+	switch proxyMode {
+	case proxyModeUserspace:
 		return proxyModeUserspace
-	}
-
-	if len(proxyMode) > 0 && proxyMode == proxyModeIPTables {
+	case proxyModeIPTables:
 		return tryIPTablesProxy(iptver, kcompat)
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.SupportIPVSProxyMode) {
-		if proxyMode == proxyModeIPVS {
-			return tryIPVSProxy(iptver, ipsetver, kcompat)
-		} else {
-			glog.Warningf("Can't use ipvs proxier, trying iptables proxier")
-			return tryIPTablesProxy(iptver, kcompat)
-		}
+	case proxyModeIPVS:
+		return tryIPVSProxy(iptver, khandle, ipsetver, kcompat)
 	}
 	glog.Warningf("Flag proxy-mode=%q unknown, assuming iptables proxy", proxyMode)
 	return tryIPTablesProxy(iptver, kcompat)
 }
 
-func tryIPVSProxy(iptver iptables.IPTablesVersioner, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
+func tryIPVSProxy(iptver iptables.IPTablesVersioner, khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
 	// guaranteed false on error, error only necessary for debugging
-	// IPVS Proxier relies on ipset
-	useIPVSProxy, err := ipvs.CanUseIPVSProxier(ipsetver)
+	// IPVS Proxier relies on ip_vs_* kernel modules and ipset
+	useIPVSProxy, err := ipvs.CanUseIPVSProxier(khandle, ipsetver)
 	if err != nil {
 		// Try to fallback to iptables before falling back to userspace
 		utilruntime.HandleError(fmt.Errorf("can't determine whether to use ipvs proxy, error: %v", err))

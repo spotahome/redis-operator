@@ -19,6 +19,7 @@ package downwardapi
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -179,14 +180,19 @@ func (b *downwardAPIVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 		glog.Errorf("Couldn't setup downwardAPI volume %v for pod %v/%v: %s", b.volName, b.pod.Namespace, b.pod.Name, err.Error())
 		return err
 	}
+
+	data, err := CollectData(b.source.Items, b.pod, b.plugin.host, b.source.DefaultMode)
+	if err != nil {
+		glog.Errorf("Error preparing data for downwardAPI volume %v for pod %v/%v: %s", b.volName, b.pod.Namespace, b.pod.Name, err.Error())
+		return err
+	}
+
 	if err := wrapped.SetUpAt(dir, fsGroup); err != nil {
 		glog.Errorf("Unable to setup downwardAPI volume %v for pod %v/%v: %s", b.volName, b.pod.Namespace, b.pod.Name, err.Error())
 		return err
 	}
 
-	data, err := CollectData(b.source.Items, b.pod, b.plugin.host, b.source.DefaultMode)
-	if err != nil {
-		glog.Errorf("Error preparing data for downwardAPI volume %v for pod %v/%v: %s", b.volName, b.pod.Namespace, b.pod.Name, err.Error())
+	if err := volumeutil.MakeNestedMountpoints(b.volName, dir, *b.pod); err != nil {
 		return err
 	}
 
@@ -226,7 +232,7 @@ func CollectData(items []v1.DownwardAPIVolumeFile, pod *v1.Pod, host volume.Volu
 	data := make(map[string]volumeutil.FileProjection)
 	for _, fileInfo := range items {
 		var fileProjection volumeutil.FileProjection
-		fPath := path.Clean(fileInfo.Path)
+		fPath := filepath.Clean(fileInfo.Path)
 		if fileInfo.Mode != nil {
 			fileProjection.Mode = *fileInfo.Mode
 		} else {
@@ -283,7 +289,7 @@ func (c *downwardAPIVolumeUnmounter) TearDown() error {
 }
 
 func (c *downwardAPIVolumeUnmounter) TearDownAt(dir string) error {
-	return volume.UnmountViaEmptyDir(dir, c.plugin.host, c.volName, wrappedVolumeSpec(), c.podUID)
+	return volumeutil.UnmountViaEmptyDir(dir, c.plugin.host, c.volName, wrappedVolumeSpec(), c.podUID)
 }
 
 func (b *downwardAPIVolumeMounter) getMetaDir() string {

@@ -42,7 +42,7 @@ var _ = instrumentation.SIGDescribe("Monitoring", func() {
 		framework.SkipUnlessClusterMonitoringModeIs("influxdb")
 	})
 
-	It("should verify monitoring pods and all cluster nodes are available on influxdb using heapster.", func() {
+	It("should verify monitoring pods and all cluster nodes are available on influxdb using heapster [Feature:InfluxdbMonitoring]", func() {
 		testMonitoringUsingHeapsterInfluxdb(f.ClientSet)
 	})
 })
@@ -122,7 +122,7 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 		if err != nil {
 			return nil, err
 		}
-		psList, err := c.AppsV1beta1().StatefulSets(metav1.NamespaceSystem).List(options)
+		psList, err := c.AppsV1().StatefulSets(metav1.NamespaceSystem).List(options)
 		if err != nil {
 			return nil, err
 		}

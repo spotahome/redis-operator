@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,19 +59,19 @@ func main() {
 
 	// Our domain logic that will print every add/sync/update and delete event we .
 	hand := &handler.HandlerFunc{
-		AddFunc: func(obj runtime.Object) error {
+		AddFunc: func(_ context.Context, obj runtime.Object) error {
 			pod := obj.(*corev1.Pod)
 			log.Infof("Pod added: %s/%s", pod.Namespace, pod.Name)
 			return nil
 		},
-		DeleteFunc: func(s string) error {
+		DeleteFunc: func(_ context.Context, s string) error {
 			log.Infof("Pod deleted: %s", s)
 			return nil
 		},
 	}
 
 	// Create the controller that will refresh every 30 seconds.
-	ctrl := controller.NewSequential(30*time.Second, hand, retr, log)
+	ctrl := controller.NewSequential(30*time.Second, hand, retr, nil, log)
 
 	// Start our controller.
 	stopC := make(chan struct{})

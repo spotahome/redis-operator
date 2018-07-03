@@ -23,18 +23,18 @@ import (
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/util/clock"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/helper/qos"
 	k8s_api_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/kubeapiserver/admission/util"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
@@ -71,15 +71,18 @@ var requestedResourcePrefixes = []string{
 	api.ResourceHugePagesPrefix,
 }
 
-const (
-	requestsPrefix = "requests."
-	limitsPrefix   = "limits."
-)
-
 // maskResourceWithPrefix mask resource with certain prefix
 // e.g. hugepages-XXX -> requests.hugepages-XXX
 func maskResourceWithPrefix(resource api.ResourceName, prefix string) api.ResourceName {
 	return api.ResourceName(fmt.Sprintf("%s%s", prefix, string(resource)))
+}
+
+// isExtendedResourceNameForQuota returns true if the extended resource name
+// has the quota related resource prefix.
+func isExtendedResourceNameForQuota(name api.ResourceName) bool {
+	// As overcommit is not supported by extended resources for now,
+	// only quota objects in format of "requests.resourceName" is allowed.
+	return !helper.IsNativeResource(name) && strings.HasPrefix(string(name), api.DefaultResourceRequestsPrefix)
 }
 
 // NOTE: it was a mistake, but if a quota tracks cpu or memory related resources,
@@ -115,24 +118,7 @@ type podEvaluator struct {
 func (p *podEvaluator) Constraints(required []api.ResourceName, item runtime.Object) error {
 	pod, ok := item.(*api.Pod)
 	if !ok {
-		return fmt.Errorf("Unexpected input object %v", item)
-	}
-
-	// Pod level resources are often set during admission control
-	// As a consequence, we want to verify that resources are valid prior
-	// to ever charging quota prematurely in case they are not.
-	// TODO remove this entire section when we have a validation step in admission.
-	allErrs := field.ErrorList{}
-	fldPath := field.NewPath("spec").Child("containers")
-	for i, ctr := range pod.Spec.Containers {
-		allErrs = append(allErrs, validation.ValidateResourceRequirements(&ctr.Resources, fldPath.Index(i).Child("resources"))...)
-	}
-	fldPath = field.NewPath("spec").Child("initContainers")
-	for i, ctr := range pod.Spec.InitContainers {
-		allErrs = append(allErrs, validation.ValidateResourceRequirements(&ctr.Resources, fldPath.Index(i).Child("resources"))...)
-	}
-	if len(allErrs) > 0 {
-		return allErrs.ToAggregate()
+		return fmt.Errorf("unexpected input object %v", item)
 	}
 
 	// BACKWARD COMPATIBILITY REQUIREMENT: if we quota cpu or memory, then each container
@@ -183,12 +169,52 @@ func (p *podEvaluator) Matches(resourceQuota *api.ResourceQuota, item runtime.Ob
 func (p *podEvaluator) MatchingResources(input []api.ResourceName) []api.ResourceName {
 	result := quota.Intersection(input, podResources)
 	for _, resource := range input {
+		// for resources with certain prefix, e.g. hugepages
 		if quota.ContainsPrefix(podResourcePrefixes, resource) {
+			result = append(result, resource)
+		}
+		// for extended resources
+		if isExtendedResourceNameForQuota(resource) {
 			result = append(result, resource)
 		}
 	}
 
 	return result
+}
+
+// MatchingScopes takes the input specified list of scopes and pod object. Returns the set of scope selectors pod matches.
+func (p *podEvaluator) MatchingScopes(item runtime.Object, scopeSelectors []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	matchedScopes := []api.ScopedResourceSelectorRequirement{}
+	for _, selector := range scopeSelectors {
+		match, err := podMatchesScopeFunc(selector, item)
+		if err != nil {
+			return []api.ScopedResourceSelectorRequirement{}, fmt.Errorf("error on matching scope %v: %v", selector, err)
+		}
+		if match {
+			matchedScopes = append(matchedScopes, selector)
+		}
+	}
+	return matchedScopes, nil
+}
+
+// UncoveredQuotaScopes takes the input matched scopes which are limited by configuration and the matched quota scopes.
+// It returns the scopes which are in limited scopes but dont have a corresponding covering quota scope
+func (p *podEvaluator) UncoveredQuotaScopes(limitedScopes []api.ScopedResourceSelectorRequirement, matchedQuotaScopes []api.ScopedResourceSelectorRequirement) ([]api.ScopedResourceSelectorRequirement, error) {
+	uncoveredScopes := []api.ScopedResourceSelectorRequirement{}
+	for _, selector := range limitedScopes {
+		isCovered := false
+		for _, matchedScopeSelector := range matchedQuotaScopes {
+			if matchedScopeSelector.ScopeName == selector.ScopeName {
+				isCovered = true
+				break
+			}
+		}
+
+		if !isCovered {
+			uncoveredScopes = append(uncoveredScopes, selector)
+		}
+	}
+	return uncoveredScopes, nil
 }
 
 // Usage knows how to measure usage associated with pods
@@ -244,14 +270,15 @@ func podComputeUsageHelper(requests api.ResourceList, limits api.ResourceList) a
 		result[api.ResourceLimitsEphemeralStorage] = limit
 	}
 	for resource, request := range requests {
+		// for resources with certain prefix, e.g. hugepages
 		if quota.ContainsPrefix(requestedResourcePrefixes, resource) {
 			result[resource] = request
-			result[maskResourceWithPrefix(resource, requestsPrefix)] = request
+			result[maskResourceWithPrefix(resource, api.DefaultResourceRequestsPrefix)] = request
 		}
-	}
-	for resource, limit := range limits {
-		if quota.ContainsPrefix(requestedResourcePrefixes, resource) {
-			result[maskResourceWithPrefix(resource, limitsPrefix)] = limit
+		// for extended resources
+		if helper.IsExtendedResourceName(resource) {
+			// only quota objects in format of "requests.resourceName" is allowed for extended resource.
+			result[maskResourceWithPrefix(resource, api.DefaultResourceRequestsPrefix)] = request
 		}
 	}
 
@@ -274,12 +301,12 @@ func toInternalPodOrError(obj runtime.Object) (*api.Pod, error) {
 }
 
 // podMatchesScopeFunc is a function that knows how to evaluate if a pod matches a scope
-func podMatchesScopeFunc(scope api.ResourceQuotaScope, object runtime.Object) (bool, error) {
+func podMatchesScopeFunc(selector api.ScopedResourceSelectorRequirement, object runtime.Object) (bool, error) {
 	pod, err := toInternalPodOrError(object)
 	if err != nil {
 		return false, err
 	}
-	switch scope {
+	switch selector.ScopeName {
 	case api.ResourceQuotaScopeTerminating:
 		return isTerminating(pod), nil
 	case api.ResourceQuotaScopeNotTerminating:
@@ -288,6 +315,8 @@ func podMatchesScopeFunc(scope api.ResourceQuotaScope, object runtime.Object) (b
 		return isBestEffort(pod), nil
 	case api.ResourceQuotaScopeNotBestEffort:
 		return !isBestEffort(pod), nil
+	case api.ResourceQuotaScopePriorityClass:
+		return podMatchesSelector(pod, selector)
 	}
 	return false, nil
 }
@@ -344,6 +373,18 @@ func isTerminating(pod *api.Pod) bool {
 		return true
 	}
 	return false
+}
+
+func podMatchesSelector(pod *api.Pod, selector api.ScopedResourceSelectorRequirement) (bool, error) {
+	labelSelector, err := helper.ScopedResourceSelectorRequirementsAsSelector(selector)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse and convert selector: %v", err)
+	}
+	m := map[string]string{string(api.ResourceQuotaScopePriorityClass): pod.Spec.PriorityClassName}
+	if labelSelector.Matches(labels.Set(m)) {
+		return true, nil
+	}
+	return false, nil
 }
 
 // QuotaPod returns true if the pod is eligible to track against a quota

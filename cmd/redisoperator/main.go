@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/rest"
 
@@ -20,7 +22,8 @@ import (
 )
 
 const (
-	gracePeriod = 5 * time.Second
+	gracePeriod      = 5 * time.Second
+	metricsNamespace = "redis_operator"
 )
 
 // Main is the  main runner.
@@ -56,7 +59,9 @@ func (m *Main) Run() error {
 	}
 
 	// Create the metrics client.
-	metricsServer := metrics.NewPrometheusMetrics(m.flags.MetricsPath, http.DefaultServeMux)
+	registry := prometheus.NewRegistry()
+	metricsServer := metrics.NewPrometheusMetrics(m.flags.MetricsPath, metricsNamespace, http.DefaultServeMux, registry)
+	kooperMetricsServer := kmetrics.NewPrometheus(metricsNamespace, registry)
 
 	// Serve metrics.
 	go func() {
@@ -77,7 +82,7 @@ func (m *Main) Run() error {
 	redisClient := redis.New()
 
 	// Create operator and run.
-	redisfailoverOperator := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, redisClient, metricsServer, m.logger)
+	redisfailoverOperator := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, redisClient, metricsServer, kooperMetricsServer, m.logger)
 	go func() {
 		errC <- redisfailoverOperator.Run(m.stopC)
 	}()
