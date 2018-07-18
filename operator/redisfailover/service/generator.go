@@ -211,6 +211,10 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	}
 
 	if rf.Spec.Redis.Storage.PersistentVolumeClaim != nil {
+		if !rf.Spec.Redis.Storage.KeepAfterDeletion {
+			// Set an owner reference so the persistent volumes are deleted when the RF is
+			rf.Spec.Redis.Storage.PersistentVolumeClaim.OwnerReferences = ownerRefs
+		}
 		ss.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 			*rf.Spec.Redis.Storage.PersistentVolumeClaim,
 		}

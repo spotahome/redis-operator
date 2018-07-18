@@ -67,6 +67,7 @@ type CPUAndMem struct {
 
 // RedisStorage defines the structure used to store the Redis Data
 type RedisStorage struct {
+	KeepAfterDeletion     bool                          `json:"keepAfterDeletion,omitempty"`
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
 }
