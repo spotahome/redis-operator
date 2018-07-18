@@ -43,7 +43,7 @@ type RedisSettings struct {
 	Image           string                 `json:"image,omitempty"`
 	Version         string                 `json:"version,omitempty"`
 	ConfigMap       string                 `json:"configMap,omitempty"`
-	DataVolume      corev1.Volume          `json:"dataVolume,omitempty"`
+	Storage         RedisStorage           `json:"storage,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -63,6 +63,13 @@ type RedisFailoverResources struct {
 type CPUAndMem struct {
 	CPU    string `json:"cpu"`
 	Memory string `json:"memory"`
+}
+
+// RedisStorage defines the structure used to store the Redis Data
+type RedisStorage struct {
+	KeepAfterDeletion     bool                          `json:"keepAfterDeletion,omitempty"`
+	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
+	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
 }
 
 // RedisFailoverStatus has the status of the cluster

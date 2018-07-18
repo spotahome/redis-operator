@@ -36,9 +36,9 @@ helm install --name redisfailover charts/redisoperator
 ## Usage
 Once the operator is deployed inside a Kubernetes cluster, a new API will be accesible, so you'll be able to create, update and delete redisfailovers.
 
-In order to deploy a new redis-failover a [specification](example/redisfailover.yaml) has to be created:
+In order to deploy a new redis-failover a [specification](example/redisfailover/all-options.yaml) has to be created:
 ```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover.yaml
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/redisfailover/all-options.yaml
 ```
 
 This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
@@ -50,6 +50,13 @@ This redis-failover will be managed by the operator, resulting in the following 
 * `rfs-<NAME>`: Sentinel service
 
 **NOTE**: `NAME` is the named provided when creating the RedisFailover.
+
+### Persistance
+The operator has the ability of add persistance to Redis data. By default an `emptyDir` will be used, so the data is not saved.
+
+In order to have persistance, a PersistentVolumeClaim usage is allowed. The full [PVC definition has to be added](example/redisfailover/persistant-storage.yaml) to the Redis Failover Spec under the `Storage` section.
+
+**IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistant-storage-no-pvc-deletion.yaml).
 
 ### Connection
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.

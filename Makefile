@@ -1,4 +1,4 @@
-VERSION := 0.3.0
+VERSION := 0.4.0
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -144,6 +144,6 @@ endif
 
 # Generate kubernetes code for types..
 .PHONY: update-codegen
-update-codegen: build
+update-codegen: docker-build
 	@echo ">> Generating code for Kubernetes CRD types..."
 	docker run --rm -v $(PWD):/go/src/github.com/spotahome/redis-operator/ $(REPOSITORY)-dev /bin/bash -c '$(UPDATE_CODEGEN_CMD)'

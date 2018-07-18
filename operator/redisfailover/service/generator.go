@@ -14,6 +14,11 @@ import (
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
 
+const (
+	redisConfigurationVolumeName = "redis-config"
+	redisStorageVolumeName       = "redis-data"
+)
+
 func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace
@@ -203,6 +208,16 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 				},
 			},
 		},
+	}
+
+	if rf.Spec.Redis.Storage.PersistentVolumeClaim != nil {
+		if !rf.Spec.Redis.Storage.KeepAfterDeletion {
+			// Set an owner reference so the persistent volumes are deleted when the RF is
+			rf.Spec.Redis.Storage.PersistentVolumeClaim.OwnerReferences = ownerRefs
+		}
+		ss.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+			*rf.Spec.Redis.Storage.PersistentVolumeClaim,
+		}
 	}
 
 	if rf.Spec.Redis.Exporter {
@@ -523,17 +538,13 @@ func getRedisExporterImage(rf *redisfailoverv1alpha2.RedisFailover) string {
 func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "redis-config",
+			Name:      redisConfigurationVolumeName,
 			MountPath: "/redis",
 		},
-	}
-
-	// check if data volume is set, if set, mount to /data
-	if rf.Spec.Redis.DataVolume.Name != "" {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      rf.Spec.Redis.DataVolume.Name,
+		{
+			Name:      getRedisDataVolumeName(rf),
 			MountPath: "/data",
-		})
+		},
 	}
 
 	return volumeMounts
@@ -544,7 +555,7 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 
 	volumes := []corev1.Volume{
 		{
-			Name: "redis-config",
+			Name: redisConfigurationVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -555,10 +566,44 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 		},
 	}
 
-	// check if data volume is set, if not set skip it
-	if rf.Spec.Redis.DataVolume.Name != "" {
-		volumes = append(volumes, rf.Spec.Redis.DataVolume)
+	dataVolume := getRedisDataVolume(rf)
+	if dataVolume != nil {
+		volumes = append(volumes, *dataVolume)
 	}
 
 	return volumes
+}
+
+func getRedisDataVolume(rf *redisfailoverv1alpha2.RedisFailover) *corev1.Volume {
+	// This will find the volumed desired by the user. If no volume defined
+	// an EmptyDir will be used by default
+	switch {
+	case rf.Spec.Redis.Storage.PersistentVolumeClaim != nil:
+		return nil
+	case rf.Spec.Redis.Storage.EmptyDir != nil:
+		return &corev1.Volume{
+			Name: redisStorageVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: rf.Spec.Redis.Storage.EmptyDir,
+			},
+		}
+	default:
+		return &corev1.Volume{
+			Name: redisStorageVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}
+	}
+}
+
+func getRedisDataVolumeName(rf *redisfailoverv1alpha2.RedisFailover) string {
+	switch {
+	case rf.Spec.Redis.Storage.PersistentVolumeClaim != nil:
+		return rf.Spec.Redis.Storage.PersistentVolumeClaim.Name
+	case rf.Spec.Redis.Storage.EmptyDir != nil:
+		return redisStorageVolumeName
+	default:
+		return redisStorageVolumeName
+	}
 }
