@@ -4,6 +4,7 @@ tag: latest
 pullPolicy: Always
 team: devops
 containerName: redisoperator
+podAnnotations: {}
 resources:
   requests:
     cpu: 10m
