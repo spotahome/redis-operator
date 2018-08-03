@@ -16,6 +16,10 @@ spec:
       labels:
         component: app
 {{ include "common-labels" . | indent 8 }}
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
 {{- if .Values.rbac.install }}
       serviceAccountName: {{ include "name" . | quote }}
