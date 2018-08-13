@@ -22,6 +22,9 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1alpha2.RedisFailover, l
 	if err := w.rfService.EnsureSentinelConfigMap(rf, labels, or); err != nil {
 		return err
 	}
+	if err := w.rfService.EnsureRedisShutdownConfigMap(rf, labels, or); err != nil {
+		return err
+	}
 	if err := w.rfService.EnsureRedisConfigMap(rf, labels, or); err != nil {
 		return err
 	}

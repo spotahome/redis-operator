@@ -18,6 +18,7 @@ type RedisFailoverClient interface {
 	EnsureSentinelDeployment(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisStatefulset(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisService(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureNotPresentRedisService(rFailover *redisfailoverv1alpha2.RedisFailover) error
 }
@@ -89,6 +90,18 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2
 		}
 	} else {
 		cm := generateRedisConfigMap(rf, labels, ownerRefs)
+		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
+	}
+	return nil
+}
+
+func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	if rf.Spec.Redis.ConfigMap != "" {
+		if _, err := r.K8SService.GetConfigMap(rf.Namespace, rf.Spec.Redis.ShutdownConfigMap); err != nil {
+			return err
+		}
+	} else {
+		cm := generateRedisShutdownConfigMap(rf, labels, ownerRefs)
 		return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 	}
 	return nil

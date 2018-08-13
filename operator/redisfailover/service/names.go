@@ -14,10 +14,24 @@ func GetRedisConfigMapName(rf *redisfailoverv1alpha2.RedisFailover) string {
 	return GetRedisName(rf)
 }
 
+// GetRedisShutdownConfigMapName returns the name for redis configmap
+func GetRedisShutdownConfigMapName(rf *redisfailoverv1alpha2.RedisFailover) string {
+	if rf.Spec.Redis.ShutdownConfigMap != "" {
+		return rf.Spec.Redis.ShutdownConfigMap
+	}
+	return GetRedisShowDownName(rf)
+}
+
 // GetRedisName returns the name for redis resources
 func GetRedisName(rf *redisfailoverv1alpha2.RedisFailover) string {
 	return generateName(redisName, rf.Name)
 }
+// GetRedisName returns the name for redis resources
+func GetRedisShowDownName(rf *redisfailoverv1alpha2.RedisFailover) string {
+	return generateName(redisShutdownName, rf.Name)
+}
+
+
 
 // GetSentinelConfigMapName returns the name for sentinel configmap
 func GetSentinelConfigMapName(rf *redisfailoverv1alpha2.RedisFailover) string {
