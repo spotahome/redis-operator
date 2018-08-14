@@ -36,7 +36,7 @@ const (
 	sentinelConfigFileName = "sentinel.conf"
 	redisConfigFileName    = "redis.conf"
 	redisName              = "r"
-	redisShutdownName      = "s-shutdown"
+	redisShutdownName      = "r-shutdown"
 	redisRoleName          = "redis"
 	redisGroupName         = "mymaster"
 	appLabel               = "redis-failover"
