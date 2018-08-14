@@ -588,7 +588,7 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 	configMapName := GetRedisConfigMapName(rf)
 	shutdownConfigMapName := GetRedisShutdownConfigMapName(rf)
 
-	defaultMode := int32(0744)
+	executeMode := int32(0744)
 	volumes := []corev1.Volume{
 		{
 			Name: redisConfigurationVolumeName,
@@ -607,7 +607,7 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: shutdownConfigMapName,
 					},
-					DefaultMode: &defaultMode,
+					DefaultMode: &executeMode,
 				},
 			},
 		},

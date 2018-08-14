@@ -96,7 +96,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2
 }
 
 func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	if rf.Spec.Redis.ConfigMap != "" {
+	if rf.Spec.Redis.ShutdownConfigMap != "" {
 		if _, err := r.K8SService.GetConfigMap(rf.Namespace, rf.Spec.Redis.ShutdownConfigMap); err != nil {
 			return err
 		}

@@ -18,6 +18,8 @@ import (
 
 func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 	configMapName := rfservice.GetRedisConfigMapName(generateRF())
+	shutdownConfigMapName := rfservice.GetRedisShutdownConfigMapName(generateRF())
+	executeMode := int32(0744)
 	tests := []struct {
 		name           string
 		ownerRefs      []metav1.OwnerReference
@@ -38,6 +40,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											MountPath: "/redis",
 										},
 										{
+											Name:      "redis-shutdown-config",
+											MountPath: "/redis-shutdown",
+										},
+										{
 											Name:      "redis-data",
 											MountPath: "/data",
 										},
@@ -52,6 +58,17 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: configMapName,
 											},
+										},
+									},
+								},
+								{
+									Name: "redis-shutdown-config",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: shutdownConfigMapName,
+											},
+											DefaultMode: &executeMode,
 										},
 									},
 								},
@@ -82,6 +99,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											MountPath: "/redis",
 										},
 										{
+											Name:      "redis-shutdown-config",
+											MountPath: "/redis-shutdown",
+										},
+										{
 											Name:      "redis-data",
 											MountPath: "/data",
 										},
@@ -96,6 +117,17 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: configMapName,
 											},
+										},
+									},
+								},
+								{
+									Name: "redis-shutdown-config",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: shutdownConfigMapName,
+											},
+											DefaultMode: &executeMode,
 										},
 									},
 								},
@@ -132,6 +164,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											MountPath: "/redis",
 										},
 										{
+											Name:      "redis-shutdown-config",
+											MountPath: "/redis-shutdown",
+										},
+										{
 											Name:      "pvc-data",
 											MountPath: "/data",
 										},
@@ -146,6 +182,17 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: configMapName,
 											},
+										},
+									},
+								},
+								{
+									Name: "redis-shutdown-config",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: shutdownConfigMapName,
+											},
+											DefaultMode: &executeMode,
 										},
 									},
 								},
@@ -208,6 +255,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											MountPath: "/redis",
 										},
 										{
+											Name:      "redis-shutdown-config",
+											MountPath: "/redis-shutdown",
+										},
+										{
 											Name:      "pvc-data",
 											MountPath: "/data",
 										},
@@ -222,6 +273,17 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: configMapName,
 											},
+										},
+									},
+								},
+								{
+									Name: "redis-shutdown-config",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: shutdownConfigMapName,
+											},
+											DefaultMode: &executeMode,
 										},
 									},
 								},
@@ -289,6 +351,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											MountPath: "/redis",
 										},
 										{
+											Name:      "redis-shutdown-config",
+											MountPath: "/redis-shutdown",
+										},
+										{
 											Name:      "pvc-data",
 											MountPath: "/data",
 										},
@@ -303,6 +369,17 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 											LocalObjectReference: corev1.LocalObjectReference{
 												Name: configMapName,
 											},
+										},
+									},
+								},
+								{
+									Name: "redis-shutdown-config",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: shutdownConfigMapName,
+											},
+											DefaultMode: &executeMode,
 										},
 									},
 								},
