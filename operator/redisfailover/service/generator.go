@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	redisConfigurationVolumeName = "redis-config"
-	redisStorageVolumeName       = "redis-data"
+	redisConfigurationVolumeName         = "redis-config"
+	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
+	redisStorageVolumeName               = "redis-data"
 )
 
 func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
@@ -122,6 +123,28 @@ tcp-keepalive 60`,
 	}
 }
 
+func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+	name := GetRedisShutdownConfigMapName(rf)
+	namespace := rf.Namespace
+
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Data: map[string]string{
+			"shutdown.sh": `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+if [[ $master ==  $(hostname -i) ]]; then
+  redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
+fi`,
+		},
+	}
+}
+
 func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.StatefulSet {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
@@ -202,6 +225,13 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 								},
 							},
 							Resources: resources,
+							Lifecycle: &corev1.Lifecycle{
+								PreStop: &corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{"/bin/sh", "-c", "/redis-shutdown/shutdown.sh"},
+									},
+								},
+							},
 						},
 					},
 					Volumes: volumes,
@@ -542,6 +572,10 @@ func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volu
 			MountPath: "/redis",
 		},
 		{
+			Name:      redisShutdownConfigurationVolumeName,
+			MountPath: "/redis-shutdown",
+		},
+		{
 			Name:      getRedisDataVolumeName(rf),
 			MountPath: "/data",
 		},
@@ -552,7 +586,9 @@ func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volu
 
 func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 	configMapName := GetRedisConfigMapName(rf)
+	shutdownConfigMapName := GetRedisShutdownConfigMapName(rf)
 
+	executeMode := int32(0744)
 	volumes := []corev1.Volume{
 		{
 			Name: redisConfigurationVolumeName,
@@ -561,6 +597,17 @@ func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: configMapName,
 					},
+				},
+			},
+		},
+		{
+			Name: redisShutdownConfigurationVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: shutdownConfigMapName,
+					},
+					DefaultMode: &executeMode,
 				},
 			},
 		},
