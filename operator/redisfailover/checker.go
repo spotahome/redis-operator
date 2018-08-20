@@ -77,6 +77,9 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
 			}
+			if err := r.rfHealer.SetSentinelCustomConfig(sip, rf); err != nil {
+				return err
+			}
 		}
 	}
 	for _, sip := range sentinels {

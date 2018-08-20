@@ -15,6 +15,7 @@ type RedisFailoverHeal interface {
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	RestoreSentinel(ip string) error
+	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -79,7 +80,7 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 	return nil
 }
 
-// NewSentinelMonitor clear the number of sentinels on memory
+// NewSentinelMonitor changes the master that Sentinel has to monitor
 func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1alpha2.RedisFailover) error {
 	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
@@ -90,4 +91,10 @@ func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *
 func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
 	r.logger.Debugf("Restoring sentinel %s...", ip)
 	return r.redisClient.ResetSentinel(ip)
+}
+
+// SetSentinelCustomConfig will call sentinel to set the configuration given in configmap
+func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1alpha2.RedisFailover) error {
+	r.logger.Debugf("Setting the custom config on sentinel %s...", ip)
+	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
 }

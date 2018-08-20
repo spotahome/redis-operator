@@ -146,6 +146,7 @@ func TestCheckAndHeal(t *testing.T) {
 				} else {
 					mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(errors.New(""))
 					mrfh.On("NewSentinelMonitor", sentinel, master, rf).Once().Return(nil)
+					mrfh.On("SetSentinelCustomConfig", sentinel, rf).Once().Return(nil)
 				}
 				if test.sentinelNumberInMemoryOK {
 					mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(nil)
