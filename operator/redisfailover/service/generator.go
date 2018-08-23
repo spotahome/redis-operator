@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -108,9 +107,6 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
-	redisConfig := []string{"slaveof 127.0.0.1 6379", "tcp-keepalive 60"}
-	redisConfig = append(redisConfig, rf.Spec.Redis.CustomConfig...)
-
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 
 	return &corev1.ConfigMap{
@@ -121,7 +117,8 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 			OwnerReferences: ownerRefs,
 		},
 		Data: map[string]string{
-			redisConfigFileName: strings.Join(redisConfig, "\n"),
+			redisConfigFileName: `slaveof 127.0.0.1 6379
+tcp-keepalive 60`,
 		},
 	}
 }

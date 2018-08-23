@@ -140,13 +140,14 @@ func TestCheckAndHeal(t *testing.T) {
 					mrfc.On("CheckAllSlavesFromMaster", master, rf).Once().Return(errors.New(""))
 					mrfh.On("SetMasterOnAll", master, rf).Once().Return(nil)
 				}
+				mrfc.On("GetRedisesIPs", rf).Once().Return([]string{master}, nil)
+				mrfh.On("SetRedisCustomConfig", master, rf).Once().Return(nil)
 				mrfc.On("GetSentinelsIPs", rf).Once().Return([]string{sentinel}, nil)
 				if test.sentinelMonitorOK {
 					mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(nil)
 				} else {
 					mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(errors.New(""))
 					mrfh.On("NewSentinelMonitor", sentinel, master, rf).Once().Return(nil)
-					mrfh.On("SetSentinelCustomConfig", sentinel, rf).Once().Return(nil)
 				}
 				if test.sentinelNumberInMemoryOK {
 					mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(nil)
@@ -160,6 +161,7 @@ func TestCheckAndHeal(t *testing.T) {
 					mrfc.On("CheckSentinelSlavesNumberInMemory", sentinel, rf).Once().Return(errors.New(""))
 					mrfh.On("RestoreSentinel", sentinel).Once().Return(nil)
 				}
+				mrfh.On("SetSentinelCustomConfig", sentinel, rf).Once().Return(nil)
 			}
 
 			handler := rfOperator.NewRedisFailoverHandler(config, mrfs, mrfc, mrfh, mk, metrics.Dummy, log.Dummy)

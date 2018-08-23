@@ -22,6 +22,7 @@ type Client interface {
 	MakeSlaveOf(ip string, masterIP string) error
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
+	SetCustomRedisConfig(ip string, configs []string) error
 }
 
 type client struct{}
@@ -41,6 +42,7 @@ const (
 	sentinelPort            = "26379"
 	masterName              = "mymaster"
 	sentinelSetCommand      = "SENTINEL set %s %s"
+	redisSetCommand         = "CONFIG set %s"
 )
 
 var (
@@ -242,20 +244,44 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 
 	for _, config := range configs {
 		setCommand := fmt.Sprintf(sentinelSetCommand, masterName, config)
-		command := strings.Split(setCommand, " ")
-
-		// Required conversion due to language specifications
-		// https://golang.org/doc/faq#convert_slice_of_interface
-		s := make([]interface{}, len(command))
-		for i, v := range command {
-			s[i] = v
-		}
-
-		cmd := rediscli.NewBoolCmd(s...)
-		rClient.Process(cmd)
-		if _, err := cmd.Result(); err != nil {
+		if err := c.applyConfig(setCommand, rClient); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
+	options := &rediscli.Options{
+		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Password: "",
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+
+	for _, config := range configs {
+		setCommand := fmt.Sprintf(redisSetCommand, config)
+		if err := c.applyConfig(setCommand, rClient); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *client) applyConfig(command string, rClient *rediscli.Client) error {
+	sc := strings.Split(command, " ")
+	// Required conversion due to language specifications
+	// https://golang.org/doc/faq#convert_slice_of_interface
+	s := make([]interface{}, len(sc))
+	for i, v := range sc {
+		s[i] = v
+	}
+
+	cmd := rediscli.NewBoolCmd(s...)
+	rClient.Process(cmd)
+	if _, err := cmd.Result(); err != nil {
+		return err
 	}
 	return nil
 }

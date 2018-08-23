@@ -169,6 +169,20 @@ func (_m *Client) ResetSentinel(ip string) error {
 	return r0
 }
 
+// SetCustomRedisConfig provides a mock function with given fields: ip, configs
+func (_m *Client) SetCustomRedisConfig(ip string, configs []string) error {
+	ret := _m.Called(ip, configs)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(ip, configs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetCustomSentinelConfig provides a mock function with given fields: ip, configs
 func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 	ret := _m.Called(ip, configs)

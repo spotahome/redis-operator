@@ -66,6 +66,20 @@ func (_m *RedisFailoverHeal) SetRandomMaster(rFailover *v1alpha2.RedisFailover) 
 	return r0
 }
 
+// SetRedisCustomConfig provides a mock function with given fields: ip, rFailover
+func (_m *RedisFailoverHeal) SetRedisCustomConfig(ip string, rFailover *v1alpha2.RedisFailover) error {
+	ret := _m.Called(ip, rFailover)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, *v1alpha2.RedisFailover) error); ok {
+		r0 = rf(ip, rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetSentinelCustomConfig provides a mock function with given fields: ip, rFailover
 func (_m *RedisFailoverHeal) SetSentinelCustomConfig(ip string, rFailover *v1alpha2.RedisFailover) error {
 	ret := _m.Called(ip, rFailover)

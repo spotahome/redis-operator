@@ -16,6 +16,7 @@ type RedisFailoverHeal interface {
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	RestoreSentinel(ip string) error
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1alpha2.RedisFailover) error
+	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -93,8 +94,14 @@ func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
 	return r.redisClient.ResetSentinel(ip)
 }
 
-// SetSentinelCustomConfig will call sentinel to set the configuration given in configmap
+// SetSentinelCustomConfig will call sentinel to set the configuration given in config
 func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1alpha2.RedisFailover) error {
 	r.logger.Debugf("Setting the custom config on sentinel %s...", ip)
 	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
+}
+
+// SetRedisCustomConfig will call redis to set the configuration given in config
+func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv1alpha2.RedisFailover) error {
+	r.logger.Debugf("Setting the custom config on redis %s...", ip)
+	return r.redisClient.SetCustomRedisConfig(ip, rf.Spec.Redis.CustomConfig)
 }
