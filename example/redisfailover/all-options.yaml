@@ -11,6 +11,7 @@ spec:
         cpu: 100m
       limits:
         memory: 100Mi
+    customConfig: []                         # Optional. Empty by default.
   redis:
     replicas: 3                              # Optional. 3 by default, can be set higher.
     image: redis                             # Optional. "redis" by default.
@@ -27,4 +28,5 @@ spec:
     exporterVersion: v0.11.3                 # Optional. v0.11.3 by default.
     storage:
       emptyDir: {}                           # Optional. emptyDir by default.
+    customConfig: []                         # Optional. Empty by default.
 
