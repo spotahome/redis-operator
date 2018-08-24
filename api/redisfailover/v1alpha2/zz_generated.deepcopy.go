@@ -140,7 +140,7 @@ func (in *RedisFailoverResources) DeepCopy() *RedisFailoverResources {
 func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 	*out = *in
 	in.Redis.DeepCopyInto(&out.Redis)
-	out.Sentinel = in.Sentinel
+	in.Sentinel.DeepCopyInto(&out.Sentinel)
 	if in.NodeAffinity != nil {
 		in, out := &in.NodeAffinity, &out.NodeAffinity
 		if *in == nil {
@@ -188,6 +188,11 @@ func (in *RedisFailoverStatus) DeepCopy() *RedisFailoverStatus {
 func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 	*out = *in
 	out.Resources = in.Resources
+	if in.CustomConfig != nil {
+		in, out := &in.CustomConfig, &out.CustomConfig
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	in.Storage.DeepCopyInto(&out.Storage)
 	return
 }
@@ -240,6 +245,11 @@ func (in *RedisStorage) DeepCopy() *RedisStorage {
 func (in *SentinelSettings) DeepCopyInto(out *SentinelSettings) {
 	*out = *in
 	out.Resources = in.Resources
+	if in.CustomConfig != nil {
+		in, out := &in.CustomConfig, &out.CustomConfig
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

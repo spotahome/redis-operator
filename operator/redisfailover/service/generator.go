@@ -82,7 +82,7 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 }
 
 func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
-	name := GetSentinelConfigMapName(rf)
+	name := GetSentinelName(rf)
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
@@ -104,7 +104,7 @@ sentinel parallel-syncs mymaster 2`,
 }
 
 func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
-	name := GetRedisConfigMapName(rf)
+	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
@@ -260,7 +260,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 
 func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.Deployment {
 	name := GetSentinelName(rf)
-	configMapName := GetSentinelConfigMapName(rf)
+	configMapName := GetSentinelName(rf)
 	namespace := rf.Namespace
 
 	spec := rf.Spec
@@ -585,7 +585,7 @@ func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volu
 }
 
 func getRedisVolumes(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volume {
-	configMapName := GetRedisConfigMapName(rf)
+	configMapName := GetRedisName(rf)
 	shutdownConfigMapName := GetRedisShutdownConfigMapName(rf)
 
 	executeMode := int32(0744)

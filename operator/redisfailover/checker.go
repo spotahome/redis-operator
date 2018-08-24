@@ -67,6 +67,17 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			return err3
 		}
 	}
+
+	redises, err := r.rfChecker.GetRedisesIPs(rf)
+	if err != nil {
+		return err
+	}
+	for _, rip := range redises {
+		if err := r.rfHealer.SetRedisCustomConfig(rip, rf); err != nil {
+			return err
+		}
+	}
+
 	sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
 	if err != nil {
 		return err
@@ -93,6 +104,11 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
 				return err
 			}
+		}
+	}
+	for _, sip := range sentinels {
+		if err := r.rfHealer.SetSentinelCustomConfig(sip, rf); err != nil {
+			return err
 		}
 	}
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)

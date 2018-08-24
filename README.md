@@ -58,6 +58,28 @@ In order to have persistance, a PersistentVolumeClaim usage is allowed. The full
 
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistant-storage-no-pvc-deletion.yaml).
 
+### Custom configurations
+It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values.
+
+Example:
+```yaml
+sentinel:
+  customConfig:
+    - "down-after-milliseconds 2000"
+    - "failover-timeout 3000"
+redis:
+  customConfig:
+    - "maxclients 100"
+    - "hz 50"
+```
+
+**Important*: this options will be set via `config set` or `sentinel set mymaster`. In the Sentinel options, there are some "conversions" to be made.
+
+- Configuration on the `sentinel.conf`: `sentinel down-after-milliseconds mymaster 2000`
+- Configuration on the `configOptions`: `down-after-milliseconds 2000`
+
+**Important 2**: do **NOT** change the options used for control the redis/sentinel such as `port`, `bind`, `dir`, etc.
+
 ### Connection
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
 The connection parameters are the following:

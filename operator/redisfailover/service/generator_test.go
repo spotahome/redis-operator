@@ -17,7 +17,7 @@ import (
 )
 
 func TestRedisStatefulSetStorageGeneration(t *testing.T) {
-	configMapName := rfservice.GetRedisConfigMapName(generateRF())
+	configMapName := rfservice.GetRedisName(generateRF())
 	shutdownConfigMapName := rfservice.GetRedisShutdownConfigMapName(generateRF())
 	executeMode := int32(0744)
 	tests := []struct {
