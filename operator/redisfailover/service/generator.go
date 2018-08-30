@@ -140,8 +140,8 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 		},
 		Data: map[string]string{
 			"shutdown.sh": `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+redis-cli SAVE
 if [[ $master ==  $(hostname -i) ]]; then
-  redis-cli SAVE
   redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
 fi`,
 		},
