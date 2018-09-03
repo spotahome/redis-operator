@@ -118,7 +118,9 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 		},
 		Data: map[string]string{
 			redisConfigFileName: `slaveof 127.0.0.1 6379
-tcp-keepalive 60`,
+tcp-keepalive 60
+save 900 1
+save 300 10`,
 		},
 	}
 }
@@ -138,6 +140,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 		},
 		Data: map[string]string{
 			"shutdown.sh": `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+redis-cli SAVE
 if [[ $master ==  $(hostname -i) ]]; then
   redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
 fi`,
