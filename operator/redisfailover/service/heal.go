@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"strconv"
 
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
@@ -40,6 +41,9 @@ func (r *RedisFailoverHealer) SetRandomMaster(rf *redisfailoverv1alpha2.RedisFai
 	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
+	}
+	if len(ssp.Items) < 1 {
+		return errors.New("number of redis pods are 0")
 	}
 	newMasterIP := ""
 	for _, pod := range ssp.Items {

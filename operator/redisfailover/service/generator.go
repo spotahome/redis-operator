@@ -18,6 +18,8 @@ const (
 	redisConfigurationVolumeName         = "redis-config"
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
 	redisStorageVolumeName               = "redis-data"
+
+	graceTime = 60
 )
 
 func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
@@ -202,7 +204,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 								fmt.Sprintf("/redis/%s", redisConfigFileName),
 							},
 							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: 15,
+								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -215,7 +217,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 								},
 							},
 							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: 5,
+								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -348,7 +350,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 								"--sentinel",
 							},
 							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: 15,
+								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -361,7 +363,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 								},
 							},
 							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: 5,
+								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
@@ -541,31 +543,11 @@ func getQuorum(rf *redisfailoverv1alpha2.RedisFailover) int32 {
 }
 
 func getRedisImage(rf *redisfailoverv1alpha2.RedisFailover) string {
-	image := RedisImage
-	if rf.Spec.Redis.Image != "" {
-		image = rf.Spec.Redis.Image
-	}
-
-	version := RedisImageVersion
-	if rf.Spec.Redis.Version != "" {
-		version = rf.Spec.Redis.Version
-	}
-
-	return fmt.Sprintf("%s:%s", image, version)
+	return fmt.Sprintf("%s:%s", rf.Spec.Redis.Image, rf.Spec.Redis.Version)
 }
 
 func getRedisExporterImage(rf *redisfailoverv1alpha2.RedisFailover) string {
-	image := ExporterImage
-	if rf.Spec.Redis.ExporterImage != "" {
-		image = rf.Spec.Redis.ExporterImage
-	}
-
-	version := ExporterImageVersion
-	if rf.Spec.Redis.ExporterVersion != "" {
-		version = rf.Spec.Redis.ExporterVersion
-	}
-
-	return fmt.Sprintf("%s:%s", image, version)
+	return fmt.Sprintf("%s:%s", rf.Spec.Redis.ExporterImage, rf.Spec.Redis.ExporterVersion)
 }
 
 func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.VolumeMount {

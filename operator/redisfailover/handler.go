@@ -62,6 +62,10 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 		return fmt.Errorf("can't handle redis failover state, parentLabels map[string]string, ownerRefs []metav1.OwnerReferencenot a redisfailover object")
 	}
 
+	if err := rf.Validate(); err != nil {
+		return err
+	}
+
 	// Create owner refs so the objects manager by this handler have ownership to the
 	// received RF.
 	oRefs := r.createOwnerReferences(rf)
