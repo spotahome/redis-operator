@@ -5,17 +5,6 @@ const (
 	logNamespaceField = "namespace"
 )
 
-const (
-	// ExporterImage defines the redis exporter image
-	ExporterImage = "oliver006/redis_exporter"
-	// ExporterImageVersion defines the redis exporter version
-	ExporterImageVersion = "v0.11.3"
-	// RedisImage defines the redis image
-	RedisImage = "redis"
-	// RedisImageVersion defines the redis image version
-	RedisImageVersion = "3.2-alpine"
-)
-
 // variables refering to the redis exporter port
 const (
 	exporterPort                 = 9121
