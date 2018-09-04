@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -450,5 +451,149 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		assert.Equal(test.expectedSS.Spec.Template.Spec.Containers[0].VolumeMounts, generatedStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts)
 		assert.Equal(test.expectedSS.Spec.VolumeClaimTemplates, generatedStatefulSet.Spec.VolumeClaimTemplates)
 		assert.NoError(err)
+	}
+}
+
+func TestRedisNameMaximumLength(t *testing.T) {
+	tests := []struct {
+		name                      string
+		givenName                 string
+		expectedRedisName         string
+		expectedRedisShutdownName string
+	}{
+		{
+			name:                      "Normal Name",
+			givenName:                 "normal-name",
+			expectedRedisName:         "rfr-normal-name",
+			expectedRedisShutdownName: "rfr-shutdown-normal-name",
+		},
+		{
+			name:                      "Long Name",
+			givenName:                 "this-is-a-very-long-name-for-an-object-inside-kubernetes-api",
+			expectedRedisName:         "rfr-this-is-a-very-long-name-for-an-object-inside-kubernetes",
+			expectedRedisShutdownName: "rfr-shutdown-this-is-a-very-long-name-for-an-object-inside-k",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required storage
+		rf := generateRF()
+		rf.Name = test.givenName
+		rf.Spec.Redis.Exporter = true
+
+		oref := []metav1.OwnerReference{}
+
+		var (
+			createdRedisStatefulsetName       string
+			createdRedisPDBName               string
+			createdRedisServiceName           string
+			createdRedisConfigMapName         string
+			createdRedisShutdownConfigMapName string
+		)
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*policyv1beta1.PodDisruptionBudget)
+			createdRedisPDBName = a.Name
+		}).Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*appsv1beta2.StatefulSet)
+			createdRedisStatefulsetName = a.Name
+		}).Return(nil)
+		ms.On("CreateIfNotExistsService", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*corev1.Service)
+			createdRedisServiceName = a.Name
+		}).Return(nil)
+		ms.On("CreateOrUpdateConfigMap", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*corev1.ConfigMap)
+			createdRedisConfigMapName = a.Name
+		}).Return(nil)
+		ms.On("CreateOrUpdateConfigMap", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*corev1.ConfigMap)
+			createdRedisShutdownConfigMapName = a.Name
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+
+		assert.NoError(client.EnsureRedisStatefulset(rf, nil, oref))
+		assert.Equal(test.expectedRedisName, createdRedisStatefulsetName)
+		assert.Equal(test.expectedRedisName, createdRedisPDBName)
+
+		assert.NoError(client.EnsureRedisService(rf, nil, oref))
+		assert.Equal(test.expectedRedisName, createdRedisServiceName)
+
+		assert.NoError(client.EnsureRedisConfigMap(rf, nil, oref))
+		assert.Equal(test.expectedRedisName, createdRedisConfigMapName)
+
+		assert.NoError(client.EnsureRedisShutdownConfigMap(rf, nil, oref))
+		assert.Equal(test.expectedRedisShutdownName, createdRedisShutdownConfigMapName)
+	}
+}
+
+func TestSentinelNameMaximumLength(t *testing.T) {
+	tests := []struct {
+		name                 string
+		givenName            string
+		expectedSentinelName string
+	}{
+		{
+			name:                 "Normal Name",
+			givenName:            "normal-name",
+			expectedSentinelName: "rfs-normal-name",
+		},
+		{
+			name:                 "Long Name",
+			givenName:            "this-is-a-very-long-name-for-an-object-inside-kubernetes-api",
+			expectedSentinelName: "rfs-this-is-a-very-long-name-for-an-object-inside-kubernetes",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default SentinelFailover and attaching the required storage
+		rf := generateRF()
+		rf.Name = test.givenName
+
+		oref := []metav1.OwnerReference{}
+
+		var (
+			createdSentinelStatefulsetName string
+			createdSentinelPDBName         string
+			createdSentinelServiceName     string
+			createdSentinelConfigMapName   string
+		)
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*policyv1beta1.PodDisruptionBudget)
+			createdSentinelPDBName = a.Name
+		}).Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*appsv1beta2.Deployment)
+			createdSentinelStatefulsetName = a.Name
+		}).Return(nil)
+		ms.On("CreateIfNotExistsService", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*corev1.Service)
+			createdSentinelServiceName = a.Name
+		}).Return(nil)
+		ms.On("CreateOrUpdateConfigMap", mock.Anything, mock.Anything).Once().Run(func(args mock.Arguments) {
+			a := args.Get(1).(*corev1.ConfigMap)
+			createdSentinelConfigMapName = a.Name
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+
+		assert.NoError(client.EnsureSentinelDeployment(rf, nil, oref))
+		assert.Equal(test.expectedSentinelName, createdSentinelStatefulsetName)
+		assert.Equal(test.expectedSentinelName, createdSentinelPDBName)
+
+		assert.NoError(client.EnsureSentinelService(rf, nil, oref))
+		assert.Equal(test.expectedSentinelName, createdSentinelServiceName)
+
+		assert.NoError(client.EnsureSentinelConfigMap(rf, nil, oref))
+		assert.Equal(test.expectedSentinelName, createdSentinelConfigMapName)
 	}
 }
