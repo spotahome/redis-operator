@@ -40,6 +40,7 @@ type RedisSettings struct {
 	Exporter          bool                   `json:"exporter,omitempty"`
 	ExporterImage     string                 `json:"exporterImage,omitempty"`
 	ExporterVersion   string                 `json:"exporterVersion,omitempty"`
+	ExporterProbes    bool                   `json:"exporterProbes,omitempty"`
 	Image             string                 `json:"image,omitempty"`
 	Version           string                 `json:"version,omitempty"`
 	CustomConfig      []string               `json:"customConfig,omitempty"`
