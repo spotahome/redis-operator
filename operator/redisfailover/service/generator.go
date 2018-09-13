@@ -27,7 +27,7 @@ func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map
 	namespace := rf.Namespace
 
 	sentinelTargetPort := intstr.FromInt(26379)
-	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -54,7 +54,7 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +87,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels m
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -109,7 +109,7 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -131,7 +131,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 	name := GetRedisShutdownConfigMapName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,7 +157,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	spec := rf.Spec
 	redisImage := getRedisImage(rf)
 	resources := getRedisResources(spec)
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 
@@ -271,7 +271,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 	spec := rf.Spec
 	redisImage := getRedisImage(rf)
 	resources := getSentinelResources(spec)
-	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, name))
+	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
 
 	return &appsv1beta2.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
