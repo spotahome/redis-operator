@@ -1,0 +1,37 @@
+{{- if .Values.monitoring.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "name" . }}-prometheus
+  labels:
+    prometheus: {{ .Values.monitoring.prometheus.name }}
+{{ include "helm-labels" . | indent 4 }}
+spec:
+  ports:
+    - port: 9710
+      protocol: TCP
+      name: metrics
+      targetPort: metrics
+  selector:
+{{ include "common-labels" . | indent 4 }}
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "name" . }}
+  labels:
+    prometheus: {{ .Values.monitoring.prometheus.name }}
+{{ include "helm-labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      prometheus: {{ .Values.monitoring.prometheus.name }}
+{{ include "common-labels" . | indent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+{{- end -}}
