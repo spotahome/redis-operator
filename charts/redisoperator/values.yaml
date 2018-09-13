@@ -17,3 +17,7 @@ rbac:
   install: false
   apiVersion: v1
   imagePullSecrets: []
+monitoring:
+  enabled: false
+  prometheus:
+    name: unknown
