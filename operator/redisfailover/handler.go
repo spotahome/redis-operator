@@ -63,6 +63,7 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	}
 
 	if err := rf.Validate(); err != nil {
+		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
 	}
 
