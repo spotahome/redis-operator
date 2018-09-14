@@ -87,6 +87,27 @@ func TestPrometheusMetrics(t *testing.T) {
 			},
 			expCode: http.StatusOK,
 		},
+		{
+			name: "Deleting a cluster should remove it",
+			addMetrics: func(pm *metrics.PromMetrics) {
+				pm.SetClusterOK("testns1", "test")
+				pm.DeleteCluster("testns1", "test")
+			},
+			expMetrics: []string{},
+			expCode:    http.StatusOK,
+		},
+		{
+			name: "Deleting a cluster should remove only the desired one",
+			addMetrics: func(pm *metrics.PromMetrics) {
+				pm.SetClusterOK("testns1", "test")
+				pm.SetClusterOK("testns2", "test")
+				pm.DeleteCluster("testns1", "test")
+			},
+			expMetrics: []string{
+				`my_metrics_controller_cluster_ok{name="test",namespace="testns2"} 1`,
+			},
+			expCode: http.StatusOK,
+		},
 	}
 
 	for _, test := range tests {

@@ -8,3 +8,4 @@ type dummy struct{}
 
 func (d *dummy) SetClusterOK(namespace string, name string)    {}
 func (d *dummy) SetClusterError(namespace string, name string) {}
+func (d *dummy) DeleteCluster(namespace string, name string)   {}
