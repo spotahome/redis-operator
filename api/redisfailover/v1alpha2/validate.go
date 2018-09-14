@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	maxNameLength = 58
+	maxNameLength = 48
 )
 
 // Validate set the values by default if not defined and checks if the values given are valid
