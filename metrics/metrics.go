@@ -15,6 +15,7 @@ const (
 type Instrumenter interface {
 	SetClusterOK(namespace string, name string)
 	SetClusterError(namespace string, name string)
+	DeleteCluster(namespace string, name string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
@@ -70,4 +71,9 @@ func (p *PromMetrics) SetClusterOK(namespace string, name string) {
 // SetClusterError set the cluster status to Error
 func (p *PromMetrics) SetClusterError(namespace string, name string) {
 	p.clusterOK.WithLabelValues(namespace, name).Set(0)
+}
+
+// DeleteCluster set the cluster status to Error
+func (p *PromMetrics) DeleteCluster(namespace string, name string) {
+	p.clusterOK.DeleteLabelValues(namespace, name)
 }

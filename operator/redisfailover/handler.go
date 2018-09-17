@@ -3,6 +3,7 @@ package redisfailover
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,6 +64,7 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	}
 
 	if err := rf.Validate(); err != nil {
+		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
 	}
 
@@ -82,6 +84,10 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 
 // Delete handles the deletion of a RF.
 func (r *RedisFailoverHandler) Delete(_ context.Context, name string) error {
+	n := strings.Split(name, "/")
+	if len(n) >= 2 {
+		r.mClient.DeleteCluster(n[0], n[1])
+	}
 	// No need to do anything, it will be handled by the owner reference done
 	// on the creation.
 	r.logger.Debugf("ignoring, kubernetes GCs all using the objects OwnerReference metadata")

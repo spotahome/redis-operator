@@ -50,6 +50,7 @@ This redis-failover will be managed by the operator, resulting in the following 
 * `rfs-<NAME>`: Sentinel service
 
 **NOTE**: `NAME` is the named provided when creating the RedisFailover.
+**IMPORTANT**: the name of the redis-failover to be created cannot be longer that 48 characters, due to prepend of redis/sentinel identification and statefulset limitation.
 
 ### Persistance
 The operator has the ability of add persistance to Redis data. By default an `emptyDir` will be used, so the data is not saved.
