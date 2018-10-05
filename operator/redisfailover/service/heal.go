@@ -12,6 +12,7 @@ import (
 
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
 type RedisFailoverHeal interface {
+	MakeMaster(ip string) error
 	SetRandomMaster(rFailover *redisfailoverv1alpha2.RedisFailover) error
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
@@ -34,6 +35,10 @@ func NewRedisFailoverHealer(k8sService k8s.Services, redisClient redis.Client, l
 		redisClient: redisClient,
 		logger:      logger,
 	}
+}
+
+func (r *RedisFailoverHealer) MakeMaster(ip string) error {
+	return r.redisClient.MakeMaster(ip)
 }
 
 // SetRandomMaster puts all redis to the same master, choosen by order

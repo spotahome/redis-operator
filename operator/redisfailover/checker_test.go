@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -18,6 +19,7 @@ func TestCheckAndHeal(t *testing.T) {
 	tests := []struct {
 		name                           string
 		nMasters                       int
+		nRedis                         int
 		forceNewMaster                 bool
 		slavesOK                       bool
 		sentinelMonitorOK              bool
@@ -27,6 +29,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Everything ok, no need to heal",
 			nMasters:                       1,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -36,6 +39,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Multiple masters",
 			nMasters:                       2,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -45,6 +49,17 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "No masters but wait",
 			nMasters:                       0,
+			nRedis:                         3,
+			forceNewMaster:                 false,
+			slavesOK:                       true,
+			sentinelMonitorOK:              true,
+			sentinelNumberInMemoryOK:       true,
+			sentinelSlavesNumberInMemoryOK: true,
+		},
+		{
+			name:                           "No masters, only one redis available, make master",
+			nMasters:                       0,
+			nRedis:                         1,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -54,6 +69,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "No masters, set random",
 			nMasters:                       0,
+			nRedis:                         3,
 			forceNewMaster:                 true,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -63,6 +79,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Slaves from master wrong",
 			nMasters:                       1,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       false,
 			sentinelMonitorOK:              true,
@@ -72,6 +89,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Sentinels not pointing correct monitor",
 			nMasters:                       1,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              false,
@@ -81,6 +99,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Sentinels with wrong number of sentinels",
 			nMasters:                       1,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -90,6 +109,7 @@ func TestCheckAndHeal(t *testing.T) {
 		{
 			name:                           "Sentinels with wrong number of slaves",
 			nMasters:                       1,
+			nRedis:                         3,
 			forceNewMaster:                 false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
@@ -120,6 +140,11 @@ func TestCheckAndHeal(t *testing.T) {
 			mrfc.On("GetNumberMasters", rf).Once().Return(test.nMasters, nil)
 			switch test.nMasters {
 			case 0:
+				mrfc.On("GetRedisesIPs", rf).Once().Return(make([]string, test.nRedis), nil)
+				if test.nRedis == 1 {
+					mrfh.On("MakeMaster", mock.Anything).Once().Return(nil)
+					break
+				}
 				if test.forceNewMaster {
 					mrfc.On("GetMinimumRedisPodTime", rf).Once().Return(1*time.Hour, nil)
 					mrfh.On("SetRandomMaster", rf).Once().Return(nil)

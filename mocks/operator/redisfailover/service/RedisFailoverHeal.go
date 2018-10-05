@@ -10,6 +10,20 @@ type RedisFailoverHeal struct {
 	mock.Mock
 }
 
+// MakeMaster provides a mock function with given fields: ip
+func (_m *RedisFailoverHeal) MakeMaster(ip string) error {
+	ret := _m.Called(ip)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(ip)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewSentinelMonitor provides a mock function with given fields: ip, monitor, rFailover
 func (_m *RedisFailoverHeal) NewSentinelMonitor(ip string, monitor string, rFailover *v1alpha2.RedisFailover) error {
 	ret := _m.Called(ip, monitor, rFailover)
