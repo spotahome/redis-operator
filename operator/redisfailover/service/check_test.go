@@ -173,6 +173,7 @@ func TestCheckAllSlavesFromMasterGetSlaveOfError(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -199,6 +200,7 @@ func TestCheckAllSlavesFromMasterDifferentMaster(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -225,6 +227,7 @@ func TestCheckAllSlavesFromMaster(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -266,6 +269,7 @@ func TestCheckSentinelNumberInMemoryGetNumberSentinelInMemoryError(t *testing.T)
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -292,6 +296,7 @@ func TestCheckSentinelNumberInMemoryNumberMismatch(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -318,6 +323,7 @@ func TestCheckSentinelNumberInMemory(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -359,6 +365,7 @@ func TestCheckSentinelSlavesNumberInMemoryGetNumberSentinelSlavesInMemoryError(t
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -385,6 +392,7 @@ func TestCheckSentinelSlavesNumberInMemoryReplicasMismatch(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -411,6 +419,7 @@ func TestCheckSentinelSlavesNumberInMemory(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -491,6 +500,7 @@ func TestGetMasterIPIsMasterError(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -517,11 +527,13 @@ func TestGetMasterIPMultipleMastersError(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -549,11 +561,13 @@ func TestGetMasterIP(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -597,6 +611,7 @@ func TestGetNumberMastersIsMasterError(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -623,11 +638,13 @@ func TestGetNumberMasters(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},
@@ -656,11 +673,13 @@ func TestGetNumberMastersTwo(t *testing.T) {
 			{
 				Status: corev1.PodStatus{
 					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
 				},
 			},
 			{
 				Status: corev1.PodStatus{
 					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
 				},
 			},
 		},

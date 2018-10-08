@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
@@ -180,7 +182,9 @@ func (r *RedisFailoverChecker) GetRedisesIPs(rf *redisfailoverv1alpha2.RedisFail
 		return nil, err
 	}
 	for _, rp := range rps.Items {
-		redises = append(redises, rp.Status.PodIP)
+		if rp.Status.Phase == corev1.PodRunning { // Only work with running pods
+			redises = append(redises, rp.Status.PodIP)
+		}
 	}
 	return redises, nil
 }
@@ -193,7 +197,9 @@ func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1alpha2.RedisFa
 		return nil, err
 	}
 	for _, sp := range rps.Items {
-		sentinels = append(sentinels, sp.Status.PodIP)
+		if sp.Status.Phase == corev1.PodRunning { // Only work with running pods
+			sentinels = append(sentinels, sp.Status.PodIP)
+		}
 	}
 	return sentinels, nil
 }
