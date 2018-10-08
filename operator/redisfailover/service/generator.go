@@ -19,7 +19,7 @@ const (
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
 	redisStorageVolumeName               = "redis-data"
 
-	graceTime = 60
+	graceTime = 30
 )
 
 func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
