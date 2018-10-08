@@ -66,8 +66,8 @@ func (_m *RedisFailoverHeal) SetMasterOnAll(masterIP string, rFailover *v1alpha2
 	return r0
 }
 
-// SetRandomMaster provides a mock function with given fields: rFailover
-func (_m *RedisFailoverHeal) SetRandomMaster(rFailover *v1alpha2.RedisFailover) error {
+// SetOldestAsMaster provides a mock function with given fields: rFailover
+func (_m *RedisFailoverHeal) SetOldestAsMaster(rFailover *v1alpha2.RedisFailover) error {
 	ret := _m.Called(rFailover)
 
 	var r0 error

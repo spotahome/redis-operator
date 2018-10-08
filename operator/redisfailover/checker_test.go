@@ -147,7 +147,7 @@ func TestCheckAndHeal(t *testing.T) {
 				}
 				if test.forceNewMaster {
 					mrfc.On("GetMinimumRedisPodTime", rf).Once().Return(1*time.Hour, nil)
-					mrfh.On("SetRandomMaster", rf).Once().Return(nil)
+					mrfh.On("SetOldestAsMaster", rf).Once().Return(nil)
 				} else {
 					mrfc.On("GetMinimumRedisPodTime", rf).Once().Return(1*time.Second, nil)
 					continueTests = false

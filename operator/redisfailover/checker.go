@@ -52,7 +52,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 		if minTime > timeToPrepare {
 			r.logger.Debugf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
 			// We can consider there's an error
-			if err2 := r.rfHealer.SetRandomMaster(rf); err2 != nil {
+			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
 				r.mClient.SetClusterError(rf.Namespace, rf.Name)
 				return err2
 			}
