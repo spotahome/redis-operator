@@ -18,12 +18,12 @@ The image versions deployed by the operator can be found on the [constants file]
 [![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 
 ## Operator deployment on kubernetes
-In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with a [deployment](example/operator.yaml) or with the provided [Helm chart](charts/redisoperator).
+In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with [deployment](example/operator) or with the provided [Helm chart](charts/redisoperator).
 
 ### Using a Deployment
 To create the operator, you can directly create it with kubectl:
 ```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator.yaml
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
 ```
 This will create a deployment named `redisoperator`.
 
@@ -38,7 +38,7 @@ Once the operator is deployed inside a Kubernetes cluster, a new API will be acc
 
 In order to deploy a new redis-failover a [specification](example/redisfailover/all-options.yaml) has to be created:
 ```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/redisfailover/all-options.yaml
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/all-options.yaml
 ```
 
 This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
