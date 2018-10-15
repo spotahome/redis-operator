@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
@@ -12,7 +13,8 @@ import (
 
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
 type RedisFailoverHeal interface {
-	SetRandomMaster(rFailover *redisfailoverv1alpha2.RedisFailover) error
+	MakeMaster(ip string) error
+	SetOldestAsMaster(rFailover *redisfailoverv1alpha2.RedisFailover) error
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
 	RestoreSentinel(ip string) error
@@ -36,8 +38,12 @@ func NewRedisFailoverHealer(k8sService k8s.Services, redisClient redis.Client, l
 	}
 }
 
-// SetRandomMaster puts all redis to the same master, choosen by order
-func (r *RedisFailoverHealer) SetRandomMaster(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) MakeMaster(ip string) error {
+	return r.redisClient.MakeMaster(ip)
+}
+
+// SetOldestAsMaster puts all redis to the same master, choosen by order of appearance
+func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1alpha2.RedisFailover) error {
 	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
@@ -45,6 +51,12 @@ func (r *RedisFailoverHealer) SetRandomMaster(rf *redisfailoverv1alpha2.RedisFai
 	if len(ssp.Items) < 1 {
 		return errors.New("number of redis pods are 0")
 	}
+
+	// Order the pods so we start by the oldest one
+	sort.Slice(ssp.Items, func(i, j int) bool {
+		return ssp.Items[i].CreationTimestamp.Before(&ssp.Items[j].CreationTimestamp)
+	})
+
 	newMasterIP := ""
 	for _, pod := range ssp.Items {
 		if newMasterIP == "" {

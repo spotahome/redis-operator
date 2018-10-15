@@ -35,14 +35,24 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 	}
 	switch nMasters {
 	case 0:
+		redisesIP, err := r.rfChecker.GetRedisesIPs(rf)
+		if err != nil {
+			return err
+		}
+		if len(redisesIP) == 1 {
+			if err := r.rfHealer.MakeMaster(redisesIP[0]); err != nil {
+				return err
+			}
+			break
+		}
 		minTime, err2 := r.rfChecker.GetMinimumRedisPodTime(rf)
 		if err2 != nil {
 			return err2
 		}
 		if minTime > timeToPrepare {
-			r.logger.Debugf("Time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
+			r.logger.Debugf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
 			// We can consider there's an error
-			if err2 := r.rfHealer.SetRandomMaster(rf); err2 != nil {
+			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
 				r.mClient.SetClusterError(rf.Namespace, rf.Name)
 				return err2
 			}
