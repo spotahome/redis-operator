@@ -455,8 +455,9 @@ func generateResourceList(cpu string, memory string) corev1.ResourceList {
 func createRedisExporterContainer(rf *redisfailoverv1alpha2.RedisFailover) corev1.Container {
 	exporterImage := getRedisExporterImage(rf)
 
+	// Define readiness and liveness probes only if config option to disable isn't set
 	var readinessProbe, livenessProbe *corev1.Probe
-	if rf.Spec.Redis.ExporterProbes {
+	if !rf.Spec.Redis.DisableExporterProbes {
 		readinessProbe = &corev1.Probe{
 			InitialDelaySeconds: 10,
 			TimeoutSeconds:      3,

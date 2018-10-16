@@ -5,7 +5,6 @@ const (
 	defaultSentinelNumber       = 3
 	defaultExporterImage        = "oliver006/redis_exporter"
 	defaultExporterImageVersion = "v0.11.3"
-	defaultExporterProbes       = true
 	defaultRedisImage           = "redis"
 	defaultRedisImageVersion    = "3.2-alpine"
 )
