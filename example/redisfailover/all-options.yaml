@@ -26,7 +26,7 @@ spec:
     exporter: false                          # Optional. False by default. Adds a redis-exporter container to export metrics.
     exporterImage: oliver006/redis_exporter  # Optional. oliver006/redis_exporter by default.
     exporterVersion: v0.11.3                 # Optional. v0.11.3 by default.
+    disableExporterProbes: false             # Optional. False by default. Disables the readiness and liveness probes for the exporter.
     storage:
       emptyDir: {}                           # Optional. emptyDir by default.
     customConfig: []                         # Optional. Empty by default.
-

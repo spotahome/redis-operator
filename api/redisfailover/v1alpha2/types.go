@@ -35,16 +35,17 @@ type RedisFailoverSpec struct {
 
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
-	Replicas          int32                  `json:"replicas,omitempty"`
-	Resources         RedisFailoverResources `json:"resources,omitempty"`
-	Exporter          bool                   `json:"exporter,omitempty"`
-	ExporterImage     string                 `json:"exporterImage,omitempty"`
-	ExporterVersion   string                 `json:"exporterVersion,omitempty"`
-	Image             string                 `json:"image,omitempty"`
-	Version           string                 `json:"version,omitempty"`
-	CustomConfig      []string               `json:"customConfig,omitempty"`
-	ShutdownConfigMap string                 `json:"shutdownConfigMap,omitempty"`
-	Storage           RedisStorage           `json:"storage,omitempty"`
+	Replicas              int32                  `json:"replicas,omitempty"`
+	Resources             RedisFailoverResources `json:"resources,omitempty"`
+	Exporter              bool                   `json:"exporter,omitempty"`
+	ExporterImage         string                 `json:"exporterImage,omitempty"`
+	ExporterVersion       string                 `json:"exporterVersion,omitempty"`
+	DisableExporterProbes bool                   `json:"disableExporterProbes,omitempty"`
+	Image                 string                 `json:"image,omitempty"`
+	Version               string                 `json:"version,omitempty"`
+	CustomConfig          []string               `json:"customConfig,omitempty"`
+	ShutdownConfigMap     string                 `json:"shutdownConfigMap,omitempty"`
+	Storage               RedisStorage           `json:"storage,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
