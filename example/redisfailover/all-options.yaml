@@ -6,7 +6,7 @@ spec:
   hardAntiAffinity: false                    # Optional. Value by default. If true, the pods will not be scheduled on the same node.
   sentinel:
     replicas: 3                              # Optional. 3 by default, can be set higher.
-    resources:                               # Optional. If not set, it won't be defined on created reosurces.
+    resources:                               # Optional. If not set, it won't be defined on created resources.
       requests:
         cpu: 100m
       limits:
@@ -16,7 +16,7 @@ spec:
     replicas: 3                              # Optional. 3 by default, can be set higher.
     image: redis                             # Optional. "redis" by default.
     version: 3.2-alpine                      # Optional. "3.2-alpine" by default.
-    resources:                               # Optional. If not set, it won't be defined on created reosurces
+    resources:                               # Optional. If not set, it won't be defined on created resources
       requests:
         cpu: 100m
         memory: 100Mi
