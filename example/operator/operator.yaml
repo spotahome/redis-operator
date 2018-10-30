@@ -16,6 +16,7 @@ spec:
       labels:
         app: redisoperator
     spec:
+      serviceAccountName: redisoperator
       containers:
       - image: quay.io/spotahome/redis-operator:latest
         imagePullPolicy: IfNotPresent
