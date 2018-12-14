@@ -74,7 +74,7 @@ redis:
     - "hz 50"
 ```
 
-**Important*: this options will be set via `config set` or `sentinel set mymaster`. In the Sentinel options, there are some "conversions" to be made.
+**Important**: this options will be set via `config set` or `sentinel set mymaster`. In the Sentinel options, there are some "conversions" to be made.
 
 - Configuration on the `sentinel.conf`: `sentinel down-after-milliseconds mymaster 2000`
 - Configuration on the `configOptions`: `down-after-milliseconds 2000`
@@ -89,7 +89,36 @@ url: rfs-<NAME>
 port: 26379
 master-name: mymaster
 ```
-
+#### Connection example
+- To get Sentinel service's port
+  ```
+  kubectl get service -l component=sentinel
+  NAME           TYPE         CLUSTER-IP     EXTERNAL-IP    PORT(S)       AGE
+  rfs-<NAME>     ClusterIP    10.99.222.41   <none>         26379/TCP     20m
+  ```
+- To get a Sentinel's name
+  ```  
+  kubectl get pods -l component=sentinel
+  NAME              READY   STATUS    RESTARTS   AGE              
+  rfs-<NAME>        1/1     Running   0          20m
+  ```
+- To get network information of the Redis node working as a master
+  ```
+  kubectl exec -it rfs-<NAME> -- redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+  1) "10.244.2.15"
+  2) "6379"
+  ```
+- To set a `key:value` pair in Redis master
+  ```
+  kubectl exec -it rfs-<NAME> -- redis-cli -h 10.244.2.15 -p 6379 SET hello world!
+  OK
+  ```
+- To get `value` from `key`
+  ```
+  kubectl exec -it rfs-<NAME>-- redis-cli -h 10.244.2.15 -p 6379 GET hello
+  "world!"
+  ```
+  
 ## Cleanup
 If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted.
 
