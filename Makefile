@@ -4,10 +4,11 @@ VERSION := 0.5.4
 SERVICE_NAME := redis-operator
 
 # Docker image name for this project
-IMAGE_NAME := spotahome/$(SERVICE_NAME)
+IMAGE_NAME ?= spotahome
 
 # Repository url for this project
-REPOSITORY := quay.io/$(IMAGE_NAME)
+REPO_SERVER ?= quay.io
+REPOSITORY := $(REPO_SERVER)/$(IMAGE_NAME)/$(SERVICE_NAME)
 
 # Shell to use for running scripts
 SHELL := $(shell which bash)

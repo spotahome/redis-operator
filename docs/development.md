@@ -20,7 +20,7 @@
 * **scripts**: scripts used to build and run the app.
 
 ## Make development commands
-You can do the following commands with make:
+You can do the following commands with `make`:
 * Build the development container.
 `make docker-build`
 * Generate mocks.
@@ -41,3 +41,8 @@ You can do the following commands with make:
 `make update-deps`
 * Build the app image.
 `make image`
+
+If a different Docker image and its repository needs to be used, it can be specified on each `make` call with the `IMAGE_NAME` and `REPO_SERVER` variables, for example:
+```
+make build IMAGE_NAME=my_image REPO_SERVER=my_repository_server
+```
