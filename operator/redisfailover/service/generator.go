@@ -88,6 +88,10 @@ func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels m
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
+	sentinelConfigFileContent := `sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 1000
+sentinel failover-timeout mymaster 3000
+sentinel parallel-syncs mymaster 2`
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -97,10 +101,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels m
 			OwnerReferences: ownerRefs,
 		},
 		Data: map[string]string{
-			sentinelConfigFileName: `sentinel monitor mymaster 127.0.0.1 6379 2
-sentinel down-after-milliseconds mymaster 1000
-sentinel failover-timeout mymaster 3000
-sentinel parallel-syncs mymaster 2`,
+			sentinelConfigFileName: sentinelConfigFileContent,
 		},
 	}
 }
@@ -110,6 +111,10 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+	redisConfigFileContent := `slaveof 127.0.0.1 6379
+tcp-keepalive 60
+save 900 1
+save 300 10`
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -119,10 +124,7 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 			OwnerReferences: ownerRefs,
 		},
 		Data: map[string]string{
-			redisConfigFileName: `slaveof 127.0.0.1 6379
-tcp-keepalive 60
-save 900 1
-save 300 10`,
+			redisConfigFileName: redisConfigFileContent,
 		},
 	}
 }
@@ -132,6 +134,11 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+	shutdownContent := `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+redis-cli SAVE
+if [[ $master ==  $(hostname -i) ]]; then
+  redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
+fi`
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -141,11 +148,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 			OwnerReferences: ownerRefs,
 		},
 		Data: map[string]string{
-			"shutdown.sh": `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
-redis-cli SAVE
-if [[ $master ==  $(hostname -i) ]]; then
-  redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
-fi`,
+			"shutdown.sh": shutdownContent,
 		},
 	}
 }
