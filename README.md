@@ -48,10 +48,10 @@ helm install --name redisfailover charts/redisoperator
 
 Once the operator is deployed inside a Kubernetes cluster, a new API will be accesible, so you'll be able to create, update and delete redisfailovers.
 
-In order to deploy a new redis-failover a [specification](example/redisfailover/all-options.yaml) has to be created:
+In order to deploy a new redis-failover a [specification](example/redisfailover/basic.yaml) has to be created:
 
 ```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/all-options.yaml
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/basic.yaml
 ```
 
 This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
