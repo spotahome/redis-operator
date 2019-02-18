@@ -1,20 +1,19 @@
 apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
 metadata:
-  name: redisfailover-persistant
+  name: redisfailover-persistent
 spec:
   sentinel:
     replicas: 3
   redis:
     replicas: 3
     storage:
-      persistentVolumeClaim:                           
+      persistentVolumeClaim:
         metadata:
-          name: redisfailover-persistant-data
+          name: redisfailover-persistent-data
         spec:
           accessModes:
-          - ReadWriteOnce
+            - ReadWriteOnce
           resources:
             requests:
               storage: 1Gi
-
