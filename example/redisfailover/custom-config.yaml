@@ -1,0 +1,16 @@
+apiVersion: storage.spotahome.com/v1alpha2
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+    customConfig:
+      - "down-after-milliseconds 2000"
+      - "failover-timeout 3000"
+  redis:
+    replicas: 3
+    customConfig:
+      - "maxclients 100"
+      - "hz 50"
+      - "timeout 60"
