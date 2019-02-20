@@ -18,6 +18,7 @@ const (
 	redisConfigurationVolumeName         = "redis-config"
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
 	redisStorageVolumeName               = "redis-data"
+	redisStorageVolumeMount              = "/data"
 
 	graceTime = 30
 )
@@ -110,11 +111,22 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
+	var pmemDirParam string
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 	redisConfigFileContent := `slaveof 127.0.0.1 6379
 tcp-keepalive 60
 save 900 1
 save 300 10`
+	if rf.Spec.Redis.Storage.PersistentVolumeClaim != nil {
+		if rf.Spec.Redis.Storage.PersistentVolumeClaim.Spec.StorageClassName != nil {
+			if *rf.Spec.Redis.Storage.PersistentVolumeClaim.Spec.StorageClassName == "pmem-csi-sc" {
+				storageAmount := rf.Spec.Redis.Storage.PersistentVolumeClaim.Spec.Resources.Requests["storage"]
+				requestedSize := storageAmount.AsDec().String()
+				pmemDirParam = "pmdir " + redisStorageVolumeMount + " " + requestedSize
+			}
+		}
+	}
+	redisConfigFileContent = redisConfigFileContent + "\n" + pmemDirParam
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -574,7 +586,7 @@ func getRedisVolumeMounts(rf *redisfailoverv1alpha2.RedisFailover) []corev1.Volu
 		},
 		{
 			Name:      getRedisDataVolumeName(rf),
-			MountPath: "/data",
+			MountPath: redisStorageVolumeMount,
 		},
 	}
 

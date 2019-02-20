@@ -1,0 +1,26 @@
+apiVersion: storage.spotahome.com/v1alpha2
+kind: RedisFailover
+metadata:
+  name: redisfailover-pmem
+spec:
+  sentinel:
+    replicas: 3
+    customConfig:
+      - "protected-mode no"
+  redis:
+    replicas: 3
+    customConfig:
+      - "protected-mode no"
+    image: redis_pmem			# From https://github.com/pmem/pmem-redis (needs to be built and uploaded to a repository to be used)
+    version: latest
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: redisfailover-pmem-data
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Mi
+          storageClassName: pmem-csi-sc
