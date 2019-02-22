@@ -74,6 +74,42 @@ redis:
     - "hz 50"
 ```
 
+You can use NodeAffinity and Tolerations for deploy redis to isolation nodes, like production. 
+
+Example:
+```
+apiVersion: v1
+items:
+- apiVersion: storage.spotahome.com/v1alpha2
+  kind: RedisFailover
+  metadata:
+    name: redis
+  spec:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kops.k8s.io/instancegroup
+            operator: In
+            values:
+            - productionnodes
+    hardAntiAffinity: false
+    redis: null
+    sentinel:
+      replicas: 3
+      resources:
+        limits:
+          memory: 100Mi
+        requests:
+          cpu: 100m
+    tolerations:
+    - effect: NoExecute
+      key: dedicated
+      operator: Equal
+      value: production
+kind: List
+```
+
 **Important*: this options will be set via `config set` or `sentinel set mymaster`. In the Sentinel options, there are some "conversions" to be made.
 
 - Configuration on the `sentinel.conf`: `sentinel down-after-milliseconds mymaster 2000`
