@@ -59,25 +59,11 @@ In order to have persistance, a PersistentVolumeClaim usage is allowed. The full
 
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistant-storage-no-pvc-deletion.yaml).
 
-### Custom configurations
-It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values.
-
-Example:
-```yaml
-sentinel:
-  customConfig:
-    - "down-after-milliseconds 2000"
-    - "failover-timeout 3000"
-redis:
-  customConfig:
-    - "maxclients 100"
-    - "hz 50"
-```
-
+### NodeAffinity and Tolerations
 You can use NodeAffinity and Tolerations for deploy redis to isolation nodes, like production. 
 
 Example:
-```
+```yaml
 apiVersion: v1
 items:
 - apiVersion: storage.spotahome.com/v1alpha2
@@ -108,6 +94,21 @@ items:
       operator: Equal
       value: production
 kind: List
+```
+
+### Custom configurations
+It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values.
+
+Example:
+```yaml
+sentinel:
+  customConfig:
+    - "down-after-milliseconds 2000"
+    - "failover-timeout 3000"
+redis:
+  customConfig:
+    - "maxclients 100"
+    - "hz 50"
 ```
 
 **Important*: this options will be set via `config set` or `sentinel set mymaster`. In the Sentinel options, there are some "conversions" to be made.
