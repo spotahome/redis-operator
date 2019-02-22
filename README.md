@@ -60,7 +60,7 @@ In order to have persistance, a PersistentVolumeClaim usage is allowed. The full
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistant-storage-no-pvc-deletion.yaml).
 
 ### NodeAffinity and Tolerations
-You can use NodeAffinity and Tolerations for deploy redis to isolation nodes, like production. 
+You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of Nodes
 
 Example:
 ```yaml
