@@ -41,8 +41,6 @@ const (
 	redisPort               = "6379"
 	sentinelPort            = "26379"
 	masterName              = "mymaster"
-	sentinelSetCommand      = "SENTINEL set %s %s"
-	redisSetCommand         = "CONFIG set %s"
 )
 
 var (
@@ -177,7 +175,7 @@ func (c *client) MonitorRedis(ip string, monitor string, quorum string) error {
 	defer rClient.Close()
 	cmd := rediscli.NewBoolCmd("SENTINEL", "REMOVE", masterName)
 	rClient.Process(cmd)
-	// We'll continue even if it fails, the priotity is to have the redises monitored
+	// We'll continue even if it fails, the priority is to have the redises monitored
 	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, redisPort, quorum)
 	rClient.Process(cmd)
 	_, err := cmd.Result()
@@ -243,8 +241,11 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	defer rClient.Close()
 
 	for _, config := range configs {
-		setCommand := fmt.Sprintf(sentinelSetCommand, masterName, config)
-		if err := c.applyConfig(setCommand, rClient); err != nil {
+		param, value, err := c.getConfigParameters(config)
+		if err != nil {
+			return err
+		}
+		if err := c.applySentinelConfig(param, value, rClient); err != nil {
 			return err
 		}
 	}
@@ -261,27 +262,32 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	defer rClient.Close()
 
 	for _, config := range configs {
-		setCommand := fmt.Sprintf(redisSetCommand, config)
-		if err := c.applyConfig(setCommand, rClient); err != nil {
+		param, value, err := c.getConfigParameters(config)
+		if err != nil {
+			return err
+		}
+		if err := c.applyRedisConfig(param, value, rClient); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *client) applyConfig(command string, rClient *rediscli.Client) error {
-	sc := strings.Split(command, " ")
-	// Required conversion due to language specifications
-	// https://golang.org/doc/faq#convert_slice_of_interface
-	s := make([]interface{}, len(sc))
-	for i, v := range sc {
-		s[i] = v
-	}
+func (c *client) applyRedisConfig(parameter string, value string, rClient *rediscli.Client) error {
+	result := rClient.ConfigSet(parameter, value)
+	return result.Err()
+}
 
-	cmd := rediscli.NewBoolCmd(s...)
+func (c *client) applySentinelConfig(parameter string, value string, rClient *rediscli.Client) error {
+	cmd := rediscli.NewStatusCmd("SENTINEL", "set", masterName, parameter, value)
 	rClient.Process(cmd)
-	if _, err := cmd.Result(); err != nil {
-		return err
+	return cmd.Err()
+}
+
+func (c *client) getConfigParameters(config string) (parameter string, value string, err error) {
+	s := strings.Split(config, " ")
+	if len(s) < 2 {
+		return "", "", fmt.Errorf("configuration '%s' malformed", config)
 	}
-	return nil
+	return s[0], strings.Join(s[1:], " "), nil
 }
