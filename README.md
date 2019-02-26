@@ -59,6 +59,43 @@ In order to have persistance, a PersistentVolumeClaim usage is allowed. The full
 
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistant-storage-no-pvc-deletion.yaml).
 
+### NodeAffinity and Tolerations
+You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of Nodes
+
+Example:
+```yaml
+apiVersion: v1
+items:
+- apiVersion: storage.spotahome.com/v1alpha2
+  kind: RedisFailover
+  metadata:
+    name: redis
+  spec:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kops.k8s.io/instancegroup
+            operator: In
+            values:
+            - productionnodes
+    hardAntiAffinity: false
+    redis: null
+    sentinel:
+      replicas: 3
+      resources:
+        limits:
+          memory: 100Mi
+        requests:
+          cpu: 100m
+    tolerations:
+    - effect: NoExecute
+      key: dedicated
+      operator: Equal
+      value: production
+kind: List
+```
+
 ### Custom configurations
 It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values.
 
