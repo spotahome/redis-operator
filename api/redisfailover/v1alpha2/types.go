@@ -31,7 +31,7 @@ type RedisFailoverSpec struct {
 	// NodeAffinity defines the rules for scheduling the Redis and Sentinel
 	// nodes
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
-	
+
 	//Tolerations provides a way to schedule Pods on Tainted Nodes
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
