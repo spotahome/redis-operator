@@ -452,3 +452,106 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		assert.NoError(err)
 	}
 }
+
+func TestRedisStatefulSetCommands(t *testing.T) {
+	tests := []struct {
+		name             string
+		givenCommands    []string
+		expectedCommands []string
+	}{
+		{
+			name:          "Default values",
+			givenCommands: []string{},
+			expectedCommands: []string{
+				"redis-server",
+				"/redis/redis.conf",
+			},
+		},
+		{
+			name: "Given commands should be used in redis container",
+			givenCommands: []string{
+				"test",
+				"command",
+			},
+			expectedCommands: []string{
+				"test",
+				"command",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required storage
+		rf := generateRF()
+		rf.Spec.Redis.Command = test.givenCommands
+
+		gotCommands := []string{}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1beta2.StatefulSet)
+			gotCommands = ss.Spec.Template.Spec.Containers[0].Command
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedCommands, gotCommands)
+		assert.NoError(err)
+	}
+}
+
+func TestSentinelDeploymentCommands(t *testing.T) {
+	tests := []struct {
+		name             string
+		givenCommands    []string
+		expectedCommands []string
+	}{
+		{
+			name:          "Default values",
+			givenCommands: []string{},
+			expectedCommands: []string{
+				"redis-server",
+				"/redis/sentinel.conf",
+				"--sentinel",
+			},
+		},
+		{
+			name: "Given commands should be used in sentinel container",
+			givenCommands: []string{
+				"test",
+				"command",
+			},
+			expectedCommands: []string{
+				"test",
+				"command",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required storage
+		rf := generateRF()
+		rf.Spec.Sentinel.Command = test.givenCommands
+
+		gotCommands := []string{}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1beta2.Deployment)
+			gotCommands = d.Spec.Template.Spec.Containers[0].Command
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedCommands, gotCommands)
+		assert.NoError(err)
+	}
+}

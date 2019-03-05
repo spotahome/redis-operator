@@ -47,6 +47,7 @@ type RedisSettings struct {
 	Image                 string                 `json:"image,omitempty"`
 	Version               string                 `json:"version,omitempty"`
 	CustomConfig          []string               `json:"customConfig,omitempty"`
+	Command               []string               `json:"command,omitempty"`
 	ShutdownConfigMap     string                 `json:"shutdownConfigMap,omitempty"`
 	Storage               RedisStorage           `json:"storage,omitempty"`
 }
@@ -56,6 +57,7 @@ type SentinelSettings struct {
 	Replicas     int32                  `json:"replicas,omitempty"`
 	Resources    RedisFailoverResources `json:"resources,omitempty"`
 	CustomConfig []string               `json:"customConfig,omitempty"`
+	Command      []string               `json:"command,omitempty"`
 }
 
 // RedisFailoverResources sets the limits and requests for a container
