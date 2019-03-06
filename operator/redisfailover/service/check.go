@@ -212,6 +212,9 @@ func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1alpha2.
 		return minTime, err
 	}
 	for _, redisNode := range rps.Items {
+		if redisNode.Status.StartTime == nil {
+			continue
+		}
 		start := redisNode.Status.StartTime.Round(time.Second)
 		alive := time.Now().Sub(start)
 		r.logger.Debugf("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
