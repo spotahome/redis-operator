@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.7] - 2019-03-06
+
+### Added
+
+- Command for Redis and Sentinel containers is now configurable.
+
+### Fixed
+
+- Panic if checking the `StartTime` of a pod that was not started yet (nil pointer exception).
+
 ## [0.5.6] - 2019-02-27
 
 ### Added
@@ -195,6 +205,7 @@
 
 - Initial open-sourced release
 
+[0.5.7]: https://github.com/spotahome/redis-operator/compare/0.5.6...0.5.7
 [0.5.6]: https://github.com/spotahome/redis-operator/compare/0.5.5...0.5.6
 [0.5.5]: https://github.com/spotahome/redis-operator/compare/0.5.4...0.5.5
 [0.5.4]: https://github.com/spotahome/redis-operator/compare/0.5.3...0.5.4
