@@ -165,7 +165,7 @@ sentinel:
     - "--protected-mode"
     - "no"
 redis:
-  customConfig:
+  command:
     - "redis-server"
     - "/redis/redis.conf"
     - "--protected-mode"
