@@ -75,39 +75,41 @@ In order to have persistence, a `PersistentVolumeClaim` usage is allowed. The fu
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](example/redisfailover/persistent-storage-no-pvc-deletion.yaml).
 
 ### NodeAffinity and Tolerations
+
 You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of Nodes
 
 Example:
+
 ```yaml
 apiVersion: v1
 items:
-- apiVersion: storage.spotahome.com/v1alpha2
-  kind: RedisFailover
-  metadata:
-    name: redis
-  spec:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: kops.k8s.io/instancegroup
-            operator: In
-            values:
-            - productionnodes
-    hardAntiAffinity: false
-    redis: null
-    sentinel:
-      replicas: 3
-      resources:
-        limits:
-          memory: 100Mi
-        requests:
-          cpu: 100m
-    tolerations:
-    - effect: NoExecute
-      key: dedicated
-      operator: Equal
-      value: production
+  - apiVersion: storage.spotahome.com/v1alpha2
+    kind: RedisFailover
+    metadata:
+      name: redis
+    spec:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kops.k8s.io/instancegroup
+                  operator: In
+                  values:
+                    - productionnodes
+      hardAntiAffinity: false
+      redis: null
+      sentinel:
+        replicas: 3
+        resources:
+          limits:
+            memory: 100Mi
+          requests:
+            cpu: 100m
+      tolerations:
+        - effect: NoExecute
+          key: dedicated
+          operator: Equal
+          value: production
 kind: List
 ```
 
@@ -144,6 +146,31 @@ By default, a custom shutdown file is given. This file makes redis to `SAVE` it'
 This behavior is configurable, creating a configmap and indicating to use it. An example about how to use this option can be found on the [shutdown example file](example/redisfailover/custom-shutdown.yaml).
 
 **Important**: the configmap has to be in the same namespace. The configmap has to have a `shutdown.sh` data, containing the script.
+
+### Custom command
+
+By default, redis and sentinel will be called with de basic command, giving the configuration file:
+
+- Redis: `redis-server /redis/redis.conf`
+- Sentinel: `redis-server /redis/sentinel.conf --sentinel`
+
+If necessary, this command can be changed with the `command` option inside redis/sentinel spec:
+
+```yaml
+sentinel:
+  command:
+    - "redis-server"
+    - "/redis/sentinel.conf"
+    - "--sentinel"
+    - "--protected-mode"
+    - "no"
+redis:
+  customConfig:
+    - "redis-server"
+    - "/redis/redis.conf"
+    - "--protected-mode"
+    - "no"
+```
 
 ### Connection
 

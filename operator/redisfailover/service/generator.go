@@ -159,6 +159,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 
 	spec := rf.Spec
 	redisImage := getRedisImage(rf)
+	redisCommand := getRedisCommand(rf)
 	resources := getRedisResources(spec)
 	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
 	volumeMounts := getRedisVolumeMounts(rf)
@@ -203,10 +204,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 								},
 							},
 							VolumeMounts: volumeMounts,
-							Command: []string{
-								"redis-server",
-								fmt.Sprintf("/redis/%s", redisConfigFileName),
-							},
+							Command:      redisCommand,
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
@@ -274,6 +272,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 
 	spec := rf.Spec
 	redisImage := getRedisImage(rf)
+	sentinelCommand := getSentinelCommand(rf)
 	resources := getSentinelResources(spec)
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
 
@@ -349,11 +348,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 									MountPath: "/redis",
 								},
 							},
-							Command: []string{
-								"redis-server",
-								fmt.Sprintf("/redis/%s", sentinelConfigFileName),
-								"--sentinel",
-							},
+							Command: sentinelCommand,
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
@@ -651,5 +646,26 @@ func getRedisDataVolumeName(rf *redisfailoverv1alpha2.RedisFailover) string {
 		return redisStorageVolumeName
 	default:
 		return redisStorageVolumeName
+	}
+}
+
+func getRedisCommand(rf *redisfailoverv1alpha2.RedisFailover) []string {
+	if len(rf.Spec.Redis.Command) > 0 {
+		return rf.Spec.Redis.Command
+	}
+	return []string{
+		"redis-server",
+		fmt.Sprintf("/redis/%s", redisConfigFileName),
+	}
+}
+
+func getSentinelCommand(rf *redisfailoverv1alpha2.RedisFailover) []string {
+	if len(rf.Spec.Sentinel.Command) > 0 {
+		return rf.Spec.Sentinel.Command
+	}
+	return []string{
+		"redis-server",
+		fmt.Sprintf("/redis/%s", sentinelConfigFileName),
+		"--sentinel",
 	}
 }
