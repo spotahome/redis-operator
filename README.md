@@ -130,7 +130,7 @@ redis:
     - "hz 50"
 ```
 
-In order to have the ability of this configurations to be changed "on the fly", without the need of reload the redis/sentinel processes, the operator will apply them with calls to the redises/sentinels, using `config set` or `sentinel set mymaster` respectively. Because of this, **no changes on the configmaps** will appear regarding this custom configurations.
+In order to have the ability of this configurations to be changed "on the fly", without the need of reload the redis/sentinel processes, the operator will apply them with calls to the redises/sentinels, using `config set` or `sentinel set mymaster` respectively. Because of this, **no changes on the configmaps** will appear regarding this custom configurations, because of it, the entries of `customConfig` from Redis spec will not be written on `redis.conf` file, to verify the actual Redis configuration use [`redis-cli CONFIG GET *`](https://redis.io/commands/config-get).
 
 **Important**: in the Sentinel options, there are some "conversions" to be made:
 
