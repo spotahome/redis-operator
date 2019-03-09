@@ -5,13 +5,14 @@ import (
 	"time"
 
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	timeToPrepare = 2 * time.Minute
 )
 
-func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailover, rfs []metav1.OwnerReference) error {
 	// Number of redis is equal as the set on the RF spec
 	// Number of sentinel is equal as the set on the RF spec
 	// Check only one master
@@ -78,7 +79,9 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			return err3
 		}
 	}
-
+	if err := r.rfService.EnsureRedissService(rf, rfs); err != nil {
+		return err
+	}
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
 	if err != nil {
 		return err

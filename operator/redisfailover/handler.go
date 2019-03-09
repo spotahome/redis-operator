@@ -79,7 +79,7 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 		return err
 	}
 
-	return r.CheckAndHeal(rf)
+	return r.CheckAndHeal(rf, oRefs)
 }
 
 // Delete handles the deletion of a RF.

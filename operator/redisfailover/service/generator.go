@@ -195,7 +195,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 						{
 							Name:            "redis",
 							Image:           redisImage,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: "IfNotPresent",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "redis",
@@ -262,6 +262,38 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
 	}
 
+	return ss
+}
+
+//desc : setup redis service
+//params: rf,podlist,ownerRefs
+//return: []corev1.services,error
+func generateRedissService(rf *redisfailoverv1alpha2.RedisFailover, podls *corev1.PodList, ownerRefs []metav1.OwnerReference) []*corev1.Service {
+	var ss []*corev1.Service
+	for index, pod := range podls.Items {
+		ss = append(ss, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            fmt.Sprintf("%s-%d", rf.Name, index),
+				Namespace:       rf.Namespace,
+				Labels:          pod.Labels,
+				OwnerReferences: ownerRefs,
+			},
+
+			Spec: corev1.ServiceSpec{
+				Type:      corev1.ServiceTypeClusterIP,
+				ClusterIP: corev1.ClusterIPNone,
+				Ports: []corev1.ServicePort{
+					{
+						Port:       6379,
+						TargetPort: intstr.FromInt(6379),
+						Protocol:   corev1.ProtocolTCP,
+						Name:       exporterContainerName,
+					},
+				},
+				Selector: pod.Labels,
+			},
+		})
+	}
 	return ss
 }
 
@@ -334,7 +366,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 						{
 							Name:            "sentinel",
 							Image:           redisImage,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: "IfNotPresent",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "sentinel",
@@ -483,7 +515,7 @@ func createRedisExporterContainer(rf *redisfailoverv1alpha2.RedisFailover) corev
 	return corev1.Container{
 		Name:            exporterContainerName,
 		Image:           exporterImage,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: "IfNotPresent",
 		Env: []corev1.EnvVar{
 			{
 				Name: "REDIS_ALIAS",
