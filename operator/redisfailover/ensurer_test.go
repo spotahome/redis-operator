@@ -26,9 +26,6 @@ const (
 
 func generateConfig() rfOperator.Config {
 	return rfOperator.Config{
-		Labels: map[string]string{
-			"test": "test",
-		},
 		ListenAddress: "1234",
 		MetricsPath:   "/awesome",
 	}

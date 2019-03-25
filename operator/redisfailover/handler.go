@@ -41,9 +41,6 @@ type RedisFailoverHandler struct {
 
 // NewRedisFailoverHandler returns a new RF handler
 func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Service, mClient metrics.Instrumenter, logger log.Logger) *RedisFailoverHandler {
-	// Set non dynamic operator labels(the ones that every resource created by the operator will have).
-	labels := util.MergeLabels(config.Labels, defaultLabels)
-
 	return &RedisFailoverHandler{
 		config:     config,
 		rfService:  rfService,
@@ -52,7 +49,7 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 		mClient:    mClient,
 		k8sservice: k8sservice,
 		logger:     logger,
-		labels:     labels,
+		labels:     defaultLabels,
 	}
 }
 
@@ -60,7 +57,7 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error {
 	rf, ok := obj.(*redisfailoverv1alpha2.RedisFailover)
 	if !ok {
-		return fmt.Errorf("can't handle redis failover state, parentLabels map[string]string, ownerRefs []metav1.OwnerReferencenot a redisfailover object")
+		return fmt.Errorf("can't handle the received object: not a redisfailover")
 	}
 
 	if err := rf.Validate(); err != nil {
