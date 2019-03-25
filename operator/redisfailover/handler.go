@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	redisFailoverLabelKey = "redisfailover"
+	rfLabelManagedByKey = "app.kubernetes.io/managed-by"
+	rfLabelNameKey      = "redisfailovers.storage.spotahome.com/name"
 )
 
 var (
 	defaultLabels = map[string]string{
-		"creator": operatorName,
+		rfLabelManagedByKey: operatorName,
 	}
 )
 
@@ -70,7 +71,7 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	oRefs := r.createOwnerReferences(rf)
 
 	// Create the labels every object derived from this need to have.
-	labels := r.mergeLabels(rf)
+	labels := r.getLabels(rf)
 
 	if err := r.Ensure(rf, labels, oRefs); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
@@ -98,10 +99,10 @@ func (r *RedisFailoverHandler) Delete(_ context.Context, name string) error {
 	return nil
 }
 
-// mergeLabels merges all the labels (dynamic and operator static ones).
-func (r *RedisFailoverHandler) mergeLabels(rf *redisfailoverv1alpha2.RedisFailover) map[string]string {
+// getLabels merges the labels (dynamic and operator static ones).
+func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1alpha2.RedisFailover) map[string]string {
 	dynLabels := map[string]string{
-		redisFailoverLabelKey: rf.Name,
+		rfLabelNameKey: rf.Name,
 	}
 	return util.MergeLabels(r.labels, dynLabels, rf.Labels)
 }

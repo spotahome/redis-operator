@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	// TODO: Option
 	resync       = 30 * time.Second
-	operatorName = "redisfailover"
+	operatorName = "redis-operator"
 )
 
 // New will create an operator that is responsible of managing all the required stuff

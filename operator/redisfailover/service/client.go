@@ -37,11 +37,11 @@ func NewRedisFailoverKubeClient(k8sService k8s.Services, logger log.Logger) *Red
 	}
 }
 
-func generateLabels(component, role string) map[string]string {
+func generateLabels(component, name string) map[string]string {
 	return map[string]string{
-		"app":       appLabel,
-		"component": component,
-		component:   role,
+		"app.kubernetes.io/name":      name,
+		"app.kubernetes.io/component": component,
+		"app.kubernetes.io/part-of":   appLabel,
 	}
 }
 
