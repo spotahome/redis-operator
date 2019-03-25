@@ -76,10 +76,17 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	labels := r.mergeLabels(rf)
 
 	if err := r.Ensure(rf, labels, oRefs); err != nil {
+		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
 	}
 
-	return r.CheckAndHeal(rf)
+	if err := r.CheckAndHeal(rf); err != nil {
+		r.mClient.SetClusterError(rf.Namespace, rf.Name)
+		return err
+	}
+
+	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
+	return nil
 }
 
 // Delete handles the deletion of a RF.
