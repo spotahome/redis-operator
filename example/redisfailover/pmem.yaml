@@ -1,5 +1,5 @@
 # Deployment that uses persistent volumes. To use this example you need:
-# - A Redis image that supports persistent memory usage from https://github.com/pmem/pmem-redis
+# - A Redis image that supports persistent memory usage from https://github.com/pmem/redis
 # - Proper setup of the persistent memory container storage interface driver from https://github.com/intel/pmem-CSI
 apiVersion: storage.spotahome.com/v1alpha2
 kind: RedisFailover
@@ -16,7 +16,7 @@ spec:
       - "no"
   redis:
     replicas: 3
-    image: redis_pmem				# From https://github.com/pmem/pmem-redis
+    image: redis_pmem				# From https://github.com/pmem/redis
     version: latest
     command:
       - "redis-server"
