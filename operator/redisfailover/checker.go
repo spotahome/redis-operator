@@ -53,7 +53,6 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			r.logger.Debugf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
 			// We can consider there's an error
 			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
-				r.mClient.SetClusterError(rf.Namespace, rf.Name)
 				return err2
 			}
 		} else {
@@ -64,7 +63,6 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 	case 1:
 		break
 	default:
-		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return errors.New("More than one master, fix manually")
 	}
 
@@ -97,7 +95,6 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 		if err := r.rfChecker.CheckSentinelMonitor(sip, master); err != nil {
 			r.logger.Debug("Sentinel is not monitoring the correct master")
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
-				r.mClient.SetClusterError(rf.Namespace, rf.Name)
 				return err
 			}
 		}
@@ -123,6 +120,5 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailo
 			return err
 		}
 	}
-	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
 	return nil
 }
