@@ -1,0 +1,11 @@
+apiVersion: storage.spotahome.com/v1alpha2
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    image: redis
+    version: 5.0-alpine
