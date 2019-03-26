@@ -27,7 +27,7 @@ func generateSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map
 	namespace := rf.Namespace
 
 	sentinelTargetPort := intstr.FromInt(26379)
-	selectorLabels := generateLabels(sentinelRoleName, rf.Name)
+	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
 	return &corev1.Service{
@@ -55,7 +55,7 @@ func generateRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[st
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
-	selectorLabels := generateLabels(redisRoleName, rf.Name)
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
 	return &corev1.Service{
@@ -89,7 +89,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels m
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
+	labels = util.MergeLabels(labels, generateSelectorLabels(sentinelRoleName, rf.Name))
 	sentinelConfigFileContent := `sentinel monitor mymaster 127.0.0.1 6379 2
 sentinel down-after-milliseconds mymaster 1000
 sentinel failover-timeout mymaster 3000
@@ -112,7 +112,7 @@ func generateRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	redisConfigFileContent := `slaveof 127.0.0.1 6379
 tcp-keepalive 60
 save 900 1
@@ -135,7 +135,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, lab
 	name := GetRedisShutdownConfigMapName(rf)
 	namespace := rf.Namespace
 
-	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	shutdownContent := `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
 redis-cli SAVE
 if [[ $master ==  $(hostname -i) ]]; then
@@ -163,7 +163,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 	redisImage := getRedisImage(rf)
 	redisCommand := getRedisCommand(rf)
 	resources := getRedisResources(spec)
-	selectorLabels := generateLabels(redisRoleName, rf.Name)
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
@@ -277,7 +277,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 	redisImage := getRedisImage(rf)
 	sentinelCommand := getSentinelCommand(rf)
 	resources := getSentinelResources(spec)
-	selectorLabels := generateLabels(sentinelRoleName, rf.Name)
+	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
 	return &appsv1beta2.Deployment{
