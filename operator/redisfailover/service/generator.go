@@ -298,6 +298,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					Tolerations: rf.Spec.Tolerations,
+					SecurityContext: rf.Spec.SecurityContext,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
