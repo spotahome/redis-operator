@@ -191,6 +191,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					Tolerations: rf.Spec.Tolerations,
+					SecurityContext: rf.Spec.SecurityContext,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
