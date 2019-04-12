@@ -31,7 +31,6 @@ type RedisFailoverSpec struct {
 	// NodeAffinity defines the rules for scheduling the Redis and Sentinel
 	// nodes
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
-	
 	// SecurityContext defines which user and group the Sentinel and Redis containers run as
 	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
 
