@@ -191,6 +191,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					Tolerations: rf.Spec.Tolerations,
+					SecurityContext: rf.Spec.SecurityContext,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -298,6 +299,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
 					Tolerations: rf.Spec.Tolerations,
+					SecurityContext: rf.Spec.SecurityContext,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
