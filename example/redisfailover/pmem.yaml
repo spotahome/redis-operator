@@ -35,4 +35,4 @@ spec:
           resources:
             requests:
               storage: 100Mi
-          storageClassName: pmem-csi-sc		# From https://github.com/intel/pmem-CSI
+          storageClassName: pmem-csi-sc-ext4	# From https://github.com/intel/pmem-CSI
