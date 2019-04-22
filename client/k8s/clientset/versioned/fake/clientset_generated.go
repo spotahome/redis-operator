@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
-	storagev1alpha2 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1alpha2"
-	fakestoragev1alpha2 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1alpha2/fake"
+	storagev1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
+	fakestoragev1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -70,12 +70,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// StorageV1alpha2 retrieves the StorageV1alpha2Client
-func (c *Clientset) StorageV1alpha2() storagev1alpha2.StorageV1alpha2Interface {
-	return &fakestoragev1alpha2.FakeStorageV1alpha2{Fake: &c.Fake}
+// StorageV1 retrieves the StorageV1Client
+func (c *Clientset) StorageV1() storagev1.StorageV1Interface {
+	return &fakestoragev1.FakeStorageV1{Fake: &c.Fake}
 }
 
-// Storage retrieves the StorageV1alpha2Client
-func (c *Clientset) Storage() storagev1alpha2.StorageV1alpha2Interface {
-	return &fakestoragev1alpha2.FakeStorageV1alpha2{Fake: &c.Fake}
+// Storage retrieves the StorageV1Client
+func (c *Clientset) Storage() storagev1.StorageV1Interface {
+	return &fakestoragev1.FakeStorageV1{Fake: &c.Fake}
 }
