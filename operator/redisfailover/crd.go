@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 )
@@ -28,11 +28,11 @@ func newRedisFailoverCRD(service k8s.Services, logger log.Logger) *redisfailover
 // Initialize satisfies resource.crd interface.
 func (w *redisfailoverCRD) Initialize() error {
 	crd := k8s.CRDConf{
-		Kind:       redisfailoverv1alpha2.RFKind,
-		NamePlural: redisfailoverv1alpha2.RFNamePlural,
-		Group:      redisfailoverv1alpha2.SchemeGroupVersion.Group,
-		Version:    redisfailoverv1alpha2.SchemeGroupVersion.Version,
-		Scope:      redisfailoverv1alpha2.RFScope,
+		Kind:       redisfailoverv1.RFKind,
+		NamePlural: redisfailoverv1.RFNamePlural,
+		Group:      redisfailoverv1.SchemeGroupVersion.Group,
+		Version:    redisfailoverv1.SchemeGroupVersion.Version,
+		Scope:      redisfailoverv1.RFScope,
 	}
 
 	return w.service.EnsureCRD(crd)
@@ -52,5 +52,5 @@ func (w *redisfailoverCRD) GetListerWatcher() cache.ListerWatcher {
 
 // GetObject satisfies resource.crd interface (and retrieve.Retriever).
 func (w *redisfailoverCRD) GetObject() runtime.Object {
-	return &redisfailoverv1alpha2.RedisFailover{}
+	return &redisfailoverv1.RedisFailover{}
 }

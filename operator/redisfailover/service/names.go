@@ -3,11 +3,11 @@ package service
 import (
 	"fmt"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 )
 
 // GetRedisShutdownConfigMapName returns the name for redis configmap
-func GetRedisShutdownConfigMapName(rf *redisfailoverv1alpha2.RedisFailover) string {
+func GetRedisShutdownConfigMapName(rf *redisfailoverv1.RedisFailover) string {
 	if rf.Spec.Redis.ShutdownConfigMap != "" {
 		return rf.Spec.Redis.ShutdownConfigMap
 	}
@@ -15,17 +15,17 @@ func GetRedisShutdownConfigMapName(rf *redisfailoverv1alpha2.RedisFailover) stri
 }
 
 // GetRedisName returns the name for redis resources
-func GetRedisName(rf *redisfailoverv1alpha2.RedisFailover) string {
+func GetRedisName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(redisName, rf.Name)
 }
 
 // GetRedisShutdownName returns the name for redis resources
-func GetRedisShutdownName(rf *redisfailoverv1alpha2.RedisFailover) string {
+func GetRedisShutdownName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(redisShutdownName, rf.Name)
 }
 
 // GetSentinelName returns the name for sentinel resources
-func GetSentinelName(rf *redisfailoverv1alpha2.RedisFailover) string {
+func GetSentinelName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(sentinelName, rf.Name)
 }
 

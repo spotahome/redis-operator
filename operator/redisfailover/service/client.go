@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	"github.com/spotahome/redis-operator/service/k8s"
@@ -13,14 +13,14 @@ import (
 // RedisFailoverClient has the minimumm methods that a Redis failover controller needs to satisfy
 // in order to talk with K8s
 type RedisFailoverClient interface {
-	EnsureSentinelService(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureSentinelConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureSentinelDeployment(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureRedisStatefulset(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureRedisService(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureRedisConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
-	EnsureNotPresentRedisService(rFailover *redisfailoverv1alpha2.RedisFailover) error
+	EnsureSentinelService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureSentinelConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureSentinelDeployment(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisStatefulset(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureNotPresentRedisService(rFailover *redisfailoverv1.RedisFailover) error
 }
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
@@ -46,19 +46,19 @@ func generateLabels(component, role string) map[string]string {
 }
 
 // EnsureSentinelService makes sure the sentinel service exists
-func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateSentinelService(rf, labels, ownerRefs)
 	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
 }
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
-func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	cm := generateSentinelConfigMap(rf, labels, ownerRefs)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
 // EnsureSentinelDeployment makes sure the sentinel deployment exists in the desired state
-func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	if err := r.ensurePodDisruptionBudget(rf, sentinelName, sentinelRoleName, labels, ownerRefs); err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1al
 }
 
 // EnsureRedisStatefulset makes sure the redis statefulset exists in the desired state
-func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	if err := r.ensurePodDisruptionBudget(rf, redisName, redisRoleName, labels, ownerRefs); err != nil {
 		return err
 	}
@@ -76,13 +76,13 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1alph
 }
 
 // EnsureRedisConfigMap makes sure the sentinel configmap exists
-func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	cm := generateRedisConfigMap(rf, labels, ownerRefs)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
 // EnsureRedisShutdownConfigMap makes sure the redis configmap with shutdown script exists
-func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	if rf.Spec.Redis.ShutdownConfigMap != "" {
 		if _, err := r.K8SService.GetConfigMap(rf.Namespace, rf.Spec.Redis.ShutdownConfigMap); err != nil {
 			return err
@@ -95,13 +95,13 @@ func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailover
 }
 
 // EnsureRedisService makes sure the redis statefulset exists
-func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateRedisService(rf, labels, ownerRefs)
 	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
 }
 
 // EnsureNotPresentRedisService makes sure the redis service is not present
-func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailoverv1.RedisFailover) error {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 	// If the service exists (no get error), delete it
@@ -112,7 +112,7 @@ func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailover
 }
 
 // EnsureRedisStatefulset makes sure the pdb exists in the desired state
-func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1alpha2.RedisFailover, name string, component string, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.RedisFailover, name string, component string, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	name = generateName(name, rf.Name)
 	namespace := rf.Namespace
 
