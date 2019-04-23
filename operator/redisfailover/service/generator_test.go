@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	mK8SService "github.com/spotahome/redis-operator/mocks/service/k8s"
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
@@ -24,7 +24,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		name           string
 		ownerRefs      []metav1.OwnerReference
 		expectedSS     appsv1beta2.StatefulSet
-		rfRedisStorage redisfailoverv1alpha2.RedisStorage
+		rfRedisStorage redisfailoverv1.RedisStorage
 	}{
 		{
 			name: "Default values",
@@ -83,7 +83,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 				},
 			},
-			rfRedisStorage: redisfailoverv1alpha2.RedisStorage{},
+			rfRedisStorage: redisfailoverv1.RedisStorage{},
 		},
 		{
 			name: "Defined an emptydir with storage on memory",
@@ -144,7 +144,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 				},
 			},
-			rfRedisStorage: redisfailoverv1alpha2.RedisStorage{
+			rfRedisStorage: redisfailoverv1.RedisStorage{
 				EmptyDir: &corev1.EmptyDirVolumeSource{
 					Medium: corev1.StorageMediumMemory,
 				},
@@ -218,7 +218,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 				},
 			},
-			rfRedisStorage: redisfailoverv1alpha2.RedisStorage{
+			rfRedisStorage: redisfailoverv1.RedisStorage{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pvc-data",
@@ -314,7 +314,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 				},
 			},
-			rfRedisStorage: redisfailoverv1alpha2.RedisStorage{
+			rfRedisStorage: redisfailoverv1.RedisStorage{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pvc-data",
@@ -405,7 +405,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 				},
 			},
-			rfRedisStorage: redisfailoverv1alpha2.RedisStorage{
+			rfRedisStorage: redisfailoverv1.RedisStorage{
 				KeepAfterDeletion: true,
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
