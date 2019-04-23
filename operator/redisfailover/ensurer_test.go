@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
 	mRFService "github.com/spotahome/redis-operator/mocks/operator/redisfailover/service"
@@ -31,18 +31,20 @@ func generateConfig() rfOperator.Config {
 	}
 }
 
-func generateRF(exporter bool) *redisfailoverv1alpha2.RedisFailover {
-	return &redisfailoverv1alpha2.RedisFailover{
+func generateRF(enableExporter bool) *redisfailoverv1.RedisFailover {
+	return &redisfailoverv1.RedisFailover{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: redisfailoverv1alpha2.RedisFailoverSpec{
-			Redis: redisfailoverv1alpha2.RedisSettings{
+		Spec: redisfailoverv1.RedisFailoverSpec{
+			Redis: redisfailoverv1.RedisSettings{
 				Replicas: int32(3),
-				Exporter: exporter,
+				Exporter: redisfailoverv1.RedisExporter{
+					Enabled: enableExporter,
+				},
 			},
-			Sentinel: redisfailoverv1alpha2.SentinelSettings{
+			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: int32(3),
 			},
 		},

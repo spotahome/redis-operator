@@ -1,4 +1,4 @@
-package v1alpha2
+package v1
 
 import (
 	"github.com/spotahome/redis-operator/api/redisfailover"
@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	version = "v1alpha2"
+	version = "v1"
 )
 
 // Team constants

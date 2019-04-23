@@ -7,7 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
@@ -15,17 +15,17 @@ import (
 
 // RedisFailoverCheck defines the interface able to check the correct status of a redis failover
 type RedisFailoverCheck interface {
-	CheckRedisNumber(rFailover *redisfailoverv1alpha2.RedisFailover) error
-	CheckSentinelNumber(rFailover *redisfailoverv1alpha2.RedisFailover) error
-	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1alpha2.RedisFailover) error
-	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1alpha2.RedisFailover) error
-	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1alpha2.RedisFailover) error
+	CheckRedisNumber(rFailover *redisfailoverv1.RedisFailover) error
+	CheckSentinelNumber(rFailover *redisfailoverv1.RedisFailover) error
+	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1.RedisFailover) error
+	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
+	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelMonitor(sentinel string, monitor string) error
-	GetMasterIP(rFailover *redisfailoverv1alpha2.RedisFailover) (string, error)
-	GetNumberMasters(rFailover *redisfailoverv1alpha2.RedisFailover) (int, error)
-	GetRedisesIPs(rFailover *redisfailoverv1alpha2.RedisFailover) ([]string, error)
-	GetSentinelsIPs(rFailover *redisfailoverv1alpha2.RedisFailover) ([]string, error)
-	GetMinimumRedisPodTime(rFailover *redisfailoverv1alpha2.RedisFailover) (time.Duration, error)
+	GetMasterIP(rFailover *redisfailoverv1.RedisFailover) (string, error)
+	GetNumberMasters(rFailover *redisfailoverv1.RedisFailover) (int, error)
+	GetRedisesIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
+	GetSentinelsIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
+	GetMinimumRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -45,7 +45,7 @@ func NewRedisFailoverChecker(k8sService k8s.Services, redisClient redis.Client, 
 }
 
 // CheckRedisNumber controlls that the number of deployed redis is the same than the requested on the spec
-func (r *RedisFailoverChecker) CheckRedisNumber(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverChecker) CheckRedisNumber(rf *redisfailoverv1.RedisFailover) error {
 	ss, err := r.k8sService.GetStatefulSet(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (r *RedisFailoverChecker) CheckRedisNumber(rf *redisfailoverv1alpha2.RedisF
 }
 
 // CheckSentinelNumber controlls that the number of deployed sentinel is the same than the requested on the spec
-func (r *RedisFailoverChecker) CheckSentinelNumber(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverChecker) CheckSentinelNumber(rf *redisfailoverv1.RedisFailover) error {
 	d, err := r.k8sService.GetDeployment(rf.Namespace, GetSentinelName(rf))
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (r *RedisFailoverChecker) CheckSentinelNumber(rf *redisfailoverv1alpha2.Red
 }
 
 // CheckAllSlavesFromMaster controlls that all slaves have the same master (the real one)
-func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1.RedisFailover) error {
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 }
 
 // CheckSentinelNumberInMemory controls that sentinels have only the living sentinels on its memory.
-func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *redisfailoverv1.RedisFailover) error {
 	sips, err := r.GetSentinelsIPs(rf)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *
 }
 
 // CheckSentinelSlavesNumberInMemory controls that sentinels have only the spected slaves number.
-func (r *RedisFailoverChecker) CheckSentinelSlavesNumberInMemory(sentinel string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverChecker) CheckSentinelSlavesNumberInMemory(sentinel string, rf *redisfailoverv1.RedisFailover) error {
 	sips, err := r.GetSentinelsIPs(rf)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor str
 }
 
 // GetMasterIP connects to all redis and returns the master of the redis failover
-func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1alpha2.RedisFailover) (string, error) {
+func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (string, error) {
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
 		return "", err
@@ -156,7 +156,7 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1alpha2.RedisFailov
 }
 
 // GetNumberMasters returns the number of redis nodes that are working as a master
-func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1alpha2.RedisFailover) (int, error) {
+func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailover) (int, error) {
 	nMasters := 0
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
@@ -175,7 +175,7 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1alpha2.RedisF
 }
 
 // GetRedisesIPs returns the IPs of the Redis nodes
-func (r *RedisFailoverChecker) GetRedisesIPs(rf *redisfailoverv1alpha2.RedisFailover) ([]string, error) {
+func (r *RedisFailoverChecker) GetRedisesIPs(rf *redisfailoverv1.RedisFailover) ([]string, error) {
 	redises := []string{}
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
@@ -190,7 +190,7 @@ func (r *RedisFailoverChecker) GetRedisesIPs(rf *redisfailoverv1alpha2.RedisFail
 }
 
 // GetSentinelsIPs returns the IPs of the Sentinel nodes
-func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1alpha2.RedisFailover) ([]string, error) {
+func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1.RedisFailover) ([]string, error) {
 	sentinels := []string{}
 	rps, err := r.k8sService.GetDeploymentPods(rf.Namespace, GetSentinelName(rf))
 	if err != nil {
@@ -205,7 +205,7 @@ func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1alpha2.RedisFa
 }
 
 // GetMinimumRedisPodTime returns the minimum time a pod is alive
-func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1alpha2.RedisFailover) (time.Duration, error) {
+func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
 	minTime := 100000 * time.Hour // More than ten years
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {

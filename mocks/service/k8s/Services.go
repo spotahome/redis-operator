@@ -6,8 +6,8 @@ import crd "github.com/spotahome/kooper/client/crd"
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 import mock "github.com/stretchr/testify/mock"
 import rbacv1 "k8s.io/api/rbac/v1"
+import redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 import v1 "k8s.io/api/core/v1"
-import v1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
 import v1beta1 "k8s.io/api/policy/v1beta1"
 import v1beta2 "k8s.io/api/apps/v1beta2"
 import watch "k8s.io/apimachinery/pkg/watch"
@@ -676,15 +676,15 @@ func (_m *Services) ListPods(namespace string) (*v1.PodList, error) {
 }
 
 // ListRedisFailovers provides a mock function with given fields: namespace, opts
-func (_m *Services) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*v1alpha2.RedisFailoverList, error) {
+func (_m *Services) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
 	ret := _m.Called(namespace, opts)
 
-	var r0 *v1alpha2.RedisFailoverList
-	if rf, ok := ret.Get(0).(func(string, metav1.ListOptions) *v1alpha2.RedisFailoverList); ok {
+	var r0 *redisfailoverv1.RedisFailoverList
+	if rf, ok := ret.Get(0).(func(string, metav1.ListOptions) *redisfailoverv1.RedisFailoverList); ok {
 		r0 = rf(namespace, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v1alpha2.RedisFailoverList)
+			r0 = ret.Get(0).(*redisfailoverv1.RedisFailoverList)
 		}
 	}
 
