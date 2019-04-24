@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	redisfailoverclientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
 	"github.com/spotahome/redis-operator/log"
 )
@@ -12,7 +12,7 @@ import (
 // RedisFailover the RF service that knows how to interact with k8s to get them
 type RedisFailover interface {
 	// ListRedisFailovers lists the redisfailovers on a cluster.
-	ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1alpha2.RedisFailoverList, error)
+	ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error)
 	// WatchRedisFailovers watches the redisfailovers on a cluster.
 	WatchRedisFailovers(namespace string, opts metav1.ListOptions) (watch.Interface, error)
 }
@@ -33,7 +33,7 @@ func NewRedisFailoverService(crdcli redisfailoverclientset.Interface, logger log
 }
 
 // ListRedisFailovers satisfies redisfailover.Service interface.
-func (r *RedisFailoverService) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1alpha2.RedisFailoverList, error) {
+func (r *RedisFailoverService) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
 	return r.crdClient.Storage().RedisFailovers(namespace).List(opts)
 }
 

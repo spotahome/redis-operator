@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.8] - 2019-03-26
+
+### Fixed
+
+- Now all errors makes a `redisfailover` be marked as failed on metrics, to prevent that some errors were never alerted.
+
 ## [0.5.7] - 2019-03-06
 
 ### Added
@@ -205,6 +211,7 @@
 
 - Initial open-sourced release
 
+[0.5.8]: https://github.com/spotahome/redis-operator/compare/0.5.7...0.5.8
 [0.5.7]: https://github.com/spotahome/redis-operator/compare/0.5.6...0.5.7
 [0.5.6]: https://github.com/spotahome/redis-operator/compare/0.5.5...0.5.6
 [0.5.5]: https://github.com/spotahome/redis-operator/compare/0.5.4...0.5.5

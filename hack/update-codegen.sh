@@ -9,7 +9,7 @@ set -o pipefail
 CODEGEN_PKG=./../../../../..${GOPATH}/src/k8s.io/code-generator
 
 # Add all groups space separated.
-GROUPS_VERSION="redisfailover:v1alpha2"
+GROUPS_VERSION="redisfailover:v1"
 
 # Only generate deepcopy (runtime object needs) and typed client.
 # Typed listers & informers not required for the moment. Used with generic
