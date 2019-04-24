@@ -37,11 +37,11 @@ func NewRedisFailoverKubeClient(k8sService k8s.Services, logger log.Logger) *Red
 	}
 }
 
-func generateLabels(component, role string) map[string]string {
+func generateSelectorLabels(component, name string) map[string]string {
 	return map[string]string{
-		"app":       appLabel,
-		"component": component,
-		component:   role,
+		"app.kubernetes.io/name":      name,
+		"app.kubernetes.io/component": component,
+		"app.kubernetes.io/part-of":   appLabel,
 	}
 }
 
@@ -117,7 +117,7 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 	namespace := rf.Namespace
 
 	minAvailable := intstr.FromInt(2)
-	labels = util.MergeLabels(labels, generateLabels(component, rf.Name))
+	labels = util.MergeLabels(labels, generateSelectorLabels(component, rf.Name))
 
 	pdb := generatePodDisruptionBudget(name, namespace, labels, ownerRefs, minAvailable)
 
