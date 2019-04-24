@@ -37,7 +37,6 @@ type RedisFailoverHandler struct {
 	rfHealer   rfservice.RedisFailoverHeal
 	mClient    metrics.Instrumenter
 	logger     log.Logger
-	labels     map[string]string
 }
 
 // NewRedisFailoverHandler returns a new RF handler
@@ -50,7 +49,6 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 		mClient:    mClient,
 		k8sservice: k8sservice,
 		logger:     logger,
-		labels:     defaultLabels,
 	}
 }
 
@@ -104,7 +102,7 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1alpha2.RedisFailover
 	dynLabels := map[string]string{
 		rfLabelNameKey: rf.Name,
 	}
-	return util.MergeLabels(r.labels, dynLabels, rf.Labels)
+	return util.MergeLabels(defaultLabels, dynLabels, rf.Labels)
 }
 
 func (w *RedisFailoverHandler) createOwnerReferences(rf *redisfailoverv1alpha2.RedisFailover) []metav1.OwnerReference {
