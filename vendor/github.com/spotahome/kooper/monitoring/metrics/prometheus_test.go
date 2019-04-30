@@ -14,152 +14,99 @@ import (
 )
 
 func TestPrometheusMetrics(t *testing.T) {
-	handler := "handler.Footler"
+	controller := "test"
 
 	tests := []struct {
 		name       string
-		namespace  string
 		addMetrics func(*metrics.Prometheus)
 		expMetrics []string
 		expCode    int
 	}{
 		{
-			name:      "Incrementing different kind of queued events should measure the queued events counter",
-			namespace: "kooper",
+			name: "Incrementing different kind of queued events should measure the queued events counter",
 			addMetrics: func(p *metrics.Prometheus) {
-				p.IncResourceAddEventQueued(handler)
-				p.IncResourceDeleteEventQueued(handler)
-				p.IncResourceAddEventQueued(handler)
-				p.IncResourceAddEventQueued(handler)
-				p.IncResourceDeleteEventQueued(handler)
-				p.IncResourceDeleteEventQueued(handler)
-				p.IncResourceAddEventQueued(handler)
+				p.IncResourceEventQueued(controller, metrics.AddEvent)
+				p.IncResourceEventQueued(controller, metrics.AddEvent)
+				p.IncResourceEventQueued(controller, metrics.AddEvent)
+				p.IncResourceEventQueued(controller, metrics.AddEvent)
+				p.IncResourceEventQueued(controller, metrics.DeleteEvent)
+				p.IncResourceEventQueued(controller, metrics.DeleteEvent)
+				p.IncResourceEventQueued(controller, metrics.DeleteEvent)
 			},
 			expMetrics: []string{
-				`kooper_controller_queued_events_total{handler="handler.Footler",type="add"} 4`,
-				`kooper_controller_queued_events_total{handler="handler.Footler",type="delete"} 3`,
+				`kooper_controller_queued_events_total{controller="test",type="add"} 4`,
+				`kooper_controller_queued_events_total{controller="test",type="delete"} 3`,
 			},
 			expCode: 200,
 		},
 		{
-			name:      "Incrementing different kind of processed events should measure the queued events counter",
-			namespace: "batman",
+			name: "Incrementing different kind of processed events should measure the processed events counter",
 			addMetrics: func(p *metrics.Prometheus) {
-				p.IncResourceAddEventProcessedSuccess(handler)
-				p.IncResourceAddEventProcessedError(handler)
-				p.IncResourceAddEventProcessedError(handler)
-				p.IncResourceDeleteEventProcessedSuccess(handler)
-				p.IncResourceDeleteEventProcessedSuccess(handler)
-				p.IncResourceDeleteEventProcessedSuccess(handler)
-				p.IncResourceDeleteEventProcessedError(handler)
-				p.IncResourceDeleteEventProcessedError(handler)
-				p.IncResourceDeleteEventProcessedError(handler)
-				p.IncResourceDeleteEventProcessedError(handler)
+				p.IncResourceEventProcessed(controller, metrics.AddEvent)
+				p.IncResourceEventProcessedError(controller, metrics.AddEvent)
+				p.IncResourceEventProcessedError(controller, metrics.AddEvent)
+				p.IncResourceEventProcessed(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessed(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessed(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessedError(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessedError(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessedError(controller, metrics.DeleteEvent)
+				p.IncResourceEventProcessedError(controller, metrics.DeleteEvent)
 
 			},
 			expMetrics: []string{
-				`batman_controller_processed_events_total{handler="handler.Footler",type="add"} 1`,
-				`batman_controller_processed_events_errors_total{handler="handler.Footler",type="add"} 2`,
-				`batman_controller_processed_events_total{handler="handler.Footler",type="delete"} 3`,
-				`batman_controller_processed_events_errors_total{handler="handler.Footler",type="delete"} 4`,
+				`kooper_controller_processed_events_total{controller="test",type="add"} 1`,
+				`kooper_controller_processed_event_errors_total{controller="test",type="add"} 2`,
+				`kooper_controller_processed_events_total{controller="test",type="delete"} 3`,
+				`kooper_controller_processed_event_errors_total{controller="test",type="delete"} 4`,
 			},
 			expCode: 200,
 		},
 		{
-			name:      "Measuring the duration of processed Add events return the correct buckets.",
-			namespace: "spiderman",
+			name: "Measuring the duration of processed events return the correct buckets.",
 			addMetrics: func(p *metrics.Prometheus) {
 				now := time.Now()
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-2*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-3*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-11*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-280*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-1*time.Second))
-				p.ObserveDurationResourceAddEventProcessedError(handler, now.Add(-5*time.Second))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-110*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-560*time.Millisecond))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-4*time.Second))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-7*time.Second))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-12*time.Second))
-				p.ObserveDurationResourceAddEventProcessedSuccess(handler, now.Add(-30*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-2*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-3*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-11*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-280*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-1*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.AddEvent, now.Add(-5*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-110*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-560*time.Millisecond))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-4*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-7*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-12*time.Second))
+				p.ObserveDurationResourceEventProcessed(controller, metrics.DeleteEvent, now.Add(-30*time.Second))
 			},
 			expMetrics: []string{
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.005"} 2`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.01"} 2`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.025"} 3`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.05"} 3`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.1"} 3`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.25"} 3`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.5"} 4`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="1"} 4`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="2.5"} 5`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="5"} 5`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="10"} 6`,
-				`spiderman_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="add",le="+Inf"} 6`,
-				`spiderman_controller_processed_events_error_duration_seconds_count{handler="handler.Footler",type="add"} 6`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.005"} 2`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.01"} 2`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.025"} 3`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.05"} 3`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.1"} 3`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.25"} 3`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="0.5"} 4`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="1"} 4`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="2.5"} 5`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="5"} 5`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="10"} 6`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="add",le="+Inf"} 6`,
+				`kooper_controller_processed_event_duration_seconds_count{controller="test",type="add"} 6`,
 
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.005"} 0`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.01"} 0`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.025"} 0`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.05"} 0`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.1"} 0`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.25"} 1`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="0.5"} 1`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="1"} 2`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="2.5"} 2`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="5"} 3`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="10"} 4`,
-				`spiderman_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="add",le="+Inf"} 6`,
-				`spiderman_controller_processed_events_duration_seconds_count{handler="handler.Footler",type="add"} 6`,
-			},
-			expCode: 200,
-		},
-		{
-			name:      "Measuring the duration of processed Delete events return the correct buckets.",
-			namespace: "deadpool",
-			addMetrics: func(p *metrics.Prometheus) {
-				now := time.Now()
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-3*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-2*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-11*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-280*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-1*time.Second))
-				p.ObserveDurationResourceDeleteEventProcessedError(handler, now.Add(-5*time.Second))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-110*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-560*time.Millisecond))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-4*time.Second))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-7*time.Second))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-12*time.Second))
-				p.ObserveDurationResourceDeleteEventProcessedSuccess(handler, now.Add(-30*time.Second))
-			},
-			expMetrics: []string{
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.005"} 2`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.01"} 2`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.025"} 3`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.05"} 3`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.1"} 3`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.25"} 3`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.5"} 4`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="1"} 4`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="2.5"} 5`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="5"} 5`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="10"} 6`,
-				`deadpool_controller_processed_events_error_duration_seconds_bucket{handler="handler.Footler",type="delete",le="+Inf"} 6`,
-				`deadpool_controller_processed_events_error_duration_seconds_count{handler="handler.Footler",type="delete"} 6`,
-
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.005"} 0`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.01"} 0`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.025"} 0`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.05"} 0`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.1"} 0`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.25"} 1`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="0.5"} 1`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="1"} 2`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="2.5"} 2`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="5"} 3`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="10"} 4`,
-				`deadpool_controller_processed_events_duration_seconds_bucket{handler="handler.Footler",type="delete",le="+Inf"} 6`,
-				`deadpool_controller_processed_events_duration_seconds_count{handler="handler.Footler",type="delete"} 6`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.005"} 0`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.01"} 0`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.025"} 0`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.05"} 0`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.1"} 0`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.25"} 1`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="0.5"} 1`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="1"} 2`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="2.5"} 2`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="5"} 3`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="10"} 4`,
+				`kooper_controller_processed_event_duration_seconds_bucket{controller="test",type="delete",le="+Inf"} 6`,
+				`kooper_controller_processed_event_duration_seconds_count{controller="test",type="delete"} 6`,
 			},
 			expCode: 200,
 		},
@@ -171,7 +118,7 @@ func TestPrometheusMetrics(t *testing.T) {
 
 			// Create a new prometheus empty registry and a kooper prometheus recorder.
 			reg := prometheus.NewRegistry()
-			m := metrics.NewPrometheus(test.namespace, reg)
+			m := metrics.NewPrometheus(reg)
 
 			// Add desired metrics
 			test.addMetrics(m)

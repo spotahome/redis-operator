@@ -67,7 +67,7 @@ func createPrometheusRecorder(logger log.Logger) metrics.Recorder {
 	// We could use also prometheus global registry (the default one)
 	// prometheus.DefaultRegisterer instead of creating a new one
 	reg := prometheus.NewRegistry()
-	m := metrics.NewPrometheus(metricsPrefix, reg)
+	m := metrics.NewPrometheus(reg)
 
 	// Start serving metrics in background.
 	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
@@ -147,7 +147,10 @@ func main() {
 		log.Errorf("errors getting metrics backend: %s", err)
 		os.Exit(1)
 	}
-	ctrl := controller.NewSequential(30*time.Second, hand, retr, m, log)
+	cfg := &controller.Config{
+		Name: "metricsControllerTest",
+	}
+	ctrl := controller.New(cfg, hand, retr, nil, nil, m, log)
 
 	// Start our controller.
 	stopC := make(chan struct{})

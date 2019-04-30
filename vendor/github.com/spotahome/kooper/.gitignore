@@ -15,3 +15,6 @@
 
 # binary
 bin/
+
+# vendor
+vendor/

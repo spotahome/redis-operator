@@ -61,7 +61,7 @@ func (m *Main) Run() error {
 	// Create the metrics client.
 	registry := prometheus.NewRegistry()
 	metricsServer := metrics.NewPrometheusMetrics(m.flags.MetricsPath, metricsNamespace, http.DefaultServeMux, registry)
-	kooperMetricsServer := kmetrics.NewPrometheus(metricsNamespace, registry)
+	kooperMetricsServer := kmetrics.NewPrometheus(registry)
 
 	// Serve metrics.
 	go func() {

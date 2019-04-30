@@ -9,7 +9,7 @@ spec:
   selector:
     k8s-app: nginx-ingress-controller
   periodSeconds: 60
-  TerminationPercent: 35
-  MinimumInstances: 2
+  terminationPercent: 35
+  minimumInstances: 2
   #DryRun: true
 

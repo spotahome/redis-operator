@@ -1,3 +1,23 @@
+## 0.5.1 / 2019-01-19
+
+* [ENHANCEMENT] Add shortnames on CRD registration.
+
+## 0.5.0 / 2018-10-24
+
+* [ENHANCEMENT] Add support for Kubernetes 1.11.
+
+## 0.4.1 / 2018-10-07
+
+* [FEATURE] Add enable subresources support on CRD registration.
+* [FEATURE] Add category support on CRD registration.
+
+## 0.4.0 / 2018-07-21
+
+This release breaks Prometheus metrics.
+
+* [ENHANCEMENT] Add grafana dashboard for the refactored Prometheus metrics.
+* [ENHANCEMENT] Refactor metrics in favor of less metrics but simpler and more meaningful.
+
 ## 0.3.0 / 2018-07-02
 
 This release breaks handler interface to allow passing a context (used to allow tracing).

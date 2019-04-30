@@ -42,17 +42,16 @@ const (
 
 // generic controller is a controller that can be used to create different kind of controllers.
 type generic struct {
-	queue       workqueue.RateLimitingInterface // queue will have the jobs that the controller will get and send to handlers.
-	informer    cache.SharedIndexInformer       // informer will notify be inform us about resource changes.
-	handler     handler.Handler                 // handler is where the logic of resource processing.
-	handlerName string                          // handlerName will be used to identify and give more insight about metrics.
-	running     bool
-	runningMu   sync.Mutex
-	cfg         Config
-	tracer      opentracing.Tracer // use directly opentracing API because it's not an implementation.
-	metrics     metrics.Recorder
-	leRunner    leaderelection.Runner
-	logger      log.Logger
+	queue     workqueue.RateLimitingInterface // queue will have the jobs that the controller will get and send to handlers.
+	informer  cache.SharedIndexInformer       // informer will notify be inform us about resource changes.
+	handler   handler.Handler                 // handler is where the logic of resource processing.
+	running   bool
+	runningMu sync.Mutex
+	cfg       Config
+	tracer    opentracing.Tracer // use directly opentracing API because it's not an implementation.
+	metrics   metrics.Recorder
+	leRunner  leaderelection.Runner
+	logger    log.Logger
 }
 
 // NewSequential creates a new controller that will process the received events sequentially.
@@ -101,8 +100,11 @@ func New(cfg *Config, handler handler.Handler, retriever retrieve.Retriever, lea
 		tracer = &opentracing.NoopTracer{}
 	}
 
-	// Get a handler name for the metrics based on the type of the handler.
-	handlerName := reflect.TypeOf(handler).String()
+	// If no name on controller do our best to infer a name based on the handler.
+	if cfg.Name == "" {
+		cfg.Name = reflect.TypeOf(handler).String()
+		logger.Warningf("controller name not provided, it should have a name, fallback name to: %s", cfg.Name)
+	}
 
 	// Create the queue that will have our received job changes. It's rate limited so we don't have problems when
 	// a job processing errors every time is processed in a loop.
@@ -120,36 +122,35 @@ func New(cfg *Config, handler handler.Handler, retriever retrieve.Retriever, lea
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
 				queue.Add(key)
-				metricRecorder.IncResourceAddEventQueued(handlerName)
+				metricRecorder.IncResourceEventQueued(cfg.Name, metrics.AddEvent)
 			}
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(new)
 			if err == nil {
 				queue.Add(key)
-				metricRecorder.IncResourceAddEventQueued(handlerName)
+				metricRecorder.IncResourceEventQueued(cfg.Name, metrics.AddEvent)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 			if err == nil {
 				queue.Add(key)
-				metricRecorder.IncResourceDeleteEventQueued(handlerName)
+				metricRecorder.IncResourceEventQueued(cfg.Name, metrics.DeleteEvent)
 			}
 		},
 	}, cfg.ResyncInterval)
 
 	// Create our generic controller object.
 	return &generic{
-		queue:       queue,
-		informer:    informer,
-		logger:      logger,
-		metrics:     metricRecorder,
-		tracer:      tracer,
-		handler:     handler,
-		handlerName: handlerName,
-		leRunner:    leaderElector,
-		cfg:         *cfg,
+		queue:    queue,
+		informer: informer,
+		logger:   logger,
+		metrics:  metricRecorder,
+		tracer:   tracer,
+		handler:  handler,
+		leRunner: leaderElector,
+		cfg:      *cfg,
 	}
 }
 
@@ -251,6 +252,7 @@ func (g *generic) getAndProcessNextJob() bool {
 		// Job processing failed, requeue.
 		g.logger.Warningf("error processing %s job (requeued): %v", key, err)
 		g.queue.AddRateLimited(key)
+		g.metrics.IncResourceEventQueued(g.cfg.Name, metrics.RequeueEvent)
 		g.setReenqueueSpanInfo(key, span, err)
 	} else {
 		g.logger.Errorf("Error processing %s: %v", key, err)
@@ -279,6 +281,10 @@ func (g *generic) processJob(ctx context.Context, key string) error {
 
 func (g *generic) handleAdd(ctx context.Context, objKey string, obj runtime.Object) error {
 	start := time.Now()
+	g.metrics.IncResourceEventProcessed(g.cfg.Name, metrics.AddEvent)
+	defer func() {
+		g.metrics.ObserveDurationResourceEventProcessed(g.cfg.Name, metrics.AddEvent, start)
+	}()
 
 	// Create the span.
 	pSpan := opentracing.SpanFromContext(ctx)
@@ -303,17 +309,18 @@ func (g *generic) handleAdd(ctx context.Context, objKey string, obj runtime.Obje
 			messageKey, err,
 		)
 
-		g.metrics.IncResourceAddEventProcessedError(g.handlerName)
-		g.metrics.ObserveDurationResourceAddEventProcessedError(g.handlerName, start)
+		g.metrics.IncResourceEventProcessedError(g.cfg.Name, metrics.AddEvent)
 		return err
 	}
-	g.metrics.IncResourceAddEventProcessedSuccess(g.handlerName)
-	g.metrics.ObserveDurationResourceAddEventProcessedSuccess(g.handlerName, start)
 	return nil
 }
 
 func (g *generic) handleDelete(ctx context.Context, objKey string) error {
 	start := time.Now()
+	g.metrics.IncResourceEventProcessed(g.cfg.Name, metrics.DeleteEvent)
+	defer func() {
+		g.metrics.ObserveDurationResourceEventProcessed(g.cfg.Name, metrics.DeleteEvent, start)
+	}()
 
 	// Create the span.
 	pSpan := opentracing.SpanFromContext(ctx)
@@ -338,12 +345,9 @@ func (g *generic) handleDelete(ctx context.Context, objKey string) error {
 			messageKey, err,
 		)
 
-		g.metrics.IncResourceDeleteEventProcessedError(g.handlerName)
-		g.metrics.ObserveDurationResourceDeleteEventProcessedError(g.handlerName, start)
+		g.metrics.IncResourceEventProcessedError(g.cfg.Name, metrics.DeleteEvent)
 		return err
 	}
-	g.metrics.IncResourceDeleteEventProcessedSuccess(g.handlerName)
-	g.metrics.ObserveDurationResourceDeleteEventProcessedSuccess(g.handlerName, start)
 	return nil
 }
 

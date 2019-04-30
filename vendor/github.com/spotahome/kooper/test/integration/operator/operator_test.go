@@ -55,6 +55,7 @@ func (s *spidermanCRD) Initialize() error {
 	crd := crd.Conf{
 		Kind:       superherov1alpha1.SpidermanKind,
 		NamePlural: superherov1alpha1.SpidermanNamePlural,
+		ShortNames: superherov1alpha1.SpidermanShortNames,
 		Group:      superherov1alpha1.SchemeGroupVersion.Group,
 		Version:    superherov1alpha1.SchemeGroupVersion.Version,
 		Scope:      superherov1alpha1.SpidermanScope,
