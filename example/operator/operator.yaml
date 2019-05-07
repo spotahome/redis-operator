@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -18,14 +18,14 @@ spec:
     spec:
       serviceAccountName: redisoperator
       containers:
-      - image: quay.io/spotahome/redis-operator:latest
-        imagePullPolicy: IfNotPresent
-        name: app
-        resources:
-          limits:
-            cpu: 100m
-            memory: 50Mi
-          requests:
-            cpu: 10m
-            memory: 50Mi
+        - image: quay.io/spotahome/redis-operator:latest
+          imagePullPolicy: IfNotPresent
+          name: app
+          resources:
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            requests:
+              cpu: 10m
+              memory: 50Mi
       restartPolicy: Always

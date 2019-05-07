@@ -1,4 +1,4 @@
-apiVersion: storage.spotahome.com/v1alpha2
+apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
 metadata:
   name: redisfailover
@@ -7,7 +7,7 @@ spec:
     replicas: 3
   redis:
     replicas: 3
-  securityContext:
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
