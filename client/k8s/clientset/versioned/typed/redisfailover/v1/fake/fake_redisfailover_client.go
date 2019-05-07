@@ -24,17 +24,17 @@ import (
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeStorageV1 struct {
+type FakeDatabasesV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeStorageV1) RedisFailovers(namespace string) v1.RedisFailoverInterface {
+func (c *FakeDatabasesV1) RedisFailovers(namespace string) v1.RedisFailoverInterface {
 	return &FakeRedisFailovers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeStorageV1) RESTClient() rest.Interface {
+func (c *FakeDatabasesV1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

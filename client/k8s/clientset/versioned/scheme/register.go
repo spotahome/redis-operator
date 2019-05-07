@@ -19,7 +19,7 @@ limitations under the License.
 package scheme
 
 import (
-	storagev1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	databasesv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,5 +50,5 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
-	storagev1.AddToScheme(scheme)
+	databasesv1.AddToScheme(scheme)
 }
