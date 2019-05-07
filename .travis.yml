@@ -12,7 +12,7 @@ go_import_path: github.com/spotahome/redis-operator
 before_install:
   - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.25.2/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
   - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.5/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-  - curl https://storage.googleapis.com/kubernetes-helm/helm-v2.13.1-linux-amd64.tar.gz | tar -zxvf helm-v2.13.1-linux-amd64.tar.gz | sudo mv linux-amd64/helm /usr/local/bin/helm
+  - curl -Lo helm.tgz https://storage.googleapis.com/kubernetes-helm/helm-v2.13.1-linux-amd64.tar.gz && tar -zxvf helm.tgz && sudo mv linux-amd64/helm /usr/local/bin/helm
   - helm init -c
 
 env:
