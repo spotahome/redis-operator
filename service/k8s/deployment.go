@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,13 +15,13 @@ import (
 
 // Deployment the Deployment service that knows how to interact with k8s to manage them
 type Deployment interface {
-	GetDeployment(namespace, name string) (*appsv1beta2.Deployment, error)
+	GetDeployment(namespace, name string) (*appsv1.Deployment, error)
 	GetDeploymentPods(namespace, name string) (*corev1.PodList, error)
-	CreateDeployment(namespace string, deployment *appsv1beta2.Deployment) error
-	UpdateDeployment(namespace string, deployment *appsv1beta2.Deployment) error
-	CreateOrUpdateDeployment(namespace string, deployment *appsv1beta2.Deployment) error
+	CreateDeployment(namespace string, deployment *appsv1.Deployment) error
+	UpdateDeployment(namespace string, deployment *appsv1.Deployment) error
+	CreateOrUpdateDeployment(namespace string, deployment *appsv1.Deployment) error
 	DeleteDeployment(namespace string, name string) error
-	ListDeployments(namespace string) (*appsv1beta2.DeploymentList, error)
+	ListDeployments(namespace string) (*appsv1.DeploymentList, error)
 }
 
 // DeploymentService is the service account service implementation using API calls to kubernetes.
@@ -39,8 +39,8 @@ func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger) *D
 	}
 }
 
-func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1beta2.Deployment, error) {
-	deployment, err := d.kubeClient.AppsV1beta2().Deployments(namespace).Get(name, metav1.GetOptions{})
+func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1.Deployment, error) {
+	deployment, err := d.kubeClient.AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1beta2.
 }
 
 func (d *DeploymentService) GetDeploymentPods(namespace, name string) (*corev1.PodList, error) {
-	deployment, err := d.kubeClient.AppsV1beta2().Deployments(namespace).Get(name, metav1.GetOptions{})
+	deployment, err := d.kubeClient.AppsV1().Deployments(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +60,8 @@ func (d *DeploymentService) GetDeploymentPods(namespace, name string) (*corev1.P
 	return d.kubeClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector})
 }
 
-func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv1beta2.Deployment) error {
-	_, err := d.kubeClient.AppsV1beta2().Deployments(namespace).Create(deployment)
+func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv1.Deployment) error {
+	_, err := d.kubeClient.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
 		return err
 	}
@@ -69,8 +69,8 @@ func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv
 	return err
 }
 
-func (d *DeploymentService) UpdateDeployment(namespace string, deployment *appsv1beta2.Deployment) error {
-	_, err := d.kubeClient.AppsV1beta2().Deployments(namespace).Update(deployment)
+func (d *DeploymentService) UpdateDeployment(namespace string, deployment *appsv1.Deployment) error {
+	_, err := d.kubeClient.AppsV1().Deployments(namespace).Update(deployment)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (d *DeploymentService) UpdateDeployment(namespace string, deployment *appsv
 	return err
 }
 
-func (d *DeploymentService) CreateOrUpdateDeployment(namespace string, deployment *appsv1beta2.Deployment) error {
+func (d *DeploymentService) CreateOrUpdateDeployment(namespace string, deployment *appsv1.Deployment) error {
 	storedDeployment, err := d.GetDeployment(namespace, deployment.Name)
 	if err != nil {
 		// If no resource we need to create.
@@ -98,9 +98,9 @@ func (d *DeploymentService) CreateOrUpdateDeployment(namespace string, deploymen
 
 func (d *DeploymentService) DeleteDeployment(namespace, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return d.kubeClient.AppsV1beta2().Deployments(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation})
+	return d.kubeClient.AppsV1().Deployments(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation})
 }
 
-func (d *DeploymentService) ListDeployments(namespace string) (*appsv1beta2.DeploymentList, error) {
-	return d.kubeClient.AppsV1beta2().Deployments(namespace).List(metav1.ListOptions{})
+func (d *DeploymentService) ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
+	return d.kubeClient.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
 }
