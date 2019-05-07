@@ -53,7 +53,7 @@ type redisFailovers struct {
 }
 
 // newRedisFailovers returns a RedisFailovers
-func newRedisFailovers(c *StorageV1Client, namespace string) *redisFailovers {
+func newRedisFailovers(c *DatabasesV1Client, namespace string) *redisFailovers {
 	return &redisFailovers{
 		client: c.RESTClient(),
 		ns:     namespace,

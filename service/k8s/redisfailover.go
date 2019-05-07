@@ -34,10 +34,10 @@ func NewRedisFailoverService(crdcli redisfailoverclientset.Interface, logger log
 
 // ListRedisFailovers satisfies redisfailover.Service interface.
 func (r *RedisFailoverService) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
-	return r.crdClient.StorageV1().RedisFailovers(namespace).List(opts)
+	return r.crdClient.DatabasesV1().RedisFailovers(namespace).List(opts)
 }
 
 // WatchRedisFailovers satisfies redisfailover.Service interface.
 func (r *RedisFailoverService) WatchRedisFailovers(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return r.crdClient.StorageV1().RedisFailovers(namespace).Watch(opts)
+	return r.crdClient.DatabasesV1().RedisFailovers(namespace).Watch(opts)
 }

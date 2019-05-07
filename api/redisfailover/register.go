@@ -1,5 +1,5 @@
 package redisfailover
 
 const (
-	GroupName = "storage.spotahome.com"
+	GroupName = "databases.spotahome.com"
 )

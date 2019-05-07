@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	storagev1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
+	databasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -27,27 +27,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	StorageV1() storagev1.StorageV1Interface
+	DatabasesV1() databasesv1.DatabasesV1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Storage() storagev1.StorageV1Interface
+	Databases() databasesv1.DatabasesV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	storageV1 *storagev1.StorageV1Client
+	databasesV1 *databasesv1.DatabasesV1Client
 }
 
-// StorageV1 retrieves the StorageV1Client
-func (c *Clientset) StorageV1() storagev1.StorageV1Interface {
-	return c.storageV1
+// DatabasesV1 retrieves the DatabasesV1Client
+func (c *Clientset) DatabasesV1() databasesv1.DatabasesV1Interface {
+	return c.databasesV1
 }
 
-// Deprecated: Storage retrieves the default version of StorageClient.
+// Deprecated: Databases retrieves the default version of DatabasesClient.
 // Please explicitly pick a version.
-func (c *Clientset) Storage() storagev1.StorageV1Interface {
-	return c.storageV1
+func (c *Clientset) Databases() databasesv1.DatabasesV1Interface {
+	return c.databasesV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -66,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.storageV1, err = storagev1.NewForConfig(&configShallowCopy)
+	cs.databasesV1, err = databasesv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.storageV1 = storagev1.NewForConfigOrDie(c)
+	cs.databasesV1 = databasesv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.storageV1 = storagev1.New(c)
+	cs.databasesV1 = databasesv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

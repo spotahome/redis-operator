@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
-	storagev1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
-	fakestoragev1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1/fake"
+	databasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
+	fakedatabasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -71,12 +71,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// StorageV1 retrieves the StorageV1Client
-func (c *Clientset) StorageV1() storagev1.StorageV1Interface {
-	return &fakestoragev1.FakeStorageV1{Fake: &c.Fake}
+// DatabasesV1 retrieves the DatabasesV1Client
+func (c *Clientset) DatabasesV1() databasesv1.DatabasesV1Interface {
+	return &fakedatabasesv1.FakeDatabasesV1{Fake: &c.Fake}
 }
 
-// Storage retrieves the StorageV1Client
-func (c *Clientset) Storage() storagev1.StorageV1Interface {
-	return &fakestoragev1.FakeStorageV1{Fake: &c.Fake}
+// Databases retrieves the DatabasesV1Client
+func (c *Clientset) Databases() databasesv1.DatabasesV1Interface {
+	return &fakedatabasesv1.FakeDatabasesV1{Fake: &c.Fake}
 }
