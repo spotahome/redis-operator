@@ -148,8 +148,8 @@ func (c *clients) testCRCreation(t *testing.T) {
 		},
 	}
 
-	c.rfClient.StorageV1().RedisFailovers(namespace).Create(toCreate)
-	gotRF, err := c.rfClient.StorageV1().RedisFailovers(namespace).Get(name, metav1.GetOptions{})
+	c.rfClient.DatabasesV1().RedisFailovers(namespace).Create(toCreate)
+	gotRF, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Get(name, metav1.GetOptions{})
 
 	assert.NoError(err)
 	assert.Equal(toCreate.Spec, gotRF.Spec)
