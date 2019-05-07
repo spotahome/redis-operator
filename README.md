@@ -81,13 +81,13 @@ You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of No
 Example:
 
 ```yaml
-apiVersion: v1
-items:
-  - apiVersion: storage.spotahome.com/v1alpha2
-    kind: RedisFailover
-    metadata:
-      name: redis
-    spec:
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+spec:
+  redis:
+    affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
@@ -96,21 +96,23 @@ items:
                   operator: In
                   values:
                     - productionnodes
-      hardAntiAffinity: false
-      redis: null
-      sentinel:
-        replicas: 3
-        resources:
-          limits:
-            memory: 100Mi
-          requests:
-            cpu: 100m
-      tolerations:
-        - effect: NoExecute
-          key: dedicated
-          operator: Equal
-          value: production
-kind: List
+    tolerations:
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: production
+  sentinel:
+    replicas: 3
+    resources:
+      limits:
+        memory: 100Mi
+      requests:
+        cpu: 100m
+    tolerations:
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: production
 ```
 
 ### Custom configurations
@@ -148,9 +150,10 @@ This behavior is configurable, creating a configmap and indicating to use it. An
 **Important**: the configmap has to be in the same namespace. The configmap has to have a `shutdown.sh` data, containing the script.
 
 ### Custom SecurityContext
+
 By default Kubernetes will run containers as the user specified in the Dockerfile (or the root user if not specified), this is not always desirable.
 If you need the containers to run as a specific user (or provide any other PodSecurityContext options) then you can specify a custom `securityContext` in the
-`redisfailover` object.  See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
+`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
 
 ### Custom command
 
