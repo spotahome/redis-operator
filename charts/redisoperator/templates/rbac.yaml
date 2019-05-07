@@ -16,7 +16,7 @@ metadata:
 {{ include "common-labels" . | indent 4 }}
 rules:
   - apiGroups:
-      - storage.spotahome.com
+      - databases.spotahome.com
     resources:
       - redisfailovers
     verbs:

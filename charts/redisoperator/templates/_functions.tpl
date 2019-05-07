@@ -1,14 +1,13 @@
 {{/* Build the Spotahome standard labels */}}
 {{- define "common-labels" -}}
-app: {{ .Chart.Name | quote }}
-team: {{ .Values.team | quote }}
+app.kubernetes.io/name: {{ .Chart.Name | quote }}
 {{- end }}
 
 {{- define "helm-labels" -}}
 {{ include "common-labels" . }}
-chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
-release: {{ .Release.Name | quote }}
-heritage: {{ .Release.Service | quote }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end }}
 
 {{/* Build wide-used variables the application */}}

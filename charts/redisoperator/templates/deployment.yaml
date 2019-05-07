@@ -1,20 +1,20 @@
-apiVersion: {{ .Values.apiVersion }}
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "name" . | quote }}
   labels:
-    component: app
+    app.kubernetes.io/component: app
 {{ include "helm-labels" . | indent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: app
+      app.kubernetes.io/component: app
 {{ include "common-labels" . | indent 6 }}
   template:
     metadata:
       labels:
-        component: app
+        app.kubernetes.io/component: app
 {{ include "common-labels" . | indent 8 }}
 {{- if .Values.podAnnotations }}
       annotations:
