@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,13 +23,13 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 	tests := []struct {
 		name           string
 		ownerRefs      []metav1.OwnerReference
-		expectedSS     appsv1beta2.StatefulSet
+		expectedSS     appsv1.StatefulSet
 		rfRedisStorage redisfailoverv1.RedisStorage
 	}{
 		{
 			name: "Default values",
-			expectedSS: appsv1beta2.StatefulSet{
-				Spec: appsv1beta2.StatefulSetSpec{
+			expectedSS: appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -87,8 +87,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		},
 		{
 			name: "Defined an emptydir with storage on memory",
-			expectedSS: appsv1beta2.StatefulSet{
-				Spec: appsv1beta2.StatefulSetSpec{
+			expectedSS: appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -152,8 +152,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		},
 		{
 			name: "Defined an persistentvolumeclaim",
-			expectedSS: appsv1beta2.StatefulSet{
-				Spec: appsv1beta2.StatefulSetSpec{
+			expectedSS: appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -243,8 +243,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					Name: "testing",
 				},
 			},
-			expectedSS: appsv1beta2.StatefulSet{
-				Spec: appsv1beta2.StatefulSetSpec{
+			expectedSS: appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -339,8 +339,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					Name: "testing",
 				},
 			},
-			expectedSS: appsv1beta2.StatefulSet{
-				Spec: appsv1beta2.StatefulSetSpec{
+			expectedSS: appsv1.StatefulSet{
+				Spec: appsv1.StatefulSetSpec{
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -433,12 +433,12 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		rf := generateRF()
 		rf.Spec.Redis.Storage = test.rfRedisStorage
 
-		generatedStatefulSet := appsv1beta2.StatefulSet{}
+		generatedStatefulSet := appsv1.StatefulSet{}
 
 		ms := &mK8SService.Services{}
 		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
 		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
-			ss := args.Get(1).(*appsv1beta2.StatefulSet)
+			ss := args.Get(1).(*appsv1.StatefulSet)
 			generatedStatefulSet = *ss
 		}).Return(nil)
 
@@ -492,7 +492,7 @@ func TestRedisStatefulSetCommands(t *testing.T) {
 		ms := &mK8SService.Services{}
 		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
 		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
-			ss := args.Get(1).(*appsv1beta2.StatefulSet)
+			ss := args.Get(1).(*appsv1.StatefulSet)
 			gotCommands = ss.Spec.Template.Spec.Containers[0].Command
 		}).Return(nil)
 
@@ -544,7 +544,7 @@ func TestSentinelDeploymentCommands(t *testing.T) {
 		ms := &mK8SService.Services{}
 		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
 		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
-			d := args.Get(1).(*appsv1beta2.Deployment)
+			d := args.Get(1).(*appsv1.Deployment)
 			gotCommands = d.Spec.Template.Spec.Containers[0].Command
 		}).Return(nil)
 
