@@ -22,6 +22,9 @@ const (
 	SpidermanScope      = apiextensionsv1beta1.NamespaceScoped
 )
 
+// SpidermanShortName is used to register resource short names
+var SpidermanShortNames = []string{"spd", "spm"}
+
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = schema.GroupVersion{Group: superhero.GroupName, Version: version}
 

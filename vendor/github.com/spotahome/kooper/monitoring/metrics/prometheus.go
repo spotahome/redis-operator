@@ -7,29 +7,24 @@ import (
 )
 
 const (
+	promNamespace           = "kooper"
 	promControllerSubsystem = "controller"
-)
-
-const (
-	addEventType = "add"
-	delEventType = "delete"
 )
 
 // Prometheus implements the metrics recording in a prometheus registry.
 type Prometheus struct {
 	// Metrics
-	queuedEvents         *prometheus.CounterVec
-	processedSuc         *prometheus.CounterVec
-	processedError       *prometheus.CounterVec
-	processedSucDuration *prometheus.HistogramVec
-	processedErrDuration *prometheus.HistogramVec
+	queuedEvents           *prometheus.CounterVec
+	processedEvents        *prometheus.CounterVec
+	processedEventErrors   *prometheus.CounterVec
+	processedEventDuration *prometheus.HistogramVec
 
 	reg prometheus.Registerer
 }
 
 // NewPrometheus returns a new Prometheus metrics backend with metrics prefixed by the namespace.
-func NewPrometheus(namespace string, registry prometheus.Registerer) *Prometheus {
-	return NewPrometheusWithBuckets(prometheus.DefBuckets, namespace, registry)
+func NewPrometheus(registry prometheus.Registerer) *Prometheus {
+	return NewPrometheusWithBuckets(prometheus.DefBuckets, registry)
 }
 
 // NewPrometheusWithBuckets returns a new Prometheus metrics backend with metrics prefixed by the
@@ -37,45 +32,36 @@ func NewPrometheus(namespace string, registry prometheus.Registerer) *Prometheus
 // the default buckets don't work. This could happen when the time to process an event is not on the
 // range of 5ms-10s duration.
 // Check https://godoc.org/github.com/prometheus/client_golang/prometheus#pkg-variables
-func NewPrometheusWithBuckets(buckets []float64, namespace string, registry prometheus.Registerer) *Prometheus {
+func NewPrometheusWithBuckets(buckets []float64, registry prometheus.Registerer) *Prometheus {
 	p := &Prometheus{
 		queuedEvents: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: promNamespace,
 			Subsystem: promControllerSubsystem,
 			Name:      "queued_events_total",
 			Help:      "Total number of events queued.",
-		}, []string{"handler", "type"}),
+		}, []string{"controller", "type"}),
 
-		processedSuc: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
+		processedEvents: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: promNamespace,
 			Subsystem: promControllerSubsystem,
 			Name:      "processed_events_total",
 			Help:      "Total number of successfuly processed events.",
-		}, []string{"handler", "type"}),
+		}, []string{"controller", "type"}),
 
-		processedError: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
+		processedEventErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: promNamespace,
 			Subsystem: promControllerSubsystem,
-			Name:      "processed_events_errors_total",
+			Name:      "processed_event_errors_total",
 			Help:      "Total number of errors processing events.",
-		}, []string{"handler", "type"}),
+		}, []string{"controller", "type"}),
 
-		processedSucDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: namespace,
+		processedEventDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: promNamespace,
 			Subsystem: promControllerSubsystem,
-			Name:      "processed_events_duration_seconds",
+			Name:      "processed_event_duration_seconds",
 			Help:      "The duration for a successful event to be processed.",
 			Buckets:   buckets,
-		}, []string{"handler", "type"}),
-
-		processedErrDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: namespace,
-			Subsystem: promControllerSubsystem,
-			Name:      "processed_events_error_duration_seconds",
-			Help:      "The duration for a event finished in error to be processed.",
-			Buckets:   buckets,
-		}, []string{"handler", "type"}),
-
+		}, []string{"controller", "type"}),
 		reg: registry,
 	}
 
@@ -84,67 +70,31 @@ func NewPrometheusWithBuckets(buckets []float64, namespace string, registry prom
 }
 
 func (p *Prometheus) registerMetrics() {
-	p.reg.MustRegister(p.queuedEvents)
-	p.reg.MustRegister(p.processedSuc)
-	p.reg.MustRegister(p.processedError)
-	p.reg.MustRegister(p.processedSucDuration)
-	p.reg.MustRegister(p.processedErrDuration)
+	p.reg.MustRegister(
+		p.queuedEvents,
+		p.processedEvents,
+		p.processedEventErrors,
+		p.processedEventDuration)
+
 }
 
-// IncResourceDeleteEventQueued satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceDeleteEventQueued(handler string) {
-	p.queuedEvents.WithLabelValues(handler, delEventType).Inc()
+// IncResourceEventQueued satisfies metrics.Recorder interface.
+func (p *Prometheus) IncResourceEventQueued(controller string, eventType EventType) {
+	p.queuedEvents.WithLabelValues(controller, string(eventType)).Inc()
 }
 
-// IncResourceAddEventQueued satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceAddEventQueued(handler string) {
-	p.queuedEvents.WithLabelValues(handler, addEventType).Inc()
+// IncResourceEventProcessed satisfies metrics.Recorder interface.
+func (p *Prometheus) IncResourceEventProcessed(controller string, eventType EventType) {
+	p.processedEvents.WithLabelValues(controller, string(eventType)).Inc()
 }
 
-// IncResourceAddEventProcessedSuccess satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceAddEventProcessedSuccess(handler string) {
-	p.processedSuc.WithLabelValues(handler, addEventType).Inc()
+// IncResourceEventProcessedError satisfies metrics.Recorder interface.
+func (p *Prometheus) IncResourceEventProcessedError(controller string, eventType EventType) {
+	p.processedEventErrors.WithLabelValues(controller, string(eventType)).Inc()
 }
 
-// IncResourceAddEventProcessedError satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceAddEventProcessedError(handler string) {
-	p.processedError.WithLabelValues(handler, addEventType).Inc()
-}
-
-// IncResourceDeleteEventProcessedSuccess satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceDeleteEventProcessedSuccess(handler string) {
-	p.processedSuc.WithLabelValues(handler, delEventType).Inc()
-}
-
-// IncResourceDeleteEventProcessedError satisfies metrics.Recorder interface.
-func (p *Prometheus) IncResourceDeleteEventProcessedError(handler string) {
-	p.processedError.WithLabelValues(handler, delEventType).Inc()
-}
-
-// ObserveDurationResourceAddEventProcessedSuccess satisfies metrics.Recorder interface.
-func (p *Prometheus) ObserveDurationResourceAddEventProcessedSuccess(handler string, start time.Time) {
-	d := p.getDuration(start)
-	p.processedSucDuration.WithLabelValues(handler, addEventType).Observe(d.Seconds())
-}
-
-// ObserveDurationResourceAddEventProcessedError satisfies metrics.Recorder interface.
-func (p *Prometheus) ObserveDurationResourceAddEventProcessedError(handler string, start time.Time) {
-	d := p.getDuration(start)
-	p.processedErrDuration.WithLabelValues(handler, addEventType).Observe(d.Seconds())
-}
-
-// ObserveDurationResourceDeleteEventProcessedSuccess satisfies metrics.Recorder interface.
-func (p *Prometheus) ObserveDurationResourceDeleteEventProcessedSuccess(handler string, start time.Time) {
-	d := p.getDuration(start)
-	p.processedSucDuration.WithLabelValues(handler, delEventType).Observe(d.Seconds())
-}
-
-// ObserveDurationResourceDeleteEventProcessedError satisfies metrics.Recorder interface.
-func (p *Prometheus) ObserveDurationResourceDeleteEventProcessedError(handler string, start time.Time) {
-	d := p.getDuration(start)
-	p.processedErrDuration.WithLabelValues(handler, delEventType).Observe(d.Seconds())
-}
-
-func (p *Prometheus) getDuration(start time.Time) time.Duration {
-	return time.Now().Sub(start)
+// ObserveDurationResourceEventProcessed satisfies metrics.Recorder interface.
+func (p *Prometheus) ObserveDurationResourceEventProcessed(controller string, eventType EventType, start time.Time) {
+	secs := time.Now().Sub(start).Seconds()
+	p.processedEventDuration.WithLabelValues(controller, string(eventType)).Observe(secs)
 }

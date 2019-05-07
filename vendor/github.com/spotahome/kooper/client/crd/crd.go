@@ -21,6 +21,7 @@ const (
 
 var (
 	clusterMinVersion = kubeversion.MustParseGeneric("v1.7.0")
+	defCategories     = []string{"all", "kooper"}
 )
 
 // Scope is the scope of a CRD.
@@ -35,11 +36,28 @@ const (
 
 // Conf is the configuration required to create a CRD
 type Conf struct {
-	Kind       string
+	// Kind is the kind of the CRD.
+	Kind string
+	// NamePlural is the plural name of the CRD (in most cases the plural of Kind).
 	NamePlural string
-	Group      string
-	Version    string
-	Scope      Scope
+	// ShortNames are short names of the CRD.  It must be all lowercase.
+	ShortNames []string
+	// Group is the group of the CRD.
+	Group string
+	// Version is the version of the CRD.
+	Version string
+	// Scope is the scode of the CRD (cluster scoped or namespace scoped).
+	Scope Scope
+	// Categories is a way of grouping multiple resources (example `kubectl get all`),
+	// Kooper adds the CRD to `all` and `kooper` categories(apart from the described in Caregories).
+	Categories []string
+	// EnableStatus will enable the Status subresource on the CRD. This is feature
+	// entered in v1.10 with the CRD subresources.
+	// By default is disabled.
+	EnableStatusSubresource bool
+	// EnableScaleSubresource by default will be nil and means disabled, if
+	// the object is present it will set this scale configuration to the subresource.
+	EnableScaleSubresource *apiextensionsv1beta1.CustomResourceSubresourceScale
 }
 
 func (c *Conf) getName() string {
@@ -88,7 +106,11 @@ func (c *Client) EnsurePresent(conf Conf) error {
 		return err
 	}
 
+	// Get the generated name of the CRD.
 	crdName := conf.getName()
+
+	// Create subresources
+	subres := c.createSubresources(conf)
 
 	crd := &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -99,9 +121,12 @@ func (c *Client) EnsurePresent(conf Conf) error {
 			Version: conf.Version,
 			Scope:   conf.Scope,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-				Plural: conf.NamePlural,
-				Kind:   conf.Kind,
+				Plural:     conf.NamePlural,
+				Kind:       conf.Kind,
+				ShortNames: conf.ShortNames,
+				Categories: c.addDefaultCaregories(conf.Categories),
 			},
+			Subresources: subres,
 		},
 	}
 
@@ -120,6 +145,24 @@ func (c *Client) EnsurePresent(conf Conf) error {
 	c.logger.Infof("crd %s ready", crdName)
 
 	return nil
+}
+
+func (c *Client) createSubresources(conf Conf) *apiextensionsv1beta1.CustomResourceSubresources {
+	if !conf.EnableStatusSubresource && conf.EnableScaleSubresource == nil {
+		return nil
+	}
+
+	sr := &apiextensionsv1beta1.CustomResourceSubresources{}
+
+	if conf.EnableStatusSubresource {
+		sr.Status = &apiextensionsv1beta1.CustomResourceSubresourceStatus{}
+	}
+
+	if conf.EnableScaleSubresource != nil {
+		sr.Scale = conf.EnableScaleSubresource
+	}
+
+	return sr
 }
 
 // WaitToBePresent satisfies crd.Interface.
@@ -171,4 +214,21 @@ func (c *Client) validClusterForCRDs() error {
 	}
 
 	return nil
+}
+
+// addAllCaregory adds the `all` category if isn't present
+func (c *Client) addDefaultCaregories(categories []string) []string {
+	currentCats := make(map[string]bool)
+	for _, ca := range categories {
+		currentCats[ca] = true
+	}
+
+	// Add default categories if required.
+	for _, ca := range defCategories {
+		if _, ok := currentCats[ca]; !ok {
+			categories = append(categories, ca)
+		}
+	}
+
+	return categories
 }

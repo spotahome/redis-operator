@@ -21,6 +21,9 @@ const (
 	PodTerminatorScope      = apiextensionsv1beta1.ClusterScoped
 )
 
+// PodTerminatorShortNames is used to register resource short names
+var PodTerminatorShortNames = []string{"pt", "ptc", "pto"}
+
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = schema.GroupVersion{Group: podterminatoroperatorchaos.GroupName, Version: version}
 

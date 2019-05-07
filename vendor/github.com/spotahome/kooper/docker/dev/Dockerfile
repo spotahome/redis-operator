@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine
+FROM golang:1.11-alpine
 
 RUN apk --no-cache add \
     g++ \
@@ -14,6 +14,13 @@ RUN addgroup -g $gid kooper && \
     adduser -D -u $uid -G kooper kooper && \
     chown kooper:kooper -R /go
 
-
 USER kooper
-WORKDIR /go/src/github.com/spotahome/kooper
+
+# Fill go mod cache.
+RUN mkdir /tmp/cache
+COPY go.mod /tmp/cache
+COPY go.sum /tmp/cache
+RUN cd /tmp/cache && \
+    go mod download
+
+WORKDIR /src

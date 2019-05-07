@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ func (c *FakeRedisFailovers) List(opts v1.ListOptions) (result *redisfailover_v1
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &redisfailover_v1.RedisFailoverList{}
+	list := &redisfailover_v1.RedisFailoverList{ListMeta: obj.(*redisfailover_v1.RedisFailoverList).ListMeta}
 	for _, item := range obj.(*redisfailover_v1.RedisFailoverList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

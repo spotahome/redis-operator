@@ -7,13 +7,11 @@ var Dummy = &dummy{}
 
 type dummy struct{}
 
-func (d *dummy) IncResourceDeleteEventQueued(_ string)                                    {}
-func (d *dummy) IncResourceAddEventQueued(_ string)                                       {}
-func (d *dummy) IncResourceAddEventProcessedSuccess(_ string)                             {}
-func (d *dummy) IncResourceAddEventProcessedError(_ string)                               {}
-func (d *dummy) IncResourceDeleteEventProcessedSuccess(_ string)                          {}
-func (d *dummy) IncResourceDeleteEventProcessedError(_ string)                            {}
-func (d *dummy) ObserveDurationResourceAddEventProcessedSuccess(_ string, _ time.Time)    {}
-func (d *dummy) ObserveDurationResourceAddEventProcessedError(_ string, _ time.Time)      {}
-func (d *dummy) ObserveDurationResourceDeleteEventProcessedSuccess(_ string, _ time.Time) {}
-func (d *dummy) ObserveDurationResourceDeleteEventProcessedError(_ string, _ time.Time)   {}
+func (*dummy) IncResourceEventQueued(_ string, _ EventType) {
+}
+func (*dummy) IncResourceEventProcessed(_ string, _ EventType) {
+}
+func (*dummy) IncResourceEventProcessedError(_ string, _ EventType) {
+}
+func (*dummy) ObserveDurationResourceEventProcessed(_ string, _ EventType, _ time.Time) {
+}

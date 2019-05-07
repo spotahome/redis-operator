@@ -19,7 +19,7 @@ In Kooper the concepts of controller an operator are very simple, a controller c
 - Remove complexity from operators and controllers so the focus is on domain logic.
 - Easy to mock and extend functionality (Go interfaces!).
 - Only support CRD, no TPR support (Kubernetes >=1.7).
-- Controller metrics.
+- Controller metrics (with a [Grafana dashboard][grafana-dashboard] based on Prometheus metrics backend).
 - Leader election.
 - Tracing with [Opentracing][opentracing-url].
 
@@ -115,12 +115,14 @@ Managing a project that uses different kubernetes libs as dependencies can be tr
 
 ## Compatibility matrix
 
-|             | Kubernetes 1.8 | Kubernetes 1.9 | Kubernetes 1.10 | Kubernetes 1.11 |
-| ----------- | -------------- | -------------- | --------------- | --------------- |
-| kooper 0.1  | ✓              | ✓              | ?               | ?               |
-| kooper 0.2  | ✓              | ✓              | ?               | ?               |
-| kooper 0.3  | ?              | ?+             | ✓               | ?               |
-| kooper HEAD | ?              | ?              | ?+              | ✓               |
+|             | Kubernetes 1.8 | Kubernetes 1.9 | Kubernetes 1.10 | Kubernetes 1.11 | Kubernetes 1.12 |
+| ----------- | -------------- | -------------- | --------------- | --------------- | --------------- |
+| kooper 0.1  | ✓              | ✓              | ?               | ?               | ?               |
+| kooper 0.2  | ✓              | ✓              | ?               | ?               | ?               |
+| kooper 0.3  | ?              | ?+             | ✓               | ?               | ?               |
+| kooper 0.4  | ?              | ?+             | ✓               | ?               | ?               |
+| kooper 0.5  | ?              | ?              | ?+              | ✓               | ?               |
+| kooper HEAD | ?              | ?              | ?+              | ?+              | ✓               |
 
 Based on this matrix Kooper needs different versions of Kubernetes dependencies.
 
@@ -182,3 +184,4 @@ The starting point would be to check the [concepts](docs/concepts.md) and then c
 [dependency-example]: https://github.com/slok/kooper-as-dependency
 [dep-project]: https://github.com/golang/dep
 [opentracing-url]: http://opentracing.io/
+[grafana-dashboard]: https://grafana.com/dashboards/7082
