@@ -111,7 +111,7 @@ func TestRedisFailover(t *testing.T) {
 	require.True(ok, "the custom resource has to be created to continue")
 
 	// Giving time to the operator to create the resources
-	time.Sleep(6 * time.Minute)
+	time.Sleep(3 * time.Minute)
 
 	// Check that a Redis Statefulset is created and the size of it is the one defined by the
 	// Redis Failover definition created before.
@@ -157,14 +157,14 @@ func (c *clients) testCRCreation(t *testing.T) {
 
 func (c *clients) testRedisStatefulSet(t *testing.T) {
 	assert := assert.New(t)
-	redisSS, err := c.k8sClient.AppsV1beta2().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Equal(redisSize, int32(redisSS.Status.Replicas))
 }
 
 func (c *clients) testSentinelDeployment(t *testing.T) {
 	assert := assert.New(t)
-	sentinelD, err := c.k8sClient.AppsV1beta2().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
+	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Equal(3, int(sentinelD.Status.Replicas))
 }
@@ -173,7 +173,7 @@ func (c *clients) testRedisMaster(t *testing.T) {
 	assert := assert.New(t)
 	masters := []string{}
 
-	redisSS, err := c.k8sClient.AppsV1beta2().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 
 	listOptions := metav1.ListOptions{
@@ -196,7 +196,7 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 	assert := assert.New(t)
 	masters := []string{}
 
-	sentinelD, err := c.k8sClient.AppsV1beta2().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
+	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 
 	listOptions := metav1.ListOptions{

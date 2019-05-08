@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -155,7 +155,7 @@ fi`
 	}
 }
 
-func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.StatefulSet {
+func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1.StatefulSet {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
@@ -165,17 +165,17 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 
-	ss := &appsv1beta2.StatefulSet{
+	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
 		},
-		Spec: appsv1beta2.StatefulSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			ServiceName: name,
 			Replicas:    &rf.Spec.Redis.Replicas,
-			UpdateStrategy: appsv1beta2.StatefulSetUpdateStrategy{
+			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 				Type: "RollingUpdate",
 			},
 			Selector: &metav1.LabelSelector{
@@ -263,7 +263,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	return ss
 }
 
-func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.Deployment {
+func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1.Deployment {
 	name := GetSentinelName(rf)
 	configMapName := GetSentinelName(rf)
 	namespace := rf.Namespace
@@ -272,14 +272,14 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
-	return &appsv1beta2.Deployment{
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
 		},
-		Spec: appsv1beta2.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &rf.Spec.Sentinel.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,

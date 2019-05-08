@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	statefulSetsGroup = schema.GroupVersionResource{Group: "apps", Version: "v1beta2", Resource: "statefulsets"}
+	statefulSetsGroup = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"}
 )
 
-func newStatefulSetUpdateAction(ns string, statefulSet *appsv1beta2.StatefulSet) kubetesting.UpdateActionImpl {
+func newStatefulSetUpdateAction(ns string, statefulSet *appsv1.StatefulSet) kubetesting.UpdateActionImpl {
 	return kubetesting.NewUpdateAction(statefulSetsGroup, ns, statefulSet)
 }
 
@@ -29,12 +29,12 @@ func newStatefulSetGetAction(ns, name string) kubetesting.GetActionImpl {
 	return kubetesting.NewGetAction(statefulSetsGroup, ns, name)
 }
 
-func newStatefulSetCreateAction(ns string, statefulSet *appsv1beta2.StatefulSet) kubetesting.CreateActionImpl {
+func newStatefulSetCreateAction(ns string, statefulSet *appsv1.StatefulSet) kubetesting.CreateActionImpl {
 	return kubetesting.NewCreateAction(statefulSetsGroup, ns, statefulSet)
 }
 
 func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
-	testStatefulSet := &appsv1beta2.StatefulSet{
+	testStatefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "teststatefulSet1",
 			ResourceVersion: "10",
@@ -45,8 +45,8 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		statefulSet          *appsv1beta2.StatefulSet
-		getStatefulSetResult *appsv1beta2.StatefulSet
+		statefulSet          *appsv1.StatefulSet
+		getStatefulSetResult *appsv1.StatefulSet
 		errorOnGet           error
 		errorOnCreation      error
 		expActions           []kubetesting.Action

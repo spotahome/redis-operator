@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -55,8 +55,8 @@ func TestCheckRedisNumberFalse(t *testing.T) {
 	rf := generateRF()
 
 	wrongNumber := int32(4)
-	ss := &appsv1beta2.StatefulSet{
-		Spec: appsv1beta2.StatefulSetSpec{
+	ss := &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: &wrongNumber,
 		},
 	}
@@ -76,8 +76,8 @@ func TestCheckRedisNumberTrue(t *testing.T) {
 	rf := generateRF()
 
 	goodNumber := int32(3)
-	ss := &appsv1beta2.StatefulSet{
-		Spec: appsv1beta2.StatefulSetSpec{
+	ss := &appsv1.StatefulSet{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: &goodNumber,
 		},
 	}
@@ -112,8 +112,8 @@ func TestCheckSentinelNumberFalse(t *testing.T) {
 	rf := generateRF()
 
 	wrongNumber := int32(4)
-	ss := &appsv1beta2.Deployment{
-		Spec: appsv1beta2.DeploymentSpec{
+	ss := &appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &wrongNumber,
 		},
 	}
@@ -133,8 +133,8 @@ func TestCheckSentinelNumberTrue(t *testing.T) {
 	rf := generateRF()
 
 	goodNumber := int32(3)
-	ss := &appsv1beta2.Deployment{
-		Spec: appsv1beta2.DeploymentSpec{
+	ss := &appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &goodNumber,
 		},
 	}
