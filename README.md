@@ -231,7 +231,7 @@ If you want to delete the operator from your Kubernetes cluster, the operator de
 Also, the CRD has to be deleted too:
 
 ```
-kubectl delete crd redisfailovers.storage.spotahome.com
+kubectl delete crd redisfailovers.databases.spotahome.com
 ```
 
 ### Single Redis Failover
