@@ -102,8 +102,8 @@ func (r *RedisFailoverChecker) CheckSentinelSlavesNumberInMemory(sentinel string
 	nSlaves, err := r.redisClient.GetNumberSentinelSlavesInMemory(sentinel)
 	if err != nil {
 		return err
-	} else if nSlaves != rf.Spec.Sentinel.Replicas-1 {
-		return errors.New("sentinels in memory mismatch")
+	} else if nSlaves != rf.Spec.Redis.Replicas-1 {
+		return errors.New("redis slaves in sentinel memory mismatch")
 	}
 	return nil
 }
