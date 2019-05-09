@@ -18,7 +18,7 @@ import (
 
 const (
 	rfLabelManagedByKey = "app.kubernetes.io/managed-by"
-	rfLabelNameKey      = "redisfailovers.storage.spotahome.com/name"
+	rfLabelNameKey      = "redisfailovers.databases.spotahome.com/name"
 )
 
 var (
