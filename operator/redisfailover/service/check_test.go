@@ -338,10 +338,11 @@ func TestCheckSentinelSlavesNumberInMemory(t *testing.T) {
 	assert := assert.New(t)
 
 	rf := generateRF()
+	rf.Spec.Redis.Replicas = 5
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelSlavesInMemory", "1.1.1.1").Once().Return(int32(2), nil)
+	mr.On("GetNumberSentinelSlavesInMemory", "1.1.1.1").Once().Return(int32(4), nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
