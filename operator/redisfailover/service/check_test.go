@@ -250,8 +250,8 @@ func TestCheckSentinelNumberInMemoryGetDeploymentPodsError(t *testing.T) {
 	rf := generateRF()
 
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(nil, errors.New(""))
 	mr := &mRedisService.Client{}
+	mr.On("GetNumberSentinelsInMemory", "1.1.1.1").Once().Return(int32(0), errors.New("expected error"))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -264,21 +264,9 @@ func TestCheckSentinelNumberInMemoryGetNumberSentinelInMemoryError(t *testing.T)
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelsInMemory", "0.0.0.0").Once().Return(int32(0), errors.New(""))
+	mr.On("GetNumberSentinelsInMemory", "1.1.1.1").Once().Return(int32(0), errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -291,21 +279,9 @@ func TestCheckSentinelNumberInMemoryNumberMismatch(t *testing.T) {
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelsInMemory", "0.0.0.0").Once().Return(int32(4), nil)
+	mr.On("GetNumberSentinelsInMemory", "1.1.1.1").Once().Return(int32(4), nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -318,21 +294,9 @@ func TestCheckSentinelNumberInMemory(t *testing.T) {
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelsInMemory", "0.0.0.0").Once().Return(int32(3), nil)
+	mr.On("GetNumberSentinelsInMemory", "1.1.1.1").Once().Return(int32(3), nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -340,41 +304,14 @@ func TestCheckSentinelNumberInMemory(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestCheckSentinelSlavesNumberInMemoryGetDeploymentPodsError(t *testing.T) {
-	assert := assert.New(t)
-
-	rf := generateRF()
-
-	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(nil, errors.New(""))
-	mr := &mRedisService.Client{}
-
-	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
-
-	err := checker.CheckSentinelSlavesNumberInMemory("1.1.1.1", rf)
-	assert.Error(err)
-}
-
 func TestCheckSentinelSlavesNumberInMemoryGetNumberSentinelSlavesInMemoryError(t *testing.T) {
 	assert := assert.New(t)
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelSlavesInMemory", "0.0.0.0").Once().Return(int32(0), errors.New(""))
+	mr.On("GetNumberSentinelSlavesInMemory", "1.1.1.1").Once().Return(int32(0), errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -387,21 +324,9 @@ func TestCheckSentinelSlavesNumberInMemoryReplicasMismatch(t *testing.T) {
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelSlavesInMemory", "0.0.0.0").Once().Return(int32(3), nil)
+	mr.On("GetNumberSentinelSlavesInMemory", "1.1.1.1").Once().Return(int32(3), nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -414,21 +339,9 @@ func TestCheckSentinelSlavesNumberInMemory(t *testing.T) {
 
 	rf := generateRF()
 
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				Status: corev1.PodStatus{
-					PodIP: "0.0.0.0",
-					Phase: corev1.PodRunning,
-				},
-			},
-		},
-	}
-
 	ms := &mK8SService.Services{}
-	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetNumberSentinelSlavesInMemory", "0.0.0.0").Once().Return(int32(2), nil)
+	mr.On("GetNumberSentinelSlavesInMemory", "1.1.1.1").Once().Return(int32(2), nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 

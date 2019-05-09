@@ -86,36 +86,24 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 	return nil
 }
 
-// CheckSentinelNumberInMemory controls that sentinels have only the living sentinels on its memory.
+// CheckSentinelNumberInMemory controls that the provided sentinel has only the living sentinels on its memory.
 func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *redisfailoverv1.RedisFailover) error {
-	sips, err := r.GetSentinelsIPs(rf)
+	nSentinels, err := r.redisClient.GetNumberSentinelsInMemory(sentinel)
 	if err != nil {
 		return err
-	}
-	for _, sip := range sips {
-		nSentinels, err := r.redisClient.GetNumberSentinelsInMemory(sip)
-		if err != nil {
-			return err
-		} else if nSentinels != rf.Spec.Sentinel.Replicas {
-			return errors.New("sentinels in memory mismatch")
-		}
+	} else if nSentinels != rf.Spec.Sentinel.Replicas {
+		return errors.New("sentinels in memory mismatch")
 	}
 	return nil
 }
 
-// CheckSentinelSlavesNumberInMemory controls that sentinels have only the spected slaves number.
+// CheckSentinelSlavesNumberInMemory controls that the provided sentinel has only the expected slaves number.
 func (r *RedisFailoverChecker) CheckSentinelSlavesNumberInMemory(sentinel string, rf *redisfailoverv1.RedisFailover) error {
-	sips, err := r.GetSentinelsIPs(rf)
+	nSlaves, err := r.redisClient.GetNumberSentinelSlavesInMemory(sentinel)
 	if err != nil {
 		return err
-	}
-	for _, sip := range sips {
-		nSlaves, err := r.redisClient.GetNumberSentinelSlavesInMemory(sip)
-		if err != nil {
-			return err
-		} else if nSlaves != rf.Spec.Sentinel.Replicas-1 {
-			return errors.New("sentinels in memory mismatch")
-		}
+	} else if nSlaves != rf.Spec.Sentinel.Replicas-1 {
+		return errors.New("sentinels in memory mismatch")
 	}
 	return nil
 }
