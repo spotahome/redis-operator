@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	redisFailoverLabelKey = "redisfailover"
+	rfLabelManagedByKey = "app.kubernetes.io/managed-by"
+	rfLabelNameKey      = "redisfailovers.databases.spotahome.com/name"
 )
 
 var (
 	defaultLabels = map[string]string{
-		"creator": operatorName,
+		rfLabelManagedByKey: operatorName,
 	}
 )
 
@@ -36,14 +37,10 @@ type RedisFailoverHandler struct {
 	rfHealer   rfservice.RedisFailoverHeal
 	mClient    metrics.Instrumenter
 	logger     log.Logger
-	labels     map[string]string
 }
 
 // NewRedisFailoverHandler returns a new RF handler
 func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Service, mClient metrics.Instrumenter, logger log.Logger) *RedisFailoverHandler {
-	// Set non dynamic operator labels(the ones that every resource created by the operator will have).
-	labels := util.MergeLabels(config.Labels, defaultLabels)
-
 	return &RedisFailoverHandler{
 		config:     config,
 		rfService:  rfService,
@@ -52,15 +49,14 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 		mClient:    mClient,
 		k8sservice: k8sservice,
 		logger:     logger,
-		labels:     labels,
 	}
 }
 
 // Add will ensure the redis failover is in the expected state.
 func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error {
-	rf, ok := obj.(*redisfailoverv1alpha2.RedisFailover)
+	rf, ok := obj.(*redisfailoverv1.RedisFailover)
 	if !ok {
-		return fmt.Errorf("can't handle redis failover state, parentLabels map[string]string, ownerRefs []metav1.OwnerReferencenot a redisfailover object")
+		return fmt.Errorf("can't handle the received object: not a redisfailover")
 	}
 
 	if err := rf.Validate(); err != nil {
@@ -73,7 +69,7 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	oRefs := r.createOwnerReferences(rf)
 
 	// Create the labels every object derived from this need to have.
-	labels := r.mergeLabels(rf)
+	labels := r.getLabels(rf)
 
 	if err := r.Ensure(rf, labels, oRefs); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
@@ -101,16 +97,16 @@ func (r *RedisFailoverHandler) Delete(_ context.Context, name string) error {
 	return nil
 }
 
-// mergeLabels merges all the labels (dynamic and operator static ones).
-func (r *RedisFailoverHandler) mergeLabels(rf *redisfailoverv1alpha2.RedisFailover) map[string]string {
+// getLabels merges the labels (dynamic and operator static ones).
+func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[string]string {
 	dynLabels := map[string]string{
-		redisFailoverLabelKey: rf.Name,
+		rfLabelNameKey: rf.Name,
 	}
-	return util.MergeLabels(r.labels, dynLabels, rf.Labels)
+	return util.MergeLabels(defaultLabels, dynLabels, rf.Labels)
 }
 
-func (w *RedisFailoverHandler) createOwnerReferences(rf *redisfailoverv1alpha2.RedisFailover) []metav1.OwnerReference {
-	rfvk := redisfailoverv1alpha2.VersionKind(redisfailoverv1alpha2.RFKind)
+func (w *RedisFailoverHandler) createOwnerReferences(rf *redisfailoverv1.RedisFailover) []metav1.OwnerReference {
+	rfvk := redisfailoverv1.VersionKind(redisfailoverv1.RFKind)
 	return []metav1.OwnerReference{
 		*metav1.NewControllerRef(rf, rfvk),
 	}

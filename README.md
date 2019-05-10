@@ -3,18 +3,16 @@
 [![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator)
 [![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
 
-**NOTE**: This is an alpha-status project. We do regular tests on the code and functionality, but we can not assure a production-ready stability.
-
 Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
 ## Requirements
 
-Redis Operator is meant to be run on Kubernetes 1.8+.
-All dependecies have been vendored, so there's no need to any additional download.
+Redis Operator is meant to be run on Kubernetes 1.9+.
+All dependencies have been vendored, so there's no need to any additional download.
 
 ### Versions deployed
 
-The image versions deployed by the operator can be found on the [constants file](operator/redisfailover/service/constants.go) for the RedisFailover service.
+The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
 
 ## Images
 
@@ -76,59 +74,11 @@ In order to have persistence, a `PersistentVolumeClaim` usage is allowed. The fu
 
 ### NodeAffinity and Tolerations
 
-You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of Nodes
-
-Example:
-
-```yaml
-apiVersion: v1
-items:
-  - apiVersion: storage.spotahome.com/v1alpha2
-    kind: RedisFailover
-    metadata:
-      name: redis
-    spec:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: kops.k8s.io/instancegroup
-                  operator: In
-                  values:
-                    - productionnodes
-      hardAntiAffinity: false
-      redis: null
-      sentinel:
-        replicas: 3
-        resources:
-          limits:
-            memory: 100Mi
-          requests:
-            cpu: 100m
-      tolerations:
-        - effect: NoExecute
-          key: dedicated
-          operator: Equal
-          value: production
-kind: List
-```
+You can use NodeAffinity and Tolerations to deploy Pods to isolated groups of Nodes. Examples are given for [node affinity](example/redisfailover/node-affinity.yaml), [pod anti affinity](example/redisfailover/pod-anti-affinity.yaml) and [tolerations](example/redisfailover/tolerations.yaml).
 
 ### Custom configurations
 
-It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values.
-
-Example:
-
-```yaml
-sentinel:
-  customConfig:
-    - "down-after-milliseconds 2000"
-    - "failover-timeout 3000"
-redis:
-  customConfig:
-    - "maxclients 100"
-    - "hz 50"
-```
+It is possible to configure both Redis and Sentinel. This is done with the `customConfig` option inside their spec. It is a list of configurations and their values. Example are given in the [custom config example file](example/redisfailover/custom-config.yaml).
 
 In order to have the ability of this configurations to be changed "on the fly", without the need of reload the redis/sentinel processes, the operator will apply them with calls to the redises/sentinels, using `config set` or `sentinel set mymaster` respectively. Because of this, **no changes on the configmaps** will appear regarding this custom configurations and the entries of `customConfig` from Redis spec will not be written on `redis.conf` file. To verify the actual Redis configuration use [`redis-cli CONFIG GET *`](https://redis.io/commands/config-get).
 
@@ -148,9 +98,10 @@ This behavior is configurable, creating a configmap and indicating to use it. An
 **Important**: the configmap has to be in the same namespace. The configmap has to have a `shutdown.sh` data, containing the script.
 
 ### Custom SecurityContext
+
 By default Kubernetes will run containers as the user specified in the Dockerfile (or the root user if not specified), this is not always desirable.
 If you need the containers to run as a specific user (or provide any other PodSecurityContext options) then you can specify a custom `securityContext` in the
-`redisfailover` object.  See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
+`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
 
 ### Custom command
 
@@ -159,25 +110,9 @@ By default, redis and sentinel will be called with de basic command, giving the 
 - Redis: `redis-server /redis/redis.conf`
 - Sentinel: `redis-server /redis/sentinel.conf --sentinel`
 
-If necessary, this command can be changed with the `command` option inside redis/sentinel spec:
+If necessary, this command can be changed with the `command` option inside redis/sentinel spec. An example can be found in the [custom command example file](example/redisfailover/custom-command.yaml).
 
-```yaml
-sentinel:
-  command:
-    - "redis-server"
-    - "/redis/sentinel.conf"
-    - "--sentinel"
-    - "--protected-mode"
-    - "no"
-redis:
-  command:
-    - "redis-server"
-    - "/redis/redis.conf"
-    - "--protected-mode"
-    - "no"
-```
-
-### Connection
+## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
 The connection parameters are the following:
@@ -188,37 +123,6 @@ port: 26379
 master-name: mymaster
 ```
 
-#### Connection example
-
-- To get Sentinel service's port
-  ```
-  kubectl get service -l component=sentinel
-  NAME           TYPE         CLUSTER-IP     EXTERNAL-IP    PORT(S)       AGE
-  rfs-<NAME>     ClusterIP    10.99.222.41   <none>         26379/TCP     20m
-  ```
-- To get a Sentinel's name
-  ```
-  kubectl get pods -l component=sentinel
-  NAME              READY   STATUS    RESTARTS   AGE
-  rfs-<NAME>        1/1     Running   0          20m
-  ```
-- To get network information of the Redis node working as a master
-  ```
-  kubectl exec -it rfs-<NAME> -- redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
-  1) "10.244.2.15"
-  2) "6379"
-  ```
-- To set a `key:value` pair in Redis master
-  ```
-  kubectl exec -it rfs-<NAME> -- redis-cli -h 10.244.2.15 -p 6379 SET hello world!
-  OK
-  ```
-- To get `value` from `key`
-  ```
-  kubectl exec -it rfs-<NAME>-- redis-cli -h 10.244.2.15 -p 6379 GET hello
-  "world!"
-  ```
-
 ## Cleanup
 
 ### Operator and CRD
@@ -228,7 +132,7 @@ If you want to delete the operator from your Kubernetes cluster, the operator de
 Also, the CRD has to be deleted too:
 
 ```
-kubectl delete crd redisfailovers.storage.spotahome.com
+kubectl delete crd redisfailovers.databases.spotahome.com
 ```
 
 ### Single Redis Failover

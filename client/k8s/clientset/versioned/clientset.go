@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	glog "github.com/golang/glog"
-	storagev1alpha2 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1alpha2"
+	databasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -28,27 +27,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	StorageV1alpha2() storagev1alpha2.StorageV1alpha2Interface
+	DatabasesV1() databasesv1.DatabasesV1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Storage() storagev1alpha2.StorageV1alpha2Interface
+	Databases() databasesv1.DatabasesV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	storageV1alpha2 *storagev1alpha2.StorageV1alpha2Client
+	databasesV1 *databasesv1.DatabasesV1Client
 }
 
-// StorageV1alpha2 retrieves the StorageV1alpha2Client
-func (c *Clientset) StorageV1alpha2() storagev1alpha2.StorageV1alpha2Interface {
-	return c.storageV1alpha2
+// DatabasesV1 retrieves the DatabasesV1Client
+func (c *Clientset) DatabasesV1() databasesv1.DatabasesV1Interface {
+	return c.databasesV1
 }
 
-// Deprecated: Storage retrieves the default version of StorageClient.
+// Deprecated: Databases retrieves the default version of DatabasesClient.
 // Please explicitly pick a version.
-func (c *Clientset) Storage() storagev1alpha2.StorageV1alpha2Interface {
-	return c.storageV1alpha2
+func (c *Clientset) Databases() databasesv1.DatabasesV1Interface {
+	return c.databasesV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -67,14 +66,13 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.storageV1alpha2, err = storagev1alpha2.NewForConfig(&configShallowCopy)
+	cs.databasesV1, err = databasesv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
-		glog.Errorf("failed to create the DiscoveryClient: %v", err)
 		return nil, err
 	}
 	return &cs, nil
@@ -84,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.storageV1alpha2 = storagev1alpha2.NewForConfigOrDie(c)
+	cs.databasesV1 = databasesv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -93,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.storageV1alpha2 = storagev1alpha2.New(c)
+	cs.databasesV1 = databasesv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

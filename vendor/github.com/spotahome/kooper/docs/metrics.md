@@ -6,7 +6,7 @@ Kooper comes with metrics support, this means that when you use kooper to bootst
 
 At this moment these are the supported backends:
 
-* Prometheus.
+- Prometheus.
 
 ## Custom backend
 
@@ -22,22 +22,21 @@ type Recorder interface {
 
 The measured metrics are:
 
-* Number of delete and add queued events (to be processed).
-* Number of delete and add processed successfully events.
-* Number of delete and add processed events with an error.
-* Duration of delete and add processed successfully events.
-* Duration of delete and add processed events with an error.
+- Number of delete and add queued events (to be processed).
+- Number of delete and add processed events.
+- Number of delete and add processed events with an error.
+- Duration of delete and add processed events.
 
 ## How to use the recorder with the controller.
 
-When you create a controller you can pass the metrics recorder that you want. 
+When you create a controller you can pass the metrics recorder that you want.
 **Note: If you pass a `nil` backend, it will not record any metric**
 
 If you want a full example, there is a controller [example][metrics-example] that uses the different metric backends
 
 ### Prometheus
 
-Prometheus backend needs a prometheus [registerer][prometheus-registerer] and a namespace (a prefix for the metircs). 
+Prometheus backend needs a prometheus [registerer][prometheus-registerer] and a namespace (a prefix for the metircs).
 
 For example:
 
@@ -70,7 +69,11 @@ import (
 
 If you are using the default prometheus methods instead of a custom registry, you could get that from `prometheus.DefaultRegisterer` instead of creating a new registry `reg := prometheus.NewRegistry()`
 
+## Grafana dashboard (For Prometheus metrics)
+
+There is a grafana dashboard for your Kubernetes controllers. You can get it [here][grafana-dashboard]
 
 [metrics-interface]: https://github.com/spotahome/kooper/blob/master/monitoring/metrics/metrics.go
 [metrics-example]: https://github.com/spotahome/kooper/tree/master/examples/metrics-controller
 [prometheus-registerer]: https://godoc.org/github.com/prometheus/client_golang/prometheus#Registerer
+[grafana-dashboard]: https://grafana.com/dashboards/7082

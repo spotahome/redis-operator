@@ -4,14 +4,14 @@ import (
 	"errors"
 	"time"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 )
 
 const (
 	timeToPrepare = 2 * time.Minute
 )
 
-func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) error {
 	// Number of redis is equal as the set on the RF spec
 	// Number of sentinel is equal as the set on the RF spec
 	// Check only one master

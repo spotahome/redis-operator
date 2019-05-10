@@ -1,7 +1,7 @@
 Operator tutorial
 ===================
 
-In this tutorial we will learn how to create an opeator using Kooper.
+In this tutorial we will learn how to create an operator using Kooper.
 
 If you didn't read the [previous tutorial](controller-tutorial.md) about controllers you should read that first.
 
@@ -170,6 +170,7 @@ func (p *podTerminatorCRD) Initialize() error {
 	crd := crd.Conf{
 		Kind:       chaosv1alpha1.PodTerminatorKind,
 		NamePlural: chaosv1alpha1.PodTerminatorNamePlural,
+		ShortNames: chaosv1alpha1.PodTerminatorShortNames,
 		Group:      chaosv1alpha1.SchemeGroupVersion.Group,
 		Version:    chaosv1alpha1.SchemeGroupVersion.Version,
 		Scope:      chaosv1alpha1.PodTerminatorScope,

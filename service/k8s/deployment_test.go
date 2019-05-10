@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	deploymentsGroup = schema.GroupVersionResource{Group: "apps", Version: "v1beta2", Resource: "deployments"}
+	deploymentsGroup = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 )
 
-func newDeploymentUpdateAction(ns string, deployment *appsv1beta2.Deployment) kubetesting.UpdateActionImpl {
+func newDeploymentUpdateAction(ns string, deployment *appsv1.Deployment) kubetesting.UpdateActionImpl {
 	return kubetesting.NewUpdateAction(deploymentsGroup, ns, deployment)
 }
 
@@ -29,12 +29,12 @@ func newDeploymentGetAction(ns, name string) kubetesting.GetActionImpl {
 	return kubetesting.NewGetAction(deploymentsGroup, ns, name)
 }
 
-func newDeploymentCreateAction(ns string, deployment *appsv1beta2.Deployment) kubetesting.CreateActionImpl {
+func newDeploymentCreateAction(ns string, deployment *appsv1.Deployment) kubetesting.CreateActionImpl {
 	return kubetesting.NewCreateAction(deploymentsGroup, ns, deployment)
 }
 
 func TestDeploymentServiceGetCreateOrUpdate(t *testing.T) {
-	testDeployment := &appsv1beta2.Deployment{
+	testDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "testdeployment1",
 			ResourceVersion: "10",
@@ -45,8 +45,8 @@ func TestDeploymentServiceGetCreateOrUpdate(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		deployment          *appsv1beta2.Deployment
-		getDeploymentResult *appsv1beta2.Deployment
+		deployment          *appsv1.Deployment
+		getDeploymentResult *appsv1.Deployment
 		errorOnGet          error
 		errorOnCreation     error
 		expActions          []kubetesting.Action

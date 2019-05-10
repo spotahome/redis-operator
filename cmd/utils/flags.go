@@ -35,7 +35,6 @@ func (c *CMDFlags) Init() {
 // ToRedisOperatorConfig convert the flags to redisfailover config
 func (c *CMDFlags) ToRedisOperatorConfig() redisfailover.Config {
 	return redisfailover.Config{
-		Labels:        map[string]string{},
 		ListenAddress: c.ListenAddr,
 		MetricsPath:   c.MetricsPath,
 	}

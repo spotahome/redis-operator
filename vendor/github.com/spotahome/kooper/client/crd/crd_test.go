@@ -24,9 +24,10 @@ import (
 )
 
 var (
-	crdGroup           = schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1beta1", Resource: "customresourcedefinitions"}
-	goodClusterVersion = "v1.7"
-	badClusterVersion  = "v1.6"
+	crdGroup            = schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1beta1", Resource: "customresourcedefinitions"}
+	goodClusterVersion  = "v1.7"
+	badClusterVersion   = "v1.6"
+	statusLabelSelector = ".status.labelSelector"
 )
 
 // newClient returns a new mock client.
@@ -48,6 +49,7 @@ func newVersionedClusterClient(clusterVersion string) *apiextensionscli.Clientse
 	// share the same registry(testing.Fake) and we don't want to mix version check actions with the CRD
 	// actions.
 	cli.Fake = kubetesting.Fake{}
+	fakeDiscovery.Fake = &kubetesting.Fake{}
 
 	return cli
 }
@@ -70,14 +72,19 @@ func TestCRDEnsurePresent(t *testing.T) {
 		expCalls       []kubetesting.Action
 	}{
 		{
-			name:           "Creating a non existen CRD should create a crd without error",
+			name:           "Creating a non existen CRD (using custom categories) should create a crd without error",
 			clusterVersion: goodClusterVersion,
 			crd: crd.Conf{
 				Kind:       "Test",
 				NamePlural: "tests",
+				ShortNames: []string{"tst"},
 				Scope:      crd.ClusterScoped,
 				Group:      "toilettesting",
 				Version:    "v99",
+				Categories: []string{
+					"category1",
+					"categoryA",
+				},
 			},
 			retErr: nil,
 			expErr: false,
@@ -91,8 +98,10 @@ func TestCRDEnsurePresent(t *testing.T) {
 						Version: "v99",
 						Scope:   crd.ClusterScoped,
 						Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-							Plural: "tests",
-							Kind:   "Test",
+							Plural:     "tests",
+							Kind:       "Test",
+							ShortNames: []string{"tst"},
+							Categories: []string{"category1", "categoryA", "all", "kooper"},
 						},
 					},
 				}),
@@ -105,6 +114,7 @@ func TestCRDEnsurePresent(t *testing.T) {
 			crd: crd.Conf{
 				Kind:       "Test",
 				NamePlural: "tests",
+				ShortNames: []string{"tst"},
 				Scope:      crd.ClusterScoped,
 				Group:      "toilettesting",
 				Version:    "v99",
@@ -119,6 +129,7 @@ func TestCRDEnsurePresent(t *testing.T) {
 			crd: crd.Conf{
 				Kind:       "Test",
 				NamePlural: "tests",
+				ShortNames: []string{"tst"},
 				Scope:      crd.ClusterScoped,
 				Group:      "toilettesting",
 				Version:    "v99",
@@ -133,13 +144,62 @@ func TestCRDEnsurePresent(t *testing.T) {
 						Version: "v99",
 						Scope:   crd.ClusterScoped,
 						Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-							Plural: "tests",
-							Kind:   "Test",
+							Plural:     "tests",
+							Kind:       "Test",
+							ShortNames: []string{"tst"},
+							Categories: []string{"all", "kooper"},
 						},
 					},
 				}),
 			},
 			retErr: kubeerrors.NewAlreadyExists(schema.GroupResource{}, ""),
+			expErr: false,
+		},
+		{
+			name:           "Creating a CRD with subresources active should create the CRD with the subresources set.",
+			clusterVersion: goodClusterVersion,
+			crd: crd.Conf{
+				Kind:                    "Test",
+				NamePlural:              "tests",
+				ShortNames:              []string{"tst"},
+				Scope:                   crd.ClusterScoped,
+				Group:                   "toilettesting",
+				Version:                 "v99",
+				EnableStatusSubresource: true,
+				EnableScaleSubresource: &apiextensionsv1beta1.CustomResourceSubresourceScale{
+					SpecReplicasPath:   ".spec.replicas",
+					StatusReplicasPath: ".status.replicas",
+					LabelSelectorPath:  &statusLabelSelector,
+				},
+			},
+			expCalls: []kubetesting.Action{
+				newCRDCreateAction(&apiextensionsv1beta1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "tests.toilettesting",
+					},
+					Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+						Group:   "toilettesting",
+						Version: "v99",
+						Scope:   crd.ClusterScoped,
+						Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+							Plural:     "tests",
+							Kind:       "Test",
+							ShortNames: []string{"tst"},
+							Categories: []string{"all", "kooper"},
+						},
+						Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
+							Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
+							Scale: &apiextensionsv1beta1.CustomResourceSubresourceScale{
+								SpecReplicasPath:   ".spec.replicas",
+								StatusReplicasPath: ".status.replicas",
+								LabelSelectorPath:  &statusLabelSelector,
+							},
+						},
+					},
+				}),
+				newCRDGetAction("tests.toilettesting"),
+			},
+			retErr: nil,
 			expErr: false,
 		},
 		{

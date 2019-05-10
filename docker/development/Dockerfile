@@ -1,6 +1,6 @@
-FROM golang:1.10-alpine
+FROM golang:1.12-alpine
 
-ENV CODEGEN_VERSION="1.10.5"
+ENV CODEGEN_VERSION="1.11.9"
 
 RUN apk --no-cache add \
     bash \

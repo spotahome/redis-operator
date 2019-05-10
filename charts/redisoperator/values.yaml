@@ -1,9 +1,6 @@
-replicaCount: 1
-apiVersion: apps/v1
 image: quay.io/spotahome/redis-operator
 tag: latest
 pullPolicy: Always
-team: devops
 containerName: redisoperator
 podAnnotations: {}
 resources:

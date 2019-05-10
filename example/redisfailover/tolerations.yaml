@@ -1,0 +1,19 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+spec:
+  redis:
+    replicas: 3
+    tolerations:
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: production
+  sentinel:
+    replicas: 3
+    tolerations:
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: production

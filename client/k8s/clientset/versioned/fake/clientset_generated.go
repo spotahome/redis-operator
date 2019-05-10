@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
-	storagev1alpha2 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1alpha2"
-	fakestoragev1alpha2 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1alpha2/fake"
+	databasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1"
+	fakedatabasesv1 "github.com/spotahome/redis-operator/client/k8s/clientset/versioned/typed/redisfailover/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -41,9 +41,10 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		}
 	}
 
-	fakePtr := testing.Fake{}
-	fakePtr.AddReactor("*", "*", testing.ObjectReaction(o))
-	fakePtr.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
+	cs := &Clientset{}
+	cs.discovery = &fakediscovery.FakeDiscovery{Fake: &cs.Fake}
+	cs.AddReactor("*", "*", testing.ObjectReaction(o))
+	cs.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
 		gvr := action.GetResource()
 		ns := action.GetNamespace()
 		watch, err := o.Watch(gvr, ns)
@@ -53,7 +54,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		return true, watch, nil
 	})
 
-	return &Clientset{fakePtr, &fakediscovery.FakeDiscovery{Fake: &fakePtr}}
+	return cs
 }
 
 // Clientset implements clientset.Interface. Meant to be embedded into a
@@ -70,12 +71,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// StorageV1alpha2 retrieves the StorageV1alpha2Client
-func (c *Clientset) StorageV1alpha2() storagev1alpha2.StorageV1alpha2Interface {
-	return &fakestoragev1alpha2.FakeStorageV1alpha2{Fake: &c.Fake}
+// DatabasesV1 retrieves the DatabasesV1Client
+func (c *Clientset) DatabasesV1() databasesv1.DatabasesV1Interface {
+	return &fakedatabasesv1.FakeDatabasesV1{Fake: &c.Fake}
 }
 
-// Storage retrieves the StorageV1alpha2Client
-func (c *Clientset) Storage() storagev1alpha2.StorageV1alpha2Interface {
-	return &fakestoragev1alpha2.FakeStorageV1alpha2{Fake: &c.Fake}
+// Databases retrieves the DatabasesV1Client
+func (c *Clientset) Databases() databasesv1.DatabasesV1Interface {
+	return &fakedatabasesv1.FakeDatabasesV1{Fake: &c.Fake}
 }

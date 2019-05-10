@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strconv"
 
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
@@ -14,12 +14,12 @@ import (
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
 type RedisFailoverHeal interface {
 	MakeMaster(ip string) error
-	SetOldestAsMaster(rFailover *redisfailoverv1alpha2.RedisFailover) error
-	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1alpha2.RedisFailover) error
-	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1alpha2.RedisFailover) error
+	SetOldestAsMaster(rFailover *redisfailoverv1.RedisFailover) error
+	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1.RedisFailover) error
+	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1.RedisFailover) error
 	RestoreSentinel(ip string) error
-	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1alpha2.RedisFailover) error
-	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1alpha2.RedisFailover) error
+	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
+	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -43,7 +43,7 @@ func (r *RedisFailoverHealer) MakeMaster(ip string) error {
 }
 
 // SetOldestAsMaster puts all redis to the same master, choosen by order of appearance
-func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailover) error {
 	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1alpha2.RedisF
 }
 
 // SetMasterOnAll puts all redis nodes as a slave of a given master
-func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv1.RedisFailover) error {
 	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 }
 
 // NewSentinelMonitor changes the master that Sentinel has to monitor
-func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
 	return r.redisClient.MonitorRedis(ip, monitor, quorum)
@@ -111,13 +111,13 @@ func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
 }
 
 // SetSentinelCustomConfig will call sentinel to set the configuration given in config
-func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debugf("Setting the custom config on sentinel %s...", ip)
 	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
 }
 
 // SetRedisCustomConfig will call redis to set the configuration given in config
-func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv1alpha2.RedisFailover) error {
+func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debugf("Setting the custom config on redis %s...", ip)
 	return r.redisClient.SetCustomRedisConfig(ip, rf.Spec.Redis.CustomConfig)
 }
