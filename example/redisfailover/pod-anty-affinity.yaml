@@ -1,0 +1,21 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: security
+                    operator: In
+                    values:
+                      - us-west-1
+              topologyKey: failure-domain.beta.kubernetes.io/zone

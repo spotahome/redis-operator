@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.0.0-rc.1] - 2019-05-10
+
+### Changed
+
+- Minimum Kubernetes version needed is 1.9.
+- Custom Resource Definition moved to `databases.spotahome.com`.
+- API version moved to v1.
+- Standardize labels with the Kubernetes recommended ones.
+- Update Kubernetes libraries to 1.11.9.
+- Update Kooper to v0.5.1.
+- Update Golang used to 1.12.
+- Use new versioning standard.
+
+### Fixed
+
+- Chart unused values removed.
+- Remove double loops for checking Sentinels data in memory.
+
 ## [0.5.8] - 2019-03-26
 
 ### Fixed
@@ -211,6 +229,7 @@
 
 - Initial open-sourced release
 
+[v1.0.0-rc.1]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0-rc.1
 [0.5.8]: https://github.com/spotahome/redis-operator/compare/0.5.7...0.5.8
 [0.5.7]: https://github.com/spotahome/redis-operator/compare/0.5.6...0.5.7
 [0.5.6]: https://github.com/spotahome/redis-operator/compare/0.5.5...0.5.6

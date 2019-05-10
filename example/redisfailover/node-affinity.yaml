@@ -1,0 +1,27 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+spec:
+  redis:
+    replicas: 3
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kops.k8s.io/instancegroup
+                  operator: In
+                  values:
+                    - productionnodes
+  sentinel:
+    replicas: 3
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kops.k8s.io/instancegroup
+                  operator: In
+                  values:
+                    - productionnodes
