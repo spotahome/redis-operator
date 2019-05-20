@@ -19,6 +19,7 @@ rules:
       - databases.spotahome.com
     resources:
       - redisfailovers
+      - redisfailovers/finalizers
     verbs:
       - "*"
   - apiGroups:
