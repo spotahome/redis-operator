@@ -33,6 +33,7 @@ type RedisSettings struct {
 	Exporter          RedisExporter               `json:"exporter,omitempty"`
 	Affinity          *corev1.Affinity            `json:"affinity,omitempty"`
 	SecurityContext   *corev1.PodSecurityContext  `json:"securityContext,omitempty"`
+	ImagePullSecrets  []corev1.LocalObjectReference`json:"imagePullSecrets,omitempty"`
 	Tolerations       []corev1.Toleration         `json:"tolerations,omitempty"`
 }
 
@@ -45,6 +46,7 @@ type SentinelSettings struct {
 	Command         []string                    `json:"command,omitempty"`
 	Affinity        *corev1.Affinity            `json:"affinity,omitempty"`
 	SecurityContext *corev1.PodSecurityContext  `json:"securityContext,omitempty"`
+	ImagePullSecrets[]corev1.LocalObjectReference`json:"imagePullSecrets,omitempty"`
 	Tolerations     []corev1.Toleration         `json:"tolerations,omitempty"`
 }
 
