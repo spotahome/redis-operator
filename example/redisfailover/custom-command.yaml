@@ -3,14 +3,14 @@ kind: RedisFailover
 metadata:
   name: redisfailover
 spec:
-  sentinel:
+  redis:
     replicas: 3
     command:
       - "redis-server"
       - "/redis/redis.conf"
       - "--protected-mode"
       - "no"
-  redis:
+  sentinel:
     replicas: 3
     command:
       - "redis-server"
