@@ -3,11 +3,11 @@ kind: Service
 metadata:
   name: {{ include "name" . | quote }}
   labels:
-    component: app
+    app.kubernetes.io/component: app
 {{ include "common-labels" . | indent 4 }}
 spec:
   selector:
-    component: app
+    app.kubernetes.io/component: app
 {{ include "common-labels" . | indent 4 }}
   ports:
   - name: metrics
