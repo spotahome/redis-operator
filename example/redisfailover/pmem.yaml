@@ -1,5 +1,4 @@
-# Deployment that uses persistent volumes. To use this example you need:
-# - A Redis image that supports persistent memory usage from https://github.com/pmem/redis
+# Deployment that uses persistent volumes provided by pmem-CSI. To use this example you need:
 # - Proper setup of the persistent memory container storage interface driver from https://github.com/intel/pmem-CSI
 apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
@@ -15,14 +14,17 @@ spec:
       - "--protected-mode"
       - "no"
   redis:
+    securityContext:
+      runAsNonRoot: False
     replicas: 3
-    image: redis_pmem # From https://github.com/pmem/redis
+    image: pmem/redis
     version: latest
     command:
       - "redis-server"
       - "/redis/redis.conf"
       - "--pmdir"
-      - "/data 100Mb"
+      - "/data"
+      - "100Mb"
       - "--protected-mode"
       - "no"
     storage:
