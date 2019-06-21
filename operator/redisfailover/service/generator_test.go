@@ -583,7 +583,7 @@ func TestRedisStatefulSetPodAnnotations(t *testing.T) {
 	for _, test := range tests {
 		assert := assert.New(t)
 
-		// Generate a default RedisFailover and attaching the required storage
+		// Generate a default RedisFailover and attaching the required annotations
 		rf := generateRF()
 		rf.Spec.Redis.PodAnnotations = test.givenPodAnnotations
 
@@ -631,7 +631,7 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 	for _, test := range tests {
 		assert := assert.New(t)
 
-		// Generate a default RedisFailover and attaching the required storage
+		// Generate a default RedisFailover and attaching the required annotations
 		rf := generateRF()
 		rf.Spec.Sentinel.PodAnnotations = test.givenPodAnnotations
 
