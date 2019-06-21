@@ -555,3 +555,99 @@ func TestSentinelDeploymentCommands(t *testing.T) {
 		assert.NoError(err)
 	}
 }
+
+func TestRedisStatefulSetPodAnnotations(t *testing.T) {
+	tests := []struct {
+		name                   string
+		givenPodAnnotations    map[string]string
+		expectedPodAnnotations map[string]string
+	}{
+		{
+			name:                   "PodAnnotations was not defined",
+			givenPodAnnotations:    nil,
+			expectedPodAnnotations: nil,
+		},
+		{
+			name: "PodAnnotations is defined",
+			givenPodAnnotations: map[string]string{
+				"some":               "annotation",
+				"path/to/annotation": "here",
+			},
+			expectedPodAnnotations: map[string]string{
+				"some":               "annotation",
+				"path/to/annotation": "here",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required storage
+		rf := generateRF()
+		rf.Spec.Redis.PodAnnotations = test.givenPodAnnotations
+
+		gotPodAnnotations := map[string]string{}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			gotPodAnnotations = ss.Spec.Template.ObjectMeta.Annotations
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedPodAnnotations, gotPodAnnotations)
+		assert.NoError(err)
+	}
+}
+
+func TestSentinelDeploymentPodAnnotations(t *testing.T) {
+	tests := []struct {
+		name                   string
+		givenPodAnnotations    map[string]string
+		expectedPodAnnotations map[string]string
+	}{
+		{
+			name:                   "PodAnnotations was not defined",
+			givenPodAnnotations:    nil,
+			expectedPodAnnotations: nil,
+		},
+		{
+			name: "PodAnnotations is defined",
+			givenPodAnnotations: map[string]string{
+				"some":               "annotation",
+				"path/to/annotation": "here",
+			},
+			expectedPodAnnotations: map[string]string{
+				"some":               "annotation",
+				"path/to/annotation": "here",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required storage
+		rf := generateRF()
+		rf.Spec.Sentinel.PodAnnotations = test.givenPodAnnotations
+
+		gotPodAnnotations := map[string]string{}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			gotPodAnnotations = d.Spec.Template.ObjectMeta.Annotations
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedPodAnnotations, gotPodAnnotations)
+		assert.NoError(err)
+	}
+}
