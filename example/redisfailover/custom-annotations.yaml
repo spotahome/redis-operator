@@ -1,0 +1,13 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+    podAnnotations:
+      imageregistry: "https://hub.docker.com/"
+  redis:
+    replicas: 3
+    podAnnotations:
+      imageregistry: "https://hub.docker.com/"
