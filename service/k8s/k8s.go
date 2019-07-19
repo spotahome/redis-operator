@@ -1,11 +1,10 @@
 package k8s
 
 import (
-	apiextensionscli "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/kubernetes"
-
 	redisfailoverclientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
 	"github.com/spotahome/redis-operator/log"
+	apiextensionscli "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Service is the K8s service entrypoint.
@@ -31,6 +30,7 @@ type services struct {
 	RBAC
 	Deployment
 	StatefulSet
+	Endpoints
 }
 
 // New returns a new Kubernetes service.
@@ -45,5 +45,6 @@ func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, 
 		RBAC:                NewRBACService(kubecli, logger),
 		Deployment:          NewDeploymentService(kubecli, logger),
 		StatefulSet:         NewStatefulSetService(kubecli, logger),
+		Endpoints:           NewEndpointsService(kubecli, logger),
 	}
 }

@@ -146,15 +146,50 @@ func generateHAProxyService(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	}
 }
 
+func QueryRedisEndpoints(rf *redisfailoverv1alpha2.RedisFailover) string {
+	//return e.kubeClient.CoreV1().Services(rf.namespace).List(metav1.ListOptions{})
+	return ListEndpoints(GetSentinelName(rf), rf.Namespace)
+}
+
 func generateHAProxyConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
-	name := GetSentinelName(rf)
+	name := GetSentinelName(rf) + "-haproxy"
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
-	sentinelConfigFileContent := `sentinel monitor mymaster 127.0.0.1 6379 2
-sentinel down-after-milliseconds mymaster 1000
-sentinel failover-timeout mymaster 3000
-sentinel parallel-syncs mymaster 2`
+
+	// Query endpoints and generate config
+	ReplcasCount := QueryRedisEndpoints(rf)
+
+	sentinelConfigFileContent := `
+defaults
+  mode tcp
+  timeout connect 3s
+  timeout server 6s
+  timeout client 6s
+listen stats
+  mode http
+  bind :9000
+  stats enable
+  stats hide-version
+  stats realm Haproxy\ Statistics
+  stats uri /haproxy_stats
+frontend ft_redis
+  mode tcp
+  bind *:80
+  default_backend bk_redis
+backend bk_redis
+  mode tcp
+  option tcp-check
+  tcp-check send PING\r\n
+  tcp-check expect string +PONG
+  tcp-check send info\ replication\r\n
+  tcp-check expect string role:master
+  tcp-check send QUIT\r\n
+  tcp-check expect string +OK
+#  server redis_backend_01 redis01:6379 maxconn 1024 check inter 1s
+#  server redis_backend_02 redis02:6379 maxconn 1024 check inter 1s
+#  server redis_backend_03 redis03:6379 maxconn 1024 check inter 1s
+`
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
