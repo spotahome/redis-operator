@@ -1,0 +1,170 @@
+package service
+
+import (
+	"fmt"
+
+	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
+	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func getHaproxyImage(rf *redisfailoverv1alpha2.RedisFailover) string {
+	return fmt.Sprintf("%s:%s", rf.Spec.HAProxy.Image, rf.Spec.HAProxy.Version)
+}
+
+func generateHAProxyDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1beta2.Deployment {
+	name := GetSentinelName(rf) + "-haproxy"
+	// make possible to set CM by hands in CRD
+	configMapName := GetSentinelName(rf) + "-haproxy"
+	namespace := rf.Namespace
+
+	spec := rf.Spec
+	haproxyImage := getHaproxyImage(rf)
+	resources := getSentinelResources(spec)
+	labels = util.MergeLabels(labels, generateLabels("haproxy", rf.Name))
+
+	return &appsv1beta2.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Spec: appsv1beta2.DeploymentSpec{
+			Replicas: &rf.Spec.HAProxy.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						NodeAffinity:    rf.Spec.NodeAffinity,
+						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
+					},
+					Tolerations:     rf.Spec.Tolerations,
+					SecurityContext: rf.Spec.SecurityContext,
+					Containers: []corev1.Container{
+						{
+							Name:            "haproxy",
+							Image:           haproxyImage,
+							ImagePullPolicy: "Always",
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "haproxy",
+									ContainerPort: 26379,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "haproxy-config",
+									MountPath: "/etc/haproxy/haproxy.cfg",
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								InitialDelaySeconds: graceTime,
+								TimeoutSeconds:      5,
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{
+											"sh",
+											"-c",
+											"redis-cli -h $(hostname) -p 26379 ping",
+										},
+									},
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								InitialDelaySeconds: graceTime,
+								TimeoutSeconds:      5,
+								Handler: corev1.Handler{
+									Exec: &corev1.ExecAction{
+										Command: []string{
+											"sh",
+											"-c",
+											"redis-cli -h $(hostname) -p 26379 ping",
+										},
+									},
+								},
+							},
+							Resources: resources,
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "haproxy-config",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: configMapName,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func generateHAProxyService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
+	name := GetRedisName(rf)
+	namespace := rf.Namespace
+
+	labels = util.MergeLabels(labels, generateLabels(redisRoleName, rf.Name))
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations: map[string]string{
+				"prometheus.io/scrape": "true",
+				"prometheus.io/port":   "http",
+				"prometheus.io/path":   "/metrics",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: corev1.ClusterIPNone,
+			Ports: []corev1.ServicePort{
+				{
+					Port:     exporterPort,
+					Protocol: corev1.ProtocolTCP,
+					Name:     exporterPortName,
+				},
+			},
+			Selector: labels,
+		},
+	}
+}
+
+func generateHAProxyConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+	name := GetSentinelName(rf)
+	namespace := rf.Namespace
+
+	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
+	sentinelConfigFileContent := `sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 1000
+sentinel failover-timeout mymaster 3000
+sentinel parallel-syncs mymaster 2`
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Data: map[string]string{
+			sentinelConfigFileName: sentinelConfigFileContent,
+		},
+	}
+}

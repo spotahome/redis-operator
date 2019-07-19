@@ -3,15 +3,14 @@ package service
 import (
 	"fmt"
 
+	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
-	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
 
 const (
@@ -190,7 +189,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1alpha2.RedisFailover, labels ma
 						NodeAffinity:    rf.Spec.NodeAffinity,
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
-					Tolerations: rf.Spec.Tolerations,
+					Tolerations:     rf.Spec.Tolerations,
 					SecurityContext: rf.Spec.SecurityContext,
 					Containers: []corev1.Container{
 						{
@@ -298,7 +297,7 @@ func generateSentinelDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels 
 						NodeAffinity:    rf.Spec.NodeAffinity,
 						PodAntiAffinity: createPodAntiAffinity(rf.Spec.HardAntiAffinity, labels),
 					},
-					Tolerations: rf.Spec.Tolerations,
+					Tolerations:     rf.Spec.Tolerations,
 					SecurityContext: rf.Spec.SecurityContext,
 					InitContainers: []corev1.Container{
 						{

@@ -1,13 +1,12 @@
 package service
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	"github.com/spotahome/redis-operator/service/k8s"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // RedisFailoverClient has the minimumm methods that a Redis failover controller needs to satisfy
@@ -21,6 +20,9 @@ type RedisFailoverClient interface {
 	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureNotPresentRedisService(rFailover *redisfailoverv1alpha2.RedisFailover) error
+	EnsureHAProxyDeployment(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureHAProxyService(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureHAProxyConfigMap(rFailover *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 }
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
@@ -122,4 +124,25 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1a
 	pdb := generatePodDisruptionBudget(name, namespace, labels, ownerRefs, minAvailable)
 
 	return r.K8SService.CreateOrUpdatePodDisruptionBudget(namespace, pdb)
+}
+
+// EnsureHAProxyDeployment makes sure the HAProxy deployment exists in the desired state
+func (r *RedisFailoverKubeClient) EnsureHAProxyDeployment(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	if err := r.ensurePodDisruptionBudget(rf, sentinelName, sentinelRoleName, labels, ownerRefs); err != nil {
+		return err
+	}
+	d := generateHAProxyDeployment(rf, labels, ownerRefs)
+	return r.K8SService.CreateOrUpdateDeployment(rf.Namespace, d)
+}
+
+// EnsureHAProxyDeployment makes sure the HAProxy deployment exists in the desired state
+func (r *RedisFailoverKubeClient) EnsureHAProxyService(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	d := generateHAProxyService(rf, labels, ownerRefs)
+	return r.K8SService.CreateIfNotExistsService(rf.Namespace, d)
+}
+
+// EnsureHAProxyDeployment makes sure the HAProxy deployment exists in the desired state
+func (r *RedisFailoverKubeClient) EnsureHAProxyConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	d := generateHAProxyConfigMap(rf, labels, ownerRefs)
+	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, d)
 }

@@ -18,6 +18,9 @@ type RedisFailover struct {
 
 // RedisFailoverSpec represents a Redis failover spec
 type RedisFailoverSpec struct {
+	// HAProxy settings
+	HAProxy HAProxySettings `json:"haproxy,omitempty"`
+
 	// Redis defines its failover settings
 	Redis RedisSettings `json:"redis,omitempty"`
 
@@ -52,6 +55,14 @@ type RedisSettings struct {
 	Command               []string               `json:"command,omitempty"`
 	ShutdownConfigMap     string                 `json:"shutdownConfigMap,omitempty"`
 	Storage               RedisStorage           `json:"storage,omitempty"`
+}
+
+// HAProxySettings defines the specification of the redis cluster
+type HAProxySettings struct {
+	Replicas  int32    `json:"replicas,omitempty"`
+	Image     string   `json:"image,omitempty"`
+	Version   string   `json:"version,omitempty"`
+	ConfigMap []string `json:"configmap,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
