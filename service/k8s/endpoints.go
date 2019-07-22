@@ -25,6 +25,7 @@ func NewEndpointsService(kubeClient kubernetes.Interface, logger log.Logger) *En
 	}
 }
 
-func (e *EnpointsService) ListEndpoints(name string, namespace string) (*corev1.EndpointsList, error) {
-	return e.kubeClient.CoreV1().Endpoints(namespace).List(metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+func (e *EnpointsService) ListEndpoints(namespace string) (*corev1.EndpointsList, error) {
+	//FieldSelector: "metadata.name=" + GetSentinelName(rf)
+	return e.kubeClient.CoreV1().Endpoints(namespace).List(metav1.ListOptions{})
 }

@@ -148,7 +148,7 @@ func generateHAProxyService(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 
 func QueryRedisEndpoints(rf *redisfailoverv1alpha2.RedisFailover) string {
 	//return e.kubeClient.CoreV1().Services(rf.namespace).List(metav1.ListOptions{})
-	return ListEndpoints(GetSentinelName(rf), rf.Namespace)
+	return ListEndpoints(rf.Namespace)
 }
 
 func generateHAProxyConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
