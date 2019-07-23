@@ -1,14 +1,13 @@
 package redisfailover
 
 import (
+	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/service/k8s"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
-
-	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
-	"github.com/spotahome/redis-operator/log"
-	"github.com/spotahome/redis-operator/service/k8s"
 )
 
 // redisfailoverCRD is the crd redis failover

@@ -18,6 +18,7 @@ type Services interface {
 	RBAC
 	Deployment
 	StatefulSet
+	Endpoints
 }
 
 type services struct {

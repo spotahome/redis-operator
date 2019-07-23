@@ -146,19 +146,11 @@ func generateHAProxyService(rf *redisfailoverv1alpha2.RedisFailover, labels map[
 	}
 }
 
-func QueryRedisEndpoints(rf *redisfailoverv1alpha2.RedisFailover) string {
-	//return e.kubeClient.CoreV1().Services(rf.namespace).List(metav1.ListOptions{})
-	return ListEndpoints(rf.Namespace)
-}
-
 func generateHAProxyConfigMap(rf *redisfailoverv1alpha2.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetSentinelName(rf) + "-haproxy"
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateLabels(sentinelRoleName, rf.Name))
-
-	// Query endpoints and generate config
-	ReplcasCount := QueryRedisEndpoints(rf)
 
 	sentinelConfigFileContent := `
 defaults
@@ -186,6 +178,7 @@ backend bk_redis
   tcp-check expect string role:master
   tcp-check send QUIT\r\n
   tcp-check expect string +OK
+# autogenerate at enpoints watch
 #  server redis_backend_01 redis01:6379 maxconn 1024 check inter 1s
 #  server redis_backend_02 redis02:6379 maxconn 1024 check inter 1s
 #  server redis_backend_03 redis03:6379 maxconn 1024 check inter 1s

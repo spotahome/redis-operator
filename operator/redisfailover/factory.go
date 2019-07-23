@@ -6,7 +6,6 @@ import (
 	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	"github.com/spotahome/kooper/operator"
 	"github.com/spotahome/kooper/operator/controller"
-
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
