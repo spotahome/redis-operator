@@ -6,7 +6,6 @@ import (
 	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	"github.com/spotahome/kooper/operator"
 	"github.com/spotahome/kooper/operator/controller"
-	"github.com/spotahome/kooper/operator/resource"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
@@ -27,7 +26,6 @@ func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, mClient 
 
 	// Create our CRDs.
 	watchedCRD := newRedisFailoverCRD(k8sService, logger)
-	watchedEP := k8s.NewEndpointsService(k8sService, logger)
 
 	// Create internal services.
 	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger)
@@ -40,8 +38,13 @@ func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, mClient 
 	// Create our controller.
 	ctrl := controller.NewSequential(resync, rfHandler, watchedCRD, kooperMetricsRecorder, logger.WithField("controller", "redisfailover"))
 
-	// Assemble all in an operator.
-	//return operator.NewOperator(watchedCRD, ctrl, logger)
+	// haproxy
+	haproxyWatch := k8s.NewEndpointsRetrieve(namespace, k8sService, logger)
+	haproxyHandler := (k8sService, redisClient, logger)
+	haproxy := controller.NewSequential(resync, haproxyHandler, haproxyWatch, kooperMetricsRecorder, logger.WithField("controller", "redisfailover"))
 
-	return operator.NewMultiOperator([]resource.CRD{watchedCRD, watchedEP}, []controller.Controller{ctrl}, logger)
+	// Assemble all in an operator.
+	return operator.NewOperator(watchedCRD, []controller.Controller{ctrl, haproxy}, logger)
+
+	//return operator.NewMultiOperator([]resource.CRD{watchedCRD}, []controller.Controller{ctrl, haproxy}, logger)
 }

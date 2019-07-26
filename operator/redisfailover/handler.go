@@ -34,9 +34,10 @@ type RedisFailoverHandler struct {
 	rfService  rfservice.RedisFailoverClient
 	rfChecker  rfservice.RedisFailoverCheck
 	rfHealer   rfservice.RedisFailoverHeal
-	mClient    metrics.Instrumenter
-	logger     log.Logger
-	labels     map[string]string
+
+	mClient metrics.Instrumenter
+	logger  log.Logger
+	labels  map[string]string
 }
 
 // NewRedisFailoverHandler returns a new RF handler

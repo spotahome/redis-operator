@@ -1,41 +1,42 @@
 package k8s
 
 import (
-	"github.com/spotahome/redis-operator/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
-// Endpoints Endpoints
-type Endpoints interface {
-	ListEndpoints(namespace string, opts metav1.ListOptions) (*corev1.EndpointsList, error)
-	WatchEndpoints(namespace string, opts metav1.ListOptions) (watch.Interface, error)
+// EndpointsRetrieve knows how to retrieve EP.
+type EndpointsRetrieve struct {
+	namespace string
+	client    kubernetes.Interface
 }
 
-// EnpointsService is the service account service implementation using API calls to kubernetes.
-type EnpointsService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
-}
-
-// NewEndpointsService NewEndpointsService
-func NewEndpointsService(kubeClient kubernetes.Interface, logger log.Logger) *EnpointsService {
-	logger = logger.With("service", "k8s.endpoints")
-	return &EnpointsService{
-		kubeClient: kubeClient,
-		logger:     logger,
+// NewEndpointsRetrieve returns a new EP retriever.
+func NewEndpointsRetrieve(namespace string, client kubernetes.Interface) *PodRetrieve {
+	return &EndpointsRetrieve{
+		namespace: namespace,
+		client:    client,
 	}
 }
 
-// ListEndpoints ListEndpoints
-func (e *EnpointsService) ListEndpoints(namespace string, opts metav1.ListOptions) (*corev1.EndpointsList, error) {
-	// opts := metav1.ListOptions{FieldSelector: "metadata.name=" + name}
-	return e.kubeClient.CoreV1().Endpoints(namespace).List(opts)
+// GetListerWatcher knows how to return a listerWatcher of a pod.
+func (p *EndpointsRetrieve) GetListerWatcher() cache.ListerWatcher {
+
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return p.client.CoreV1().Endpoints(p.namespace).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return p.client.CoreV1().Endpoints(p.namespace).Watch(options)
+		},
+	}
 }
 
-// WatchEndpoints WatchEndpoints
-func (e *EnpointsService) WatchEndpoints(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return e.kubeClient.CoreV1().Endpoints(namespace).Watch(opts)
+// GetObject returns the empty pod.
+func (p *EndpointsRetrieve) GetObject() runtime.Object {
+	return &corev1.Pod{}
 }

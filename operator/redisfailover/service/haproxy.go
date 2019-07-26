@@ -4,11 +4,45 @@ import (
 	"fmt"
 
 	redisfailoverv1alpha2 "github.com/spotahome/redis-operator/api/redisfailover/v1alpha2"
+	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
+
+// HaproxyBackends HaproxyBackends
+type HaproxyBackends interface {
+	GetHAProxyBackendsList(name string, list corev1.EndpointsList) ([]string, error)
+}
+
+// EnpointsService is the service account service implementation using API calls to kubernetes.
+type EnpointsService struct {
+	logger log.Logger
+}
+
+// NewEndpointsService NewEndpointsService
+func NewEndpointsService(logger log.Logger) *EnpointsService {
+	logger = logger.With("service", "k8s.endpoints")
+	return &EnpointsService{
+		logger: logger,
+	}
+}
+
+func (s *EnpointsService) getObjInfo(obj runtime.Object) (string, error) {
+	objMeta, ok := obj.(metav1.Object)
+	if !ok {
+		return "", fmt.Errorf("could not print object information")
+	}
+	return fmt.Sprintf("%s", objMeta.GetName()), nil
+}
+
+// GetHAProxyBackendsList GetHAProxyBackendsList
+func (s *EnpointsService) GetHAProxyBackendsList(name string, list corev1.EndpointsList) ([]string, error) {
+	// search current instance EP and return array of IPs
+	return []string{}, nil
+}
 
 func getHaproxyImage(rf *redisfailoverv1alpha2.RedisFailover) string {
 	return fmt.Sprintf("%s:%s", rf.Spec.HAProxy.Image, rf.Spec.HAProxy.Version)
