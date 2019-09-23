@@ -23,6 +23,7 @@ type Client interface {
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string) error
+	SetRedisAuth(ip string, configs []string) error
 }
 
 type client struct{}
