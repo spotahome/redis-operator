@@ -203,7 +203,7 @@ func (_m *Client) SetRedisAuth(ip string, secretPath string) error {
 	ret := _m.Called(ip, secretPath)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
 		r0 = rf(ip, secretPath)
 	} else {
 		r0 = ret.Error(0)
