@@ -87,6 +87,12 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 
+	for _, rip := range redises {
+		if err := r.rfHealer.SetRedisAuth(rip, rf); err != nil {
+			return err
+		}
+	}
+
 	sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
 	if err != nil {
 		return err

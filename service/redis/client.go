@@ -273,6 +273,10 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	return nil
 }
 
+func (c *client) SetRedisAuth(ip string, configs []string) error {
+	return nil
+}
+
 func (c *client) applyRedisConfig(parameter string, value string, rClient *rediscli.Client) error {
 	result := rClient.ConfigSet(parameter, value)
 	return result.Err()
