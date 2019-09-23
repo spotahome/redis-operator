@@ -197,3 +197,17 @@ func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 
 	return r0
 }
+
+// SetRedisAuth will call sentinel to set the configuration given in config
+func (_m *Client) SetRedisAuth(ip string, secretPath string) error {
+	ret := _m.Called(ip, secretPath)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(ip, secretPath)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
