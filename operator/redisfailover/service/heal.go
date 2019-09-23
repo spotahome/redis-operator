@@ -125,5 +125,5 @@ func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv
 // SetRedisAuth will call sentinel to set the configuration given in config
 func (r *RedisFailoverHealer) SetRedisAuth(ip string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debugf("Setting the auth on redis %s...", ip)
-	return r.redisClient.SetRedisAuth(ip, rf.Spec.AuthSettings)
+	return r.redisClient.SetRedisAuth(ip, rf.Spec.AuthSettings.SecretPath)
 }
