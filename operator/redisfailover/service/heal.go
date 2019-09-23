@@ -20,6 +20,7 @@ type RedisFailoverHeal interface {
 	RestoreSentinel(ip string) error
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
+	SetRedisAuth(ip string, rFailover *redisfailoverv1.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
