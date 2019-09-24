@@ -73,7 +73,7 @@ func (_m *Client) GetSentinelMonitor(ip string) (string, error) {
 }
 
 // GetSlaveOf provides a mock function with given fields: ip
-func (_m *Client) GetSlaveOf(ip, password string) (string, error) {
+func (_m *Client) GetSlaveOf(ip string) (string, error) {
 	ret := _m.Called(ip)
 
 	var r0 string
@@ -94,7 +94,7 @@ func (_m *Client) GetSlaveOf(ip, password string) (string, error) {
 }
 
 // IsMaster provides a mock function with given fields: ip
-func (_m *Client) IsMaster(ip, password string) (bool, error) {
+func (_m *Client) IsMaster(ip string) (bool, error) {
 	ret := _m.Called(ip)
 
 	var r0 bool
@@ -115,7 +115,7 @@ func (_m *Client) IsMaster(ip, password string) (bool, error) {
 }
 
 // MakeMaster provides a mock function with given fields: ip
-func (_m *Client) MakeMaster(ip, password string) error {
+func (_m *Client) MakeMaster(ip string) error {
 	ret := _m.Called(ip)
 
 	var r0 error
@@ -129,7 +129,7 @@ func (_m *Client) MakeMaster(ip, password string) error {
 }
 
 // MakeSlaveOf provides a mock function with given fields: ip, masterIP
-func (_m *Client) MakeSlaveOf(ip, masterIP, password string) error {
+func (_m *Client) MakeSlaveOf(ip string, masterIP string) error {
 	ret := _m.Called(ip, masterIP)
 
 	var r0 error
@@ -143,7 +143,7 @@ func (_m *Client) MakeSlaveOf(ip, masterIP, password string) error {
 }
 
 // MonitorRedis provides a mock function with given fields: ip, monitor, quorum
-func (_m *Client) MonitorRedis(ip, monitor, password string, quorum string) error {
+func (_m *Client) MonitorRedis(ip string, monitor string, quorum string) error {
 	ret := _m.Called(ip, monitor, quorum)
 
 	var r0 error
@@ -171,7 +171,7 @@ func (_m *Client) ResetSentinel(ip string) error {
 }
 
 // SetCustomRedisConfig provides a mock function with given fields: ip, configs
-func (_m *Client) SetCustomRedisConfig(ip, password string, configs []string) error {
+func (_m *Client) SetCustomRedisConfig(ip string, configs []string) error {
 	ret := _m.Called(ip, configs)
 
 	var r0 error

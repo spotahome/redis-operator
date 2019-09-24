@@ -12,7 +12,6 @@ import (
 type Services interface {
 	CRD
 	ConfigMap
-	Secret
 	Pod
 	PodDisruptionBudget
 	RedisFailover
@@ -25,7 +24,6 @@ type Services interface {
 type services struct {
 	CRD
 	ConfigMap
-	Secret
 	Pod
 	PodDisruptionBudget
 	RedisFailover
@@ -40,7 +38,6 @@ func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, 
 	return &services{
 		CRD:                 NewCRDService(apiextcli, logger),
 		ConfigMap:           NewConfigMapService(kubecli, logger),
-		Secret:              NewSecretService(kubecli, logger),
 		Pod:                 NewPodService(kubecli, logger),
 		PodDisruptionBudget: NewPodDisruptionBudgetService(kubecli, logger),
 		RedisFailover:       NewRedisFailoverService(crdcli, logger),
