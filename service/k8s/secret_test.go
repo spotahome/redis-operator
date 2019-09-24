@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 
+	errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,7 +43,11 @@ func TestSecretServiceGet(t *testing.T) {
 			return true, &secret, nil
 		})
 		mcli.AddReactor("get", "secrets", func(action kubetesting.Action) (bool, runtime.Object, error) {
-			return true, &secret, nil
+			a := (action).(kubetesting.GetActionImpl)
+			if a.Namespace == secret.ObjectMeta.Namespace && a.Name == secret.ObjectMeta.Name {
+				return true, &secret, nil
+			}
+			return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), a.Name)
 		})
 
 		_, err := mcli.CoreV1().Secrets(secret.ObjectMeta.Namespace).Create(&secret)
@@ -53,5 +58,10 @@ func TestSecretServiceGet(t *testing.T) {
 		ss, err := service.GetSecret(secret.ObjectMeta.Namespace, secret.ObjectMeta.Name)
 		assert.NotNil(ss)
 		assert.NoError(err)
+
+		// test getting a nonexistent secret
+		_, err = service.GetSecret(secret.ObjectMeta.Namespace, secret.ObjectMeta.Name+"nonexistent")
+		assert.Error(err)
+		assert.True(errors.IsNotFound(err))
 	})
 }
