@@ -40,7 +40,8 @@ func NewRedisFailoverHealer(k8sService k8s.Services, redisClient redis.Client, l
 }
 
 func (r *RedisFailoverHealer) MakeMaster(ip string) error {
-	return r.redisClient.MakeMaster(ip)
+
+	return r.redisClient.MakeMaster(ip, password)
 }
 
 // SetOldestAsMaster puts all redis to the same master, choosen by order of appearance

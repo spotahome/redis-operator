@@ -68,14 +68,36 @@ func (r *RedisFailoverChecker) CheckSentinelNumber(rf *redisfailoverv1.RedisFail
 	return nil
 }
 
+// GetRedisPassword retreives password from kubernetes, or returns a blank string
+func (r *RedisFailoverChecker) GetRedisPassword(rf *redisfailoverv1.RedisFailover) (string, error) {
+	if rf.Spec.AuthSettings.SecretPath == "" {
+		return "", nil
+	}
+
+	ss, err := r.k8sService.GetSecret(rf.Namespace, rf.Spec.AuthSettings.SecretPath)
+	if err != nil {
+		return "", err
+	}
+
+	// XXX base64 decode
+	return string(ss.Data["password"]), nil
+}
+
 // CheckAllSlavesFromMaster controlls that all slaves have the same master (the real one)
 func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1.RedisFailover) error {
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
 		return err
 	}
+
+	var password string
+	password, err = r.GetRedisPassword(rf)
+	if err != nil {
+		return err
+	}
+
 	for _, rip := range rips {
-		slave, err := r.redisClient.GetSlaveOf(rip)
+		slave, err := r.redisClient.GetSlaveOf(rip, password)
 		if err != nil {
 			return err
 		}
@@ -126,9 +148,16 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 	if err != nil {
 		return "", err
 	}
+
+	var password string
+	password, err = r.GetRedisPassword(rf)
+	if err != nil {
+		return "", err
+	}
+
 	masters := []string{}
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip)
+		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
 			return "", err
 		}
@@ -150,8 +179,15 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 	if err != nil {
 		return nMasters, err
 	}
+
+	var password string
+	password, err = r.GetRedisPassword(rf)
+	if err != nil {
+		return nMasters, err
+	}
+
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip)
+		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
 			return nMasters, err
 		}
@@ -175,6 +211,12 @@ func (r *RedisFailoverChecker) GetRedisesIPs(rf *redisfailoverv1.RedisFailover) 
 		}
 	}
 	return redises, nil
+}
+
+// GetRedisesIPs returns the IPs of the Redis nodes
+func (r *RedisFailoverChecker) GetRedisAuth(rf *redisfailoverv1.RedisFailover) (string, error) {
+	// XXX implement
+	return "", nil
 }
 
 // GetSentinelsIPs returns the IPs of the Sentinel nodes
