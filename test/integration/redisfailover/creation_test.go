@@ -90,19 +90,6 @@ func TestRedisFailover(t *testing.T) {
 	// Create kubernetes service.
 	k8sservice := k8s.New(stdclient, customclient, aeClientset, log.Dummy)
 
-	// Create secret
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      authSecretPath,
-			Namespace: namespace,
-		},
-		Data: map[string][]byte{
-			"password": []byte(base64.StdEncoding.EncodeToString([]byte("test-pass"))),
-		},
-	}
-	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
-	require.NoError(err)
-
 	// Prepare namespace
 	prepErr := clients.prepareNS()
 	require.NoError(prepErr)
@@ -121,6 +108,19 @@ func TestRedisFailover(t *testing.T) {
 
 	// Give time to the operator to start
 	time.Sleep(15 * time.Second)
+
+	// Create secret
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      authSecretPath,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"password": []byte(base64.StdEncoding.EncodeToString([]byte("test-pass"))),
+		},
+	}
+	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
+	require.NoError(err)
 
 	// Check that if we create a RedisFailover, it is certainly created and we can get it
 	ok := t.Run("Check Custom Resource Creation", clients.testCRCreation)
