@@ -100,10 +100,8 @@ func TestRedisFailover(t *testing.T) {
 			"password": []byte(base64.StdEncoding.EncodeToString([]byte("test-pass"))),
 		},
 	}
-	_, err := stdclient.CoreV1().Secrets(namespace).Create(secret)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
+	require.NoError(err)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
@@ -131,6 +129,9 @@ func TestRedisFailover(t *testing.T) {
 	// Giving time to the operator to create the resources
 	time.Sleep(3 * time.Minute)
 
+	// Verify that auth is set and actually working
+	t.Run("Check that auth is set and able to connect to redis", clients.testAuth)
+
 	// Check that a Redis Statefulset is created and the size of it is the one defined by the
 	// Redis Failover definition created before.
 	t.Run("Check Redis Statefulset existing and size", clients.testRedisStatefulSet)
@@ -147,6 +148,7 @@ func TestRedisFailover(t *testing.T) {
 	// check that all of them are connected to the same Redis node, and also that that node
 	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
+
 }
 
 func (c *clients) testCRCreation(t *testing.T) {
@@ -239,4 +241,10 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 	isMaster, err := c.redisClient.IsMaster(masters[0])
 	assert.NoError(err)
 	assert.True(isMaster, "Sentinel should monitor the Redis master")
+}
+
+func (c *clients) testAuth(t *testing.T) {
+
+	assert := assert.New(t)
+	assert.NotEmpty(c.redisClient.GetRedisAuth())
 }
