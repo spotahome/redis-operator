@@ -199,17 +199,8 @@ func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 }
 
 // SetCustomSentinelConfig provides a mock function with given fields: password
-func (_m *Client) SetRedisAuth(password string) error {
-	ret := _m.Called(password)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(password)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *Client) SetRedisAuth(password string) {
+	_m.Called(password)
 }
 
 func (_m *Client) GetRedisAuth() string {

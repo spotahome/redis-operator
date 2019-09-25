@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -121,6 +122,7 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor str
 	return nil
 }
 
+// CheckRedisAuth checks if auth is requested and set on the redis client
 func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover) error {
 
 	if rf.Spec.AuthSettings.SecretPath == "" {
@@ -138,8 +140,15 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 		return err
 	}
 
-	// XXX check empty and base64 decode
-	r.redisClient.SetRedisAuth(string(s.Data["password"]))
+	if p, ok := s.Data["password"]; ok {
+		bp, err := base64.StdEncoding.DecodeString(string(p))
+		if err != nil {
+			return err
+		}
+		r.redisClient.SetRedisAuth(string(bp))
+	} else {
+		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.AuthSettings.SecretPath)
+	}
 
 	return nil
 }

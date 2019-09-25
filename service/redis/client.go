@@ -23,7 +23,7 @@ type Client interface {
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string) error
-	SetRedisAuth(password string) error
+	SetRedisAuth(password string)
 	GetRedisAuth() string
 }
 
@@ -277,9 +277,8 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SetRedisAuth(password string) error {
+func (c *client) SetRedisAuth(password string) {
 	c.authPassword = password
-	return nil
 }
 
 func (c *client) GetRedisAuth() string {

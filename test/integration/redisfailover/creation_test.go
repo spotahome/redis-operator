@@ -3,6 +3,7 @@
 package redisfailover_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,10 +32,11 @@ import (
 )
 
 const (
-	name         = "testing"
-	namespace    = "rf-integration-tests"
-	redisSize    = int32(3)
-	sentinelSize = int32(3)
+	name           = "testing"
+	namespace      = "rf-integration-tests"
+	redisSize      = int32(3)
+	sentinelSize   = int32(3)
+	authSecretPath = "redis-auth"
 )
 
 type clients struct {
@@ -86,6 +89,21 @@ func TestRedisFailover(t *testing.T) {
 
 	// Create kubernetes service.
 	k8sservice := k8s.New(stdclient, customclient, aeClientset, log.Dummy)
+
+	// Create secret
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      authSecretPath,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"password": []byte(base64.StdEncoding.EncodeToString([]byte("test-pass"))),
+		},
+	}
+	_, err := stdclient.CoreV1().Secrets(namespace).Create(secret)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
@@ -144,6 +162,9 @@ func (c *clients) testCRCreation(t *testing.T) {
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: sentinelSize,
+			},
+			AuthSettings: redisfailoverv1.AuthSettings{
+				SecretPath: authSecretPath,
 			},
 		},
 	}
