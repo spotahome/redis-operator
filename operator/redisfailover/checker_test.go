@@ -137,6 +137,7 @@ func TestCheckAndHeal(t *testing.T) {
 			mrfh := &mRFService.RedisFailoverHeal{}
 			mrfc.On("CheckRedisNumber", rf).Once().Return(nil)
 			mrfc.On("CheckSentinelNumber", rf).Once().Return(nil)
+			mrfc.On("CheckRedisAuth", rf).Once().Return(nil)
 			mrfc.On("GetNumberMasters", rf).Once().Return(test.nMasters, nil)
 			switch test.nMasters {
 			case 0:
@@ -167,7 +168,6 @@ func TestCheckAndHeal(t *testing.T) {
 				}
 				mrfc.On("GetRedisesIPs", rf).Once().Return([]string{master}, nil)
 				mrfh.On("SetRedisCustomConfig", master, rf).Once().Return(nil)
-				mrfh.On("SetRedisAuth", master, rf).Once().Return(nil)
 				mrfc.On("GetSentinelsIPs", rf).Once().Return([]string{sentinel}, nil)
 				if test.sentinelMonitorOK {
 					mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(nil)

@@ -23,10 +23,13 @@ type Client interface {
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string) error
-	SetRedisAuth(ip string, path string) error
+	SetRedisAuth(password string) error
+	GetRedisAuth() string
 }
 
-type client struct{}
+type client struct {
+	authPassword string
+}
 
 // New returns a redis client
 func New() Client {
@@ -135,7 +138,7 @@ func (c *client) ResetSentinel(ip string) error {
 func (c *client) GetSlaveOf(ip string) (string, error) {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
+		Password: c.authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -154,7 +157,7 @@ func (c *client) GetSlaveOf(ip string) (string, error) {
 func (c *client) IsMaster(ip string) (bool, error) {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
+		Password: c.authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -189,7 +192,7 @@ func (c *client) MonitorRedis(ip string, monitor string, quorum string) error {
 func (c *client) MakeMaster(ip string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
+		Password: c.authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -203,7 +206,7 @@ func (c *client) MakeMaster(ip string) error {
 func (c *client) MakeSlaveOf(ip string, masterIP string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
+		Password: c.authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -256,7 +259,7 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
+		Password: c.authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -274,8 +277,13 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SetRedisAuth(ip string, secretPath string) error {
+func (c *client) SetRedisAuth(password string) error {
+	c.authPassword = password
 	return nil
+}
+
+func (c *client) GetRedisAuth() string {
+	return c.authPassword
 }
 
 func (c *client) applyRedisConfig(parameter string, value string, rClient *rediscli.Client) error {

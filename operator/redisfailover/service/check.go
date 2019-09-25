@@ -19,6 +19,7 @@ type RedisFailoverCheck interface {
 	CheckSentinelNumber(rFailover *redisfailoverv1.RedisFailover) error
 	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
+	CheckRedisAuth(rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelMonitor(sentinel string, monitor string) error
 	GetMasterIP(rFailover *redisfailoverv1.RedisFailover) (string, error)
@@ -117,6 +118,29 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor str
 	if actualMonitorIP != monitor {
 		return errors.New("the monitor on the sentinel config does not match with the expected one")
 	}
+	return nil
+}
+
+func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover) error {
+
+	if rf.Spec.AuthSettings.SecretPath == "" {
+		// no auth settings specified, nothing to do
+		return nil
+	}
+
+	if r.redisClient.GetRedisAuth() != "" {
+		// password is already present, nothing to do
+		return nil
+	}
+
+	s, err := r.k8sService.GetSecret(rf.ObjectMeta.Namespace, rf.Spec.AuthSettings.SecretPath)
+	if err != nil {
+		return err
+	}
+
+	// XXX check empty and base64 decode
+	r.redisClient.SetRedisAuth(string(s.Data["password"]))
+
 	return nil
 }
 
