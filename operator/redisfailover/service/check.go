@@ -130,26 +130,35 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 		return nil
 	}
 
-	if r.redisClient.GetRedisAuth() != "" {
-		// password is already present, nothing to do
-		return nil
-	}
-
 	s, err := r.k8sService.GetSecret(rf.ObjectMeta.Namespace, rf.Spec.AuthSettings.SecretPath)
 	if err != nil {
 		return err
 	}
 
+	// XXX need to somehow store that if the password has already been set
+	// (as pod labels?)
+	rips, err := r.GetRedisesIPs(rf)
+	if err != nil {
+		return err
+	}
+
+	var password string
 	if p, ok := s.Data["password"]; ok {
 		bp, err := base64.StdEncoding.DecodeString(string(p))
 		if err != nil {
 			return err
 		}
-		r.redisClient.SetRedisAuth(string(bp))
+		password = string(bp)
 	} else {
 		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.AuthSettings.SecretPath)
 	}
 
+	for _, rip := range rips {
+		err = r.redisClient.SetRedisAuth(rip, password)
+		if err != nil {
+			return nil
+		}
+	}
 	return nil
 }
 

@@ -110,17 +110,3 @@ func (_m *RedisFailoverHeal) SetSentinelCustomConfig(ip string, rFailover *v1.Re
 
 	return r0
 }
-
-// SetRedisAuth will call sentinel to set the configuration given in config
-func (_m *RedisFailoverHeal) SetRedisAuth(ip string, rFailover *v1.RedisFailover) error {
-	ret := _m.Called(ip, rFailover)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) error); ok {
-		r0 = rf(ip, rFailover)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
