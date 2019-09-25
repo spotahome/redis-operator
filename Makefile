@@ -7,7 +7,7 @@ SERVICE_NAME := redis-operator
 IMAGE_NAME := spotahome/$(SERVICE_NAME)
 
 # Repository url for this project
-REPOSITORY := quay.io/$(IMAGE_NAME)
+REPOSITORY := gcr.io/uservoice-001/marin-redis-operator
 
 # Shell to use for running scripts
 SHELL := $(shell which bash)

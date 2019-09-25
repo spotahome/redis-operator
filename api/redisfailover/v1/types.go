@@ -17,9 +17,9 @@ type RedisFailover struct {
 
 // RedisFailoverSpec represents a Redis failover spec
 type RedisFailoverSpec struct {
-	Redis        RedisSettings    `json:"redis,omitempty"`
-	Sentinel     SentinelSettings `json:"sentinel,omitempty"`
-	AuthSettings AuthSettings     `json:"auth,omitempty"`
+	Redis    RedisSettings    `json:"redis,omitempty"`
+	Sentinel SentinelSettings `json:"sentinel,omitempty"`
+	Auth     AuthSettings     `json:"auth,omitempty"`
 }
 
 // RedisSettings defines the specification of the redis cluster
@@ -51,7 +51,7 @@ type SentinelSettings struct {
 
 // AuthSettings contains settings about auth
 type AuthSettings struct {
-	SecretPath string `json:"secret_path,omitempty`
+	SecretPath string `json:"secretPath,omitempty`
 }
 
 // RedisExporter defines the specification for the redis exporter

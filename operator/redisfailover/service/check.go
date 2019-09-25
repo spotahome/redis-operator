@@ -125,12 +125,12 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor str
 // CheckRedisAuth checks if auth is requested and set on the redis client
 func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover) error {
 
-	if rf.Spec.AuthSettings.SecretPath == "" {
+	if rf.Spec.Auth.SecretPath == "" {
 		// no auth settings specified, nothing to do
 		return nil
 	}
 
-	s, err := r.k8sService.GetSecret(rf.ObjectMeta.Namespace, rf.Spec.AuthSettings.SecretPath)
+	s, err := r.k8sService.GetSecret(rf.ObjectMeta.Namespace, rf.Spec.Auth.SecretPath)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 		}
 		password = string(bp)
 	} else {
-		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.AuthSettings.SecretPath)
+		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
 	}
 
 	for _, rip := range rips {
