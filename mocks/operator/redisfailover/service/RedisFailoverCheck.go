@@ -29,6 +29,20 @@ func (_m *RedisFailoverCheck) CheckAllSlavesFromMaster(master string, rFailover 
 	return r0
 }
 
+// CheckRedisAuth provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) CheckRedisAuth(rFailover *v1.RedisFailover) error {
+	ret := _m.Called(rFailover)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) error); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CheckRedisNumber provides a mock function with given fields: rFailover
 func (_m *RedisFailoverCheck) CheckRedisNumber(rFailover *v1.RedisFailover) error {
 	ret := _m.Called(rFailover)
@@ -78,20 +92,6 @@ func (_m *RedisFailoverCheck) CheckSentinelNumberInMemory(sentinel string, rFail
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) error); ok {
 		r0 = rf(sentinel, rFailover)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// CheckRedisAuth provides a mock function with given fields: rFailover
-func (_m *RedisFailoverCheck) CheckRedisAuth(rFailover *v1.RedisFailover) error {
-	ret := _m.Called(rFailover)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) error); ok {
-		r0 = rf(rFailover)
 	} else {
 		r0 = ret.Error(0)
 	}

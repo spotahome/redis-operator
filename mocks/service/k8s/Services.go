@@ -408,29 +408,6 @@ func (_m *Services) GetConfigMap(namespace string, name string) (*v1.ConfigMap, 
 	return r0, r1
 }
 
-// GetSecret provides a mock function with given fields: namespace, name
-func (_m *Services) GetSecret(namespace string, name string) (*v1.Secret, error) {
-	ret := _m.Called(namespace, name)
-
-	var r0 *v1.Secret
-	if rf, ok := ret.Get(0).(func(string, string) *v1.Secret); ok {
-		r0 = rf(namespace, name)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v1.Secret)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(namespace, name)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetDeployment provides a mock function with given fields: namespace, name
 func (_m *Services) GetDeployment(namespace string, name string) (*appsv1.Deployment, error) {
 	ret := _m.Called(namespace, name)
@@ -556,6 +533,29 @@ func (_m *Services) GetRoleBinding(namespace string, name string) (*rbacv1.RoleB
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*rbacv1.RoleBinding)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(namespace, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSecret provides a mock function with given fields: namespace, name
+func (_m *Services) GetSecret(namespace string, name string) (*v1.Secret, error) {
+	ret := _m.Called(namespace, name)
+
+	var r0 *v1.Secret
+	if rf, ok := ret.Get(0).(func(string, string) *v1.Secret); ok {
+		r0 = rf(namespace, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*v1.Secret)
 		}
 	}
 

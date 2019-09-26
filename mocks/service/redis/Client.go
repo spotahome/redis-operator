@@ -51,6 +51,20 @@ func (_m *Client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 	return r0, r1
 }
 
+// GetRedisAuth provides a mock function with given fields:
+func (_m *Client) GetRedisAuth() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // GetSentinelMonitor provides a mock function with given fields: ip
 func (_m *Client) GetSentinelMonitor(ip string) (string, error) {
 	ret := _m.Called(ip)
@@ -198,7 +212,7 @@ func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return r0
 }
 
-// SetRedisAuth provides a mock function with given fields: password
+// SetRedisAuth provides a mock function with given fields: ip, password
 func (_m *Client) SetRedisAuth(ip string, password string) error {
 	ret := _m.Called(ip, password)
 
@@ -207,18 +221,6 @@ func (_m *Client) SetRedisAuth(ip string, password string) error {
 		r0 = rf(ip, password)
 	} else {
 		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-func (_m *Client) GetRedisAuth() string {
-	ret := _m.Called()
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
-	} else {
-		r0 = ""
 	}
 
 	return r0

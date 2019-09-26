@@ -76,6 +76,8 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 		return err
 	}
 
+	// XXX add ensure auth here?
+
 	if err := r.CheckAndHeal(rf); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
