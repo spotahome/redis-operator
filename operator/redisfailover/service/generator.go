@@ -96,7 +96,7 @@ sentinel failover-timeout mymaster 3000
 sentinel parallel-syncs mymaster 2`
 
 	if password != "" {
-		sentinelConfigFileContent = fmt.Sprintf("sentinel auth-pass mymaster %s\n%s", password, sentinelConfigFileContent)
+		sentinelConfigFileContent = fmt.Sprintf("%s\nsentinel auth-pass mymaster %s", sentinelConfigFileContent, password)
 	}
 
 	return &corev1.ConfigMap{
