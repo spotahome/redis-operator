@@ -29,7 +29,9 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		return nil
 	}
 
+	r.logger.Info("about to check auth")
 	if err := r.rfChecker.CheckRedisAuth(rf); err != nil {
+		r.logger.Info("checked auth")
 		return err
 	}
 
