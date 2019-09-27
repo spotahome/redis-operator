@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -53,7 +55,24 @@ func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.Redi
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateSentinelConfigMap(rf, labels, ownerRefs)
+
+	var password string
+	// XXX is this the right place for this?
+	if rf.Spec.Auth.SecretPath != "" {
+		s, err := r.K8SService.GetSecret(rf.Namespace, rf.Spec.Auth.SecretPath)
+		if err != nil {
+			return err
+		}
+
+		if p, ok := s.Data["password"]; ok {
+			password = string(p)
+		} else {
+			return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
+		}
+	}
+
+	cm := generateSentinelConfigMap(rf, labels, ownerRefs, password)
+
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
