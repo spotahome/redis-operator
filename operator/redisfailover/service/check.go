@@ -144,6 +144,7 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 
 	var password string
 	if p, ok := s.Data["password"]; ok {
+		r.logger.Warn("DATA IS " + p)
 		bp, err := base64.StdEncoding.DecodeString(string(p))
 		if err != nil {
 			return err
