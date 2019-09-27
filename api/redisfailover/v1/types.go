@@ -51,7 +51,7 @@ type SentinelSettings struct {
 
 // AuthSettings contains settings about auth
 type AuthSettings struct {
-	SecretPath string `json:"secretPath,omitempty`
+	SecretPath string `json:"secretPath,omitempty"`
 }
 
 // RedisExporter defines the specification for the redis exporter
