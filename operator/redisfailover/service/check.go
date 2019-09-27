@@ -143,7 +143,7 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 
 	var password string
 	if p, ok := s.Data["password"]; ok {
-		password = string(bp)
+		password = p
 	} else {
 		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
 	}
