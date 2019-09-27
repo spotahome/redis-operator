@@ -27,8 +27,9 @@ type Client interface {
 	GetRedisAuth() string
 }
 
+var authPassword string
+
 type client struct {
-	authPassword string
 }
 
 // New returns a redis client
@@ -138,7 +139,7 @@ func (c *client) ResetSentinel(ip string) error {
 func (c *client) GetSlaveOf(ip string) (string, error) {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: c.authPassword,
+		Password: authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -157,7 +158,7 @@ func (c *client) GetSlaveOf(ip string) (string, error) {
 func (c *client) IsMaster(ip string) (bool, error) {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: c.authPassword,
+		Password: authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -192,7 +193,7 @@ func (c *client) MonitorRedis(ip string, monitor string, quorum string) error {
 func (c *client) MakeMaster(ip string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: c.authPassword,
+		Password: authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -206,7 +207,7 @@ func (c *client) MakeMaster(ip string) error {
 func (c *client) MakeSlaveOf(ip string, masterIP string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: c.authPassword,
+		Password: authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -259,7 +260,7 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: c.authPassword,
+		Password: authPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -293,12 +294,12 @@ func (c *client) SetRedisAuth(ip, password string) error {
 		return err
 	}
 
-	c.authPassword = password
+	authPassword = password
 	return nil
 }
 
 func (c *client) GetRedisAuth() string {
-	return c.authPassword
+	return authPassword
 }
 
 func (c *client) applyRedisConfig(parameter string, value string, rClient *rediscli.Client) error {
