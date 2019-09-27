@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -144,11 +143,6 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 
 	var password string
 	if p, ok := s.Data["password"]; ok {
-		r.logger.Warn("DATA IS " + string(p))
-		bp, err := base64.StdEncoding.DecodeString(string(p))
-		if err != nil {
-			return err
-		}
 		password = string(bp)
 	} else {
 		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
