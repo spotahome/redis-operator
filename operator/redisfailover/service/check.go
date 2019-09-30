@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -134,8 +135,6 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 		return err
 	}
 
-	// XXX need to somehow store that if the password has already been set
-	// (as pod labels?)
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
 		return err
@@ -150,6 +149,13 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 
 	for _, rip := range rips {
 		err = r.redisClient.SetRedisAuth(rip, password)
+		// just continue if auth is already set on this pod
+		if _, redisErr := err.(protoRedisError); redisErr {
+			s := err.Error()
+			if strings.HasPrefix(s, "NOAUTH ") {
+				return nil
+			}
+		}
 		if err != nil {
 			return nil
 		}
