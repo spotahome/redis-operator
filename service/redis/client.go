@@ -278,6 +278,7 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 }
 
 func (c *client) SetRedisAuth(ip, password string) error {
+	c.authPassword = password
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
 		Password: "",
@@ -293,7 +294,6 @@ func (c *client) SetRedisAuth(ip, password string) error {
 		return err
 	}
 
-	c.authPassword = password
 	return nil
 }
 
