@@ -154,7 +154,7 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 			return nil
 		}
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	return nil
