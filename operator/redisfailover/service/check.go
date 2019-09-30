@@ -150,7 +150,7 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 	for _, rip := range rips {
 		err = r.redisClient.SetRedisAuth(rip, password)
 		// just continue if auth is already set on this pod
-		if strings.HasPrefix(s.String(), "(error) NOAUTH ") {
+		if strings.HasPrefix(s.String(), "NOAUTH ") {
 			return nil
 		}
 		if err != nil {
