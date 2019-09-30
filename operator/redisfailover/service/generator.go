@@ -123,7 +123,7 @@ save 900 1
 save 300 10`
 
 	if password != "" {
-		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", password, password)
+		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
 	}
 
 	return &corev1.ConfigMap{
