@@ -246,5 +246,5 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 func (c *clients) testAuth(t *testing.T) {
 
 	assert := assert.New(t)
-	assert.NotEmpty(c.redisClient.GetRedisAuth())
+	assert.Equal(c.redisClient.GetRedisAuth(), "test-pass")
 }
