@@ -3,7 +3,6 @@
 package redisfailover_test
 
 import (
-	"encoding/base64"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -116,7 +115,7 @@ func TestRedisFailover(t *testing.T) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"password": []byte(base64.StdEncoding.EncodeToString([]byte("test-pass"))),
+			"password": []byte("test-pass"),
 		},
 	}
 	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
@@ -246,5 +245,5 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 func (c *clients) testAuth(t *testing.T) {
 
 	assert := assert.New(t)
-	assert.Equal(c.redisClient.GetRedisAuth(), "test-pass")
+	assert.Equal("test-pass", c.redisClient.GetRedisAuth())
 }
