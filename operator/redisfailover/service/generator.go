@@ -112,7 +112,7 @@ sentinel parallel-syncs mymaster 2`
 	}
 }
 
-func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
@@ -121,6 +121,10 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 tcp-keepalive 60
 save 900 1
 save 300 10`
+
+	if password != "" {
+		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", password, password)
+	}
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

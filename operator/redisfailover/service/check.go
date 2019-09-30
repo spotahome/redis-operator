@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -135,32 +134,12 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 		return err
 	}
 
-	rips, err := r.GetRedisesIPs(rf)
-	if err != nil {
-		return err
+	if password, ok := s.Data["password"]; ok {
+		r.redisClient.SetRedisAuth(string(password))
+		return nil
 	}
 
-	var password string
-	if p, ok := s.Data["password"]; ok {
-		password = string(p)
-	} else {
-		return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
-	}
-
-	for _, rip := range rips {
-		r.logger.Warn("setting auth", rip)
-		err = r.redisClient.SetRedisAuth(rip, password)
-		// just continue if auth is already set on this pod
-		if strings.HasPrefix(err.Error(), "NOAUTH ") {
-			r.logger.Warn("noauth when setting auth")
-			return nil
-		}
-		if err != nil {
-			r.logger.Warn("got other err", err)
-			return err
-		}
-	}
-	return nil
+	return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
 }
 
 // GetMasterIP connects to all redis and returns the master of the redis failover

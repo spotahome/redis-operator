@@ -23,7 +23,7 @@ type Client interface {
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string) error
-	SetRedisAuth(ip, password string) error
+	SetRedisAuth(password string)
 	GetRedisAuth() string
 }
 
@@ -277,31 +277,8 @@ func (c *client) SetCustomRedisConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SetRedisAuth(ip, password string) error {
+func (c *client) SetRedisAuth(password string) {
 	c.authPassword = password
-	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
-		Password: "",
-		DB:       0,
-	}
-	rClient := rediscli.NewClient(options)
-	defer rClient.Close()
-
-	cmd := rClient.ConfigSet("masterauth", password)
-	rClient.Process(cmd)
-	_, err := cmd.Result()
-	if err != nil {
-		return err
-	}
-
-	cmd = rClient.ConfigSet("requirepass", password)
-	rClient.Process(cmd)
-	_, err := cmd.Result()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (c *client) GetRedisAuth() string {

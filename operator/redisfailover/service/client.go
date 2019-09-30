@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -56,23 +57,12 @@ func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.Redi
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 
-	var password string
-	// XXX is this the right place for this?
-	if rf.Spec.Auth.SecretPath != "" {
-		s, err := r.K8SService.GetSecret(rf.Namespace, rf.Spec.Auth.SecretPath)
-		if err != nil {
-			return err
-		}
-
-		if p, ok := s.Data["password"]; ok {
-			password = string(p)
-		} else {
-			return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
-		}
+	password, err := r.getRedisAuth(rf)
+	if err != nil {
+		return err
 	}
 
 	cm := generateSentinelConfigMap(rf, labels, ownerRefs, password)
-
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
@@ -96,7 +86,13 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 
 // EnsureRedisConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateRedisConfigMap(rf, labels, ownerRefs)
+
+	password, err := r.getRedisAuth(rf)
+	if err != nil {
+		return err
+	}
+
+	cm := generateRedisConfigMap(rf, labels, ownerRefs, password)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
@@ -128,6 +124,26 @@ func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailover
 		return r.K8SService.DeleteService(namespace, name)
 	}
 	return nil
+}
+
+// getRedisAuth returns the password as a string, if specified in the Spec
+func (r *RedisFailoverKubeClient) getRedisAuth(rf *redisfailoverv1.RedisFailover) (password string, err error) {
+
+	if rf.Spec.Auth.SecretPath != "" {
+		var s *corev1.Secret
+		s, err = r.K8SService.GetSecret(rf.Namespace, rf.Spec.Auth.SecretPath)
+		if err != nil {
+			return
+		}
+
+		if p, ok := s.Data["password"]; ok {
+			password = string(p)
+		} else {
+			err = fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
+		}
+	}
+
+	return
 }
 
 // EnsureRedisStatefulset makes sure the pdb exists in the desired state
