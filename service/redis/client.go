@@ -287,6 +287,13 @@ func (c *client) SetRedisAuth(ip, password string) error {
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 
+	cmd = rClient.ConfigSet("masterauth", password)
+	rClient.Process(cmd)
+	_, err := cmd.Result()
+	if err != nil {
+		return err
+	}
+
 	cmd := rClient.ConfigSet("requirepass", password)
 	rClient.Process(cmd)
 	_, err := cmd.Result()
