@@ -8,8 +8,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/go-redis/redis/internal"
-
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
@@ -152,11 +150,8 @@ func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover)
 	for _, rip := range rips {
 		err = r.redisClient.SetRedisAuth(rip, password)
 		// just continue if auth is already set on this pod
-		if internal.IsRedisError(err) {
-			s := err.Error()
-			if strings.HasPrefix(s, "NOAUTH ") {
-				return nil
-			}
+		if strings.HasPrefix(s.String(), "(error) NOAUTH ") {
+			return nil
 		}
 		if err != nil {
 			return nil
