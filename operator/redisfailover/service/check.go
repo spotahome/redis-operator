@@ -19,7 +19,6 @@ type RedisFailoverCheck interface {
 	CheckSentinelNumber(rFailover *redisfailoverv1.RedisFailover) error
 	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
-	CheckRedisAuth(rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelMonitor(sentinel string, monitor string) error
 	GetMasterIP(rFailover *redisfailoverv1.RedisFailover) (string, error)
@@ -75,8 +74,14 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 	if err != nil {
 		return err
 	}
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return err
+	}
+
 	for _, rip := range rips {
-		slave, err := r.redisClient.GetSlaveOf(rip)
+		slave, err := r.redisClient.GetSlaveOf(rip, password)
 		if err != nil {
 			return err
 		}
@@ -121,36 +126,21 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor str
 	return nil
 }
 
-// CheckRedisAuth checks if auth is requested and set on the redis client
-func (r *RedisFailoverChecker) CheckRedisAuth(rf *redisfailoverv1.RedisFailover) error {
-
-	if rf.Spec.Auth.SecretPath == "" {
-		// no auth settings specified, nothing to do
-		return nil
-	}
-
-	s, err := r.k8sService.GetSecret(rf.ObjectMeta.Namespace, rf.Spec.Auth.SecretPath)
-	if err != nil {
-		return err
-	}
-
-	if password, ok := s.Data["password"]; ok {
-		r.redisClient.SetRedisAuth(string(password))
-		return nil
-	}
-
-	return fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
-}
-
 // GetMasterIP connects to all redis and returns the master of the redis failover
 func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (string, error) {
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
 		return "", err
 	}
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return "", err
+	}
+
 	masters := []string{}
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip)
+		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
 			return "", err
 		}
@@ -172,8 +162,14 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 	if err != nil {
 		return nMasters, err
 	}
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return nMasters, err
+	}
+
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip)
+		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
 			return nMasters, err
 		}

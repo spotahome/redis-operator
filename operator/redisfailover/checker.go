@@ -29,10 +29,6 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		return nil
 	}
 
-	if err := r.rfChecker.CheckRedisAuth(rf); err != nil {
-		return err
-	}
-
 	nMasters, err := r.rfChecker.GetNumberMasters(rf)
 	if err != nil {
 		return err
@@ -44,7 +40,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			return err
 		}
 		if len(redisesIP) == 1 {
-			if err := r.rfHealer.MakeMaster(redisesIP[0]); err != nil {
+			if err := r.rfHealer.MakeMaster(redisesIP[0], rf); err != nil {
 				return err
 			}
 			break
