@@ -36,6 +36,7 @@ const (
 	redisSize      = int32(3)
 	sentinelSize   = int32(3)
 	authSecretPath = "redis-auth"
+	testPass       = "test-pass"
 )
 
 type clients struct {
@@ -115,7 +116,7 @@ func TestRedisFailover(t *testing.T) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"password": []byte("test-pass"),
+			"password": []byte(testPass),
 		},
 	}
 	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
@@ -206,7 +207,7 @@ func (c *clients) testRedisMaster(t *testing.T) {
 
 	for _, pod := range redisPodList.Items {
 		ip := pod.Status.PodIP
-		if ok, _ := c.redisClient.IsMaster(ip); ok {
+		if ok, _ := c.redisClient.IsMaster(ip, testPass); ok {
 			masters = append(masters, ip)
 		}
 	}
@@ -237,13 +238,7 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 		assert.Equal(masters[0], masterIP, "all master ip monitoring should equal")
 	}
 
-	isMaster, err := c.redisClient.IsMaster(masters[0])
+	isMaster, err := c.redisClient.IsMaster(masters[0], testPass)
 	assert.NoError(err)
 	assert.True(isMaster, "Sentinel should monitor the Redis master")
-}
-
-func (c *clients) testAuth(t *testing.T) {
-
-	assert := assert.New(t)
-	assert.Equal("test-pass", c.redisClient.GetRedisAuth())
 }
