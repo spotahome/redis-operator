@@ -130,7 +130,7 @@ func TestRedisFailover(t *testing.T) {
 	time.Sleep(3 * time.Minute)
 
 	// Verify that auth is set and actually working
-	t.Run("Check that auth is set and able to connect to redis", clients.testAuth)
+	t.Run("Check that auth is set in sentinel and redis configs", clients.testAuth)
 
 	// Check that a Redis Statefulset is created and the size of it is the one defined by the
 	// Redis Failover definition created before.
@@ -241,4 +241,18 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 	isMaster, err := c.redisClient.IsMaster(masters[0], testPass)
 	assert.NoError(err)
 	assert.True(isMaster, "Sentinel should monitor the Redis master")
+}
+
+func (c *clients) testAuth(t *testing.T) {
+
+	assert := assert.New(t)
+
+	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+	assert.Contains(redisCfg.Data["redis.conf"], "requirepass "+testPass)
+	assert.Contains(redisCfg.Data["redis.conf"], "masterauth "+testPass)
+
+	sentinelCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+	assert.Contains(sentinelCfg.Data["redis.conf"], "sentinel auth-pass mymaster "+testPass)
 }
