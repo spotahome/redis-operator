@@ -254,5 +254,5 @@ func (c *clients) testAuth(t *testing.T) {
 
 	sentinelCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
-	assert.Contains(sentinelCfg.Data["redis.conf"], "sentinel auth-pass mymaster "+testPass)
+	assert.Contains(sentinelCfg.Data["sentinel.conf"], "sentinel auth-pass mymaster "+testPass)
 }
