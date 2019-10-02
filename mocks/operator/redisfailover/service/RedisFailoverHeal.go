@@ -13,13 +13,13 @@ type RedisFailoverHeal struct {
 	mock.Mock
 }
 
-// MakeMaster provides a mock function with given fields: ip, rf
-func (_m *RedisFailoverHeal) MakeMaster(ip string, rf *v1.RedisFailover) error {
-	ret := _m.Called(ip, rf)
+// MakeMaster provides a mock function with given fields: ip, rFailover
+func (_m *RedisFailoverHeal) MakeMaster(ip string, rFailover *v1.RedisFailover) error {
+	ret := _m.Called(ip, rFailover)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) error); ok {
-		r0 = rf(ip, rf)
+		r0 = rf(ip, rFailover)
 	} else {
 		r0 = ret.Error(0)
 	}

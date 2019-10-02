@@ -137,13 +137,12 @@ func TestCheckAndHeal(t *testing.T) {
 			mrfh := &mRFService.RedisFailoverHeal{}
 			mrfc.On("CheckRedisNumber", rf).Once().Return(nil)
 			mrfc.On("CheckSentinelNumber", rf).Once().Return(nil)
-			mrfc.On("CheckRedisAuth", rf).Once().Return(nil)
 			mrfc.On("GetNumberMasters", rf).Once().Return(test.nMasters, nil)
 			switch test.nMasters {
 			case 0:
 				mrfc.On("GetRedisesIPs", rf).Once().Return(make([]string, test.nRedis), nil)
 				if test.nRedis == 1 {
-					mrfh.On("MakeMaster", mock.Anything).Once().Return(nil)
+					mrfh.On("MakeMaster", mock.Anything, rf).Once().Return(nil)
 					break
 				}
 				if test.forceNewMaster {

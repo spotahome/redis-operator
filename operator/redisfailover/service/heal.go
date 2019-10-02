@@ -13,7 +13,7 @@ import (
 
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
 type RedisFailoverHeal interface {
-	MakeMaster(ip string, rf *redisfailoverv1.RedisFailover) error
+	MakeMaster(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetOldestAsMaster(rFailover *redisfailoverv1.RedisFailover) error
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1.RedisFailover) error
