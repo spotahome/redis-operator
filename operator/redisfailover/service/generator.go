@@ -191,8 +191,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: rf.Spec.Redis.PodAnnotations,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Redis.Affinity, labels),
@@ -295,8 +294,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: rf.Spec.Sentinel.PodAnnotations,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Sentinel.Affinity, labels),
