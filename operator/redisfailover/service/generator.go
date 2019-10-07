@@ -234,7 +234,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "-c", "/redis-shutdown/shutdown.sh"},
+										Command: []string{"/bin/sh", "/redis-shutdown/shutdown.sh"},
 									},
 								},
 							},
