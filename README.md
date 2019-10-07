@@ -112,6 +112,11 @@ By default, redis and sentinel will be called with de basic command, giving the 
 
 If necessary, this command can be changed with the `command` option inside redis/sentinel spec. An example can be found in the [custom command example file](example/redisfailover/custom-command.yaml).
 
+### Custom Pod Annotations
+By default, no pod annotations will be applied to Redis nor Sentinel pods.
+
+In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
+
 ## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
