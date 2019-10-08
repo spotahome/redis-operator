@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/json"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,6 +25,7 @@ type RedisFailoverSpec struct {
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
 	Image             string                      `json:"image,omitempty"`
+	ImagePulPolicy    ImagePullPolicy             `json:"imagePullPolicy,omitempty"`
 	Replicas          int32                       `json:"replicas,omitempty"`
 	Resources         corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig      []string                    `json:"customConfig,omitempty"`
@@ -40,6 +42,7 @@ type RedisSettings struct {
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
 	Image           string                      `json:"image,omitempty"`
+	ImagePullPolicy ImagePullPolicy             `json:"imagePullPolicy,omitempty"`
 	Replicas        int32                       `json:"replicas,omitempty"`
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig    []string                    `json:"customConfig,omitempty"`
@@ -52,8 +55,9 @@ type SentinelSettings struct {
 
 // RedisExporter defines the specification for the redis exporter
 type RedisExporter struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	Image   string `json:"image,omitempty"`
+	Enabled         bool            `json:"enabled,omitempty"`
+	Image           string          `json:"image,omitempty"`
+	ImagePullPolicy ImagePullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 // RedisStorage defines the structure used to store the Redis Data
@@ -71,4 +75,21 @@ type RedisFailoverList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []RedisFailover `json:"items"`
+}
+
+// ImagePullPolicy defines the pull policy with a default of Always
+type ImagePullPolicy corev1.PullPolicy
+
+// UnmarshalJSON sets the default value to Always on JSON decode
+func (e *ImagePullPolicy) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	if s == "" {
+		*e = ImagePullPolicy("Always")
+	} else {
+		*e ImagePullPolicy(s)
+	}
+	return nil
 }
