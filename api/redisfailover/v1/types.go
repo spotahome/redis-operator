@@ -26,7 +26,7 @@ type RedisFailoverSpec struct {
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
 	Image             string                      `json:"image,omitempty"`
-	ImagePulPolicy    ImagePullPolicy             `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy   ImagePullPolicy             `json:"imagePullPolicy,omitempty"`
 	Replicas          int32                       `json:"replicas,omitempty"`
 	Resources         corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig      []string                    `json:"customConfig,omitempty"`
@@ -99,7 +99,7 @@ func (e *ImagePullPolicy) UnmarshalJSON(b []byte) error {
 	if s == "" {
 		*e = ImagePullPolicy("Always")
 	} else {
-		*e ImagePullPolicy(s)
+		*e = ImagePullPolicy(s)
 	}
 	return nil
 }
