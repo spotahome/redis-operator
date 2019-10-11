@@ -17,7 +17,7 @@ type Client interface {
 	ResetSentinel(ip string) error
 	GetSlaveOf(ip, password string) (string, error)
 	IsMaster(ip, password string) (bool, error)
-	MonitorRedis(ip string, monitor string, quorum string, password string) error
+	MonitorRedis(ip, monitor, quorum, password string) error
 	MakeMaster(ip, password string) error
 	MakeSlaveOf(ip, masterIP, password string) error
 	GetSentinelMonitor(ip string) (string, error)
@@ -166,7 +166,7 @@ func (c *client) IsMaster(ip, password string) (bool, error) {
 	return strings.Contains(info, redisRoleMaster), nil
 }
 
-func (c *client) MonitorRedis(ip string, monitor string, quorum string, password string) error {
+func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
 		Password: "",
