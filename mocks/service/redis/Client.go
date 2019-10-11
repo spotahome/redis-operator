@@ -142,13 +142,13 @@ func (_m *Client) MakeSlaveOf(ip string, masterIP string, password string) error
 	return r0
 }
 
-// MonitorRedis provides a mock function with given fields: ip, monitor, quorum
-func (_m *Client) MonitorRedis(ip string, monitor string, quorum string) error {
-	ret := _m.Called(ip, monitor, quorum)
+// MonitorRedis provides a mock function with given fields: ip, monitor, quorum, password
+func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, password string) error {
+	ret := _m.Called(ip, monitor, quorum, password)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(ip, monitor, quorum)
+	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
+		r0 = rf(ip, monitor, quorum, password)
 	} else {
 		r0 = ret.Error(0)
 	}

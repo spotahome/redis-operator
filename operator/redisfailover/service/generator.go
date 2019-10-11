@@ -85,7 +85,7 @@ func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]s
 	}
 }
 
-func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
+func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace
 
@@ -94,10 +94,6 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 sentinel down-after-milliseconds mymaster 1000
 sentinel failover-timeout mymaster 3000
 sentinel parallel-syncs mymaster 2`
-
-	if password != "" {
-		sentinelConfigFileContent = fmt.Sprintf("%s\nsentinel auth-pass mymaster %s", sentinelConfigFileContent, password)
-	}
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

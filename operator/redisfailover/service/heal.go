@@ -117,7 +117,13 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
-	return r.redisClient.MonitorRedis(ip, monitor, quorum)
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return err
+	}
+
+	return r.redisClient.MonitorRedis(ip, monitor, quorum, password)
 }
 
 // RestoreSentinel clear the number of sentinels on memory
