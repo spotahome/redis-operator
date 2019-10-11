@@ -177,11 +177,11 @@ func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
 	cmd := rediscli.NewBoolCmd("SENTINEL", "REMOVE", masterName)
 	rClient.Process(cmd)
 	// We'll continue even if it fails, the priority is to have the redises monitored
+	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, redisPort, quorum)
 	if password != "" {
 		cmd = rediscli.NewBoolCmd("SENTINEL", "SET", masterName, "auth-pass", password)
 		rClient.Process(cmd)
 	}
-	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, redisPort, quorum)
 	rClient.Process(cmd)
 	_, err := cmd.Result()
 	if err != nil {
