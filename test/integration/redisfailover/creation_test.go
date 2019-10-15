@@ -161,6 +161,9 @@ func (c *clients) testCRCreation(t *testing.T) {
 		Spec: redisfailoverv1.RedisFailoverSpec{
 			Redis: redisfailoverv1.RedisSettings{
 				Replicas: redisSize,
+				Exporter: redisfailoverv1.RedisExporter{
+					Enabled: true,
+				},
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: sentinelSize,
@@ -251,4 +254,12 @@ func (c *clients) testAuth(t *testing.T) {
 	assert.NoError(err)
 	assert.Contains(redisCfg.Data["redis.conf"], "requirepass "+testPass)
 	assert.Contains(redisCfg.Data["redis.conf"], "masterauth "+testPass)
+
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+
+	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Name, "REDIS_PASSWORD")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.Key, "password")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
 }

@@ -429,7 +429,7 @@ func generateResourceList(cpu string, memory string) corev1.ResourceList {
 }
 
 func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
-	return corev1.Container{
+	container := corev1.Container{
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
 		ImagePullPolicy: "Always",
@@ -461,6 +461,23 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 			},
 		},
 	}
+
+	if rf.Spec.Auth.SecretPath != "" {
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
+
+	}
+
+	return container
 }
 
 func getAffinity(affinity *corev1.Affinity, labels map[string]string) *corev1.Affinity {
