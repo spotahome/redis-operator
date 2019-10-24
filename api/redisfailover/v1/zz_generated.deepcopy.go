@@ -123,8 +123,8 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 	in.Redis.DeepCopyInto(&out.Redis)
 	in.Sentinel.DeepCopyInto(&out.Sentinel)
 	out.Auth = in.Auth
-	if in.LabelBlacklist != nil {
-		in, out := &in.LabelBlacklist, &out.LabelBlacklist
+	if in.LabelWhitelist != nil {
+		in, out := &in.LabelWhitelist, &out.LabelWhitelist
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

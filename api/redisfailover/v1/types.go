@@ -20,7 +20,7 @@ type RedisFailoverSpec struct {
 	Redis    RedisSettings    `json:"redis,omitempty"`
 	Sentinel SentinelSettings `json:"sentinel,omitempty"`
 	Auth     AuthSettings     `json:"auth,omitempty"`
-	LabelBlacklist []string   `json:"labelBlacklist,omitempty"`
+	LabelWhitelist []string   `json:"labelWhitelist,omitempty"`
 }
 
 // RedisSettings defines the specification of the redis cluster

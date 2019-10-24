@@ -3,6 +3,7 @@ package redisfailover
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,14 +104,27 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 		rfLabelNameKey: rf.Name,
 	}
 
-	filteredCustomLabels := rf.Labels
-	for _, label := range rf.Spec.LabelBlacklist {
-		if _, ok := filteredCustomLabels[label]; ok {
-			delete(filteredCustomLabels, label);
-			r.logger.Debugf("Removing %s from labels as it is blacklisted", label)
+	// Filter the labels based on the whitelist
+	filteredCustomLabels := make(map[string]string)
+	if len(rf.Spec.LabelWhitelist) != 0 {
+		for labelKey, labelValue := range rf.Labels {
+			for _, regex := range rf.Spec.LabelWhitelist {
+				compiledRegexp, err := regexp.Compile(regex)
+				if err != nil {
+					r.logger.Fatalf("Unable to compile regex: %s", regex)
+				}
+				match := compiledRegexp.MatchString(labelKey)
+				if match {
+					filteredCustomLabels[labelKey]=labelValue
+				}
+			}
 		}
+	} else {
+		// If no whitelist is specified then dont filter label.
+		filteredCustomLabels = rf.Labels
 	}
 
+	r.logger.Infof("%#v", filteredCustomLabels)
 	return util.MergeLabels(defaultLabels, dynLabels, filteredCustomLabels)
 }
 
