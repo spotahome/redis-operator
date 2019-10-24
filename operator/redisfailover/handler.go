@@ -120,7 +120,7 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 			}
 		}
 	} else {
-		// If no whitelist is specified then dont filter label.
+		// If no whitelist is specified then don't filter the labels.
 		filteredCustomLabels = rf.Labels
 	}
 	return util.MergeLabels(defaultLabels, dynLabels, filteredCustomLabels)
