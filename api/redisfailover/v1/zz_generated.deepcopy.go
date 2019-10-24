@@ -123,6 +123,11 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 	in.Redis.DeepCopyInto(&out.Redis)
 	in.Sentinel.DeepCopyInto(&out.Sentinel)
 	out.Auth = in.Auth
+	if in.LabelBlacklist != nil {
+		in, out := &in.LabelBlacklist, &out.LabelBlacklist
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -175,6 +180,13 @@ func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 		*out = make([]core_v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.PodAnnotations != nil {
+		in, out := &in.PodAnnotations, &out.PodAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return
@@ -261,6 +273,13 @@ func (in *SentinelSettings) DeepCopyInto(out *SentinelSettings) {
 		*out = make([]core_v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.PodAnnotations != nil {
+		in, out := &in.PodAnnotations, &out.PodAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return

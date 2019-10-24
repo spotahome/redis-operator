@@ -102,7 +102,16 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 	dynLabels := map[string]string{
 		rfLabelNameKey: rf.Name,
 	}
-	return util.MergeLabels(defaultLabels, dynLabels, rf.Labels)
+
+	filteredCustomLabels := rf.Labels
+	for _, label := range rf.Spec.LabelBlacklist {
+		if _, ok := filteredCustomLabels[label]; ok {
+			delete(filteredCustomLabels, label);
+			r.logger.Debugf("Removing %s from labels as it is blacklisted", label)
+		}
+	}
+
+	return util.MergeLabels(defaultLabels, dynLabels, filteredCustomLabels)
 }
 
 func (w *RedisFailoverHandler) createOwnerReferences(rf *redisfailoverv1.RedisFailover) []metav1.OwnerReference {
