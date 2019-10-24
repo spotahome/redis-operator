@@ -121,7 +121,6 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 		filteredCustomLabels = rf.Labels
 	}
 
-	r.logger.Infof("%#v", filteredCustomLabels)
 	return util.MergeLabels(defaultLabels, dynLabels, filteredCustomLabels)
 }
 
