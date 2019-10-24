@@ -139,8 +139,6 @@ app.kubernetes.io/part-of
 redisfailovers.databases.spotahome.com/name
 ```
 
-
-
 ## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
