@@ -109,10 +109,7 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 	if len(rf.Spec.LabelWhitelist) != 0 {
 		for labelKey, labelValue := range rf.Labels {
 			for _, regex := range rf.Spec.LabelWhitelist {
-				compiledRegexp, err := regexp.Compile(regex)
-				if err != nil {
-					r.logger.Fatalf("Unable to compile regex: %s", regex)
-				}
+				compiledRegexp := regexp.MustCompile(regex)
 				match := compiledRegexp.MatchString(labelKey)
 				if match {
 					filteredCustomLabels[labelKey]=labelValue
