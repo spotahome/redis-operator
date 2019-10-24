@@ -130,6 +130,14 @@ Items in the array should be regular expressions, see [here](example/redisfailov
 
 The whitelist can also be used as a form of blacklist by specifying a regular expression that will not match any label.
 
+NOTE: The operator will always add the labels it requires for operation to resources.  These are the following:
+```
+app.kubernetes.io/component
+app.kubernetes.io/managed-by
+app.kubernetes.io/name
+app.kubernetes.io/part-of
+redisfailovers.databases.spotahome.com/name
+```
 
 
 
