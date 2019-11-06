@@ -128,6 +128,28 @@ port: 26379
 master-name: mymaster
 ```
 
+### Enabling redis auth
+
+To enable auth create a secret with a password field:
+
+```
+echo -n "pass" > password
+kubectl create secret generic redis-auth --from-file=password
+
+## example config
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 1
+  auth:
+    secretPath: secret
+```
+
 ## Cleanup
 
 ### Operator and CRD
