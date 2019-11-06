@@ -193,6 +193,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Redis.Affinity, labels),
 					Tolerations:     rf.Spec.Redis.Tolerations,
+					NodeSelector:    rf.Spec.Redis.NodeSelector,
 					SecurityContext: getSecurityContext(rf.Spec.Redis.SecurityContext),
 					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
 					Containers: []corev1.Container{
@@ -298,6 +299,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Sentinel.Affinity, labels),
 					Tolerations:     rf.Spec.Sentinel.Tolerations,
+					NodeSelector:    rf.Spec.Sentinel.NodeSelector,
 					SecurityContext: getSecurityContext(rf.Spec.Sentinel.SecurityContext),
 					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
 					InitContainers: []corev1.Container{

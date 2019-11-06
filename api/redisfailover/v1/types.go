@@ -36,6 +36,7 @@ type RedisSettings struct {
 	SecurityContext   *corev1.PodSecurityContext  `json:"securityContext,omitempty"`
 	ImagePullSecrets  []corev1.LocalObjectReference`json:"imagePullSecrets,omitempty"`
 	Tolerations       []corev1.Toleration         `json:"tolerations,omitempty"`
+	NodeSelector      map[string]string           `json:"nodeSelector,omitempty"`
 	PodAnnotations    map[string]string           `json:"podAnnotations,omitempty"`
 }
 
@@ -50,6 +51,7 @@ type SentinelSettings struct {
 	SecurityContext *corev1.PodSecurityContext  `json:"securityContext,omitempty"`
 	ImagePullSecrets[]corev1.LocalObjectReference`json:"imagePullSecrets,omitempty"`
 	Tolerations     []corev1.Toleration         `json:"tolerations,omitempty"`
+	NodeSelector    map[string]string           `json:"nodeSelector,omitempty"`
 	PodAnnotations  map[string]string           `json:"podAnnotations,omitempty"`
 }
 
