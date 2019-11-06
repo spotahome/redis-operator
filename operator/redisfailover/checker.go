@@ -40,7 +40,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			return err
 		}
 		if len(redisesIP) == 1 {
-			if err := r.rfHealer.MakeMaster(redisesIP[0]); err != nil {
+			if err := r.rfHealer.MakeMaster(redisesIP[0], rf); err != nil {
 				return err
 			}
 			break

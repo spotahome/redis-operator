@@ -142,7 +142,7 @@ func TestCheckAndHeal(t *testing.T) {
 			case 0:
 				mrfc.On("GetRedisesIPs", rf).Once().Return(make([]string, test.nRedis), nil)
 				if test.nRedis == 1 {
-					mrfh.On("MakeMaster", mock.Anything).Once().Return(nil)
+					mrfh.On("MakeMaster", mock.Anything, rf).Once().Return(nil)
 					break
 				}
 				if test.forceNewMaster {

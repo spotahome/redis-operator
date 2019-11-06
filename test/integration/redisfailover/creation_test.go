@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,10 +31,12 @@ import (
 )
 
 const (
-	name         = "testing"
-	namespace    = "rf-integration-tests"
-	redisSize    = int32(3)
-	sentinelSize = int32(3)
+	name           = "testing"
+	namespace      = "rf-integration-tests"
+	redisSize      = int32(3)
+	sentinelSize   = int32(3)
+	authSecretPath = "redis-auth"
+	testPass       = "test-pass"
 )
 
 type clients struct {
@@ -106,12 +109,28 @@ func TestRedisFailover(t *testing.T) {
 	// Give time to the operator to start
 	time.Sleep(15 * time.Second)
 
+	// Create secret
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      authSecretPath,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"password": []byte(testPass),
+		},
+	}
+	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
+	require.NoError(err)
+
 	// Check that if we create a RedisFailover, it is certainly created and we can get it
 	ok := t.Run("Check Custom Resource Creation", clients.testCRCreation)
 	require.True(ok, "the custom resource has to be created to continue")
 
 	// Giving time to the operator to create the resources
 	time.Sleep(3 * time.Minute)
+
+	// Verify that auth is set and actually working
+	t.Run("Check that auth is set in sentinel and redis configs", clients.testAuth)
 
 	// Check that a Redis Statefulset is created and the size of it is the one defined by the
 	// Redis Failover definition created before.
@@ -129,6 +148,7 @@ func TestRedisFailover(t *testing.T) {
 	// check that all of them are connected to the same Redis node, and also that that node
 	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
+
 }
 
 func (c *clients) testCRCreation(t *testing.T) {
@@ -141,9 +161,15 @@ func (c *clients) testCRCreation(t *testing.T) {
 		Spec: redisfailoverv1.RedisFailoverSpec{
 			Redis: redisfailoverv1.RedisSettings{
 				Replicas: redisSize,
+				Exporter: redisfailoverv1.RedisExporter{
+					Enabled: true,
+				},
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: sentinelSize,
+			},
+			Auth: redisfailoverv1.AuthSettings{
+				SecretPath: authSecretPath,
 			},
 		},
 	}
@@ -184,7 +210,7 @@ func (c *clients) testRedisMaster(t *testing.T) {
 
 	for _, pod := range redisPodList.Items {
 		ip := pod.Status.PodIP
-		if ok, _ := c.redisClient.IsMaster(ip); ok {
+		if ok, _ := c.redisClient.IsMaster(ip, testPass); ok {
 			masters = append(masters, ip)
 		}
 	}
@@ -215,7 +241,25 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 		assert.Equal(masters[0], masterIP, "all master ip monitoring should equal")
 	}
 
-	isMaster, err := c.redisClient.IsMaster(masters[0])
+	isMaster, err := c.redisClient.IsMaster(masters[0], testPass)
 	assert.NoError(err)
 	assert.True(isMaster, "Sentinel should monitor the Redis master")
+}
+
+func (c *clients) testAuth(t *testing.T) {
+
+	assert := assert.New(t)
+
+	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+	assert.Contains(redisCfg.Data["redis.conf"], "requirepass "+testPass)
+	assert.Contains(redisCfg.Data["redis.conf"], "masterauth "+testPass)
+
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+
+	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Name, "REDIS_PASSWORD")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.Key, "password")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
 }

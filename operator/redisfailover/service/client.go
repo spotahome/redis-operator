@@ -77,7 +77,13 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 
 // EnsureRedisConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateRedisConfigMap(rf, labels, ownerRefs)
+
+	password, err := k8s.GetRedisPassword(r.K8SService, rf)
+	if err != nil {
+		return err
+	}
+
+	cm := generateRedisConfigMap(rf, labels, ownerRefs, password)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 

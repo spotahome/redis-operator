@@ -108,7 +108,7 @@ sentinel parallel-syncs mymaster 2`
 	}
 }
 
-func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
@@ -117,6 +117,10 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 tcp-keepalive 60
 save 900 1
 save 300 10`
+
+	if password != "" {
+		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
+	}
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -183,7 +187,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels:      labels,
+					Annotations: rf.Spec.Redis.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Redis.Affinity, labels),
@@ -234,7 +239,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.Handler{
 									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "-c", "/redis-shutdown/shutdown.sh"},
+										Command: []string{"/bin/sh", "/redis-shutdown/shutdown.sh"},
 									},
 								},
 							},
@@ -287,7 +292,8 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels:      labels,
+					Annotations: rf.Spec.Sentinel.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:        getAffinity(rf.Spec.Sentinel.Affinity, labels),
@@ -317,11 +323,11 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("10m"),
-									corev1.ResourceMemory: resource.MustParse("16Mi"),
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
 								},
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("10m"),
-									corev1.ResourceMemory: resource.MustParse("16Mi"),
+									corev1.ResourceMemory: resource.MustParse("32Mi"),
 								},
 							},
 						},
@@ -427,7 +433,7 @@ func generateResourceList(cpu string, memory string) corev1.ResourceList {
 }
 
 func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
-	return corev1.Container{
+	container := corev1.Container{
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
 		ImagePullPolicy: "Always",
@@ -459,6 +465,23 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 			},
 		},
 	}
+
+	if rf.Spec.Auth.SecretPath != "" {
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
+
+	}
+
+	return container
 }
 
 func getAffinity(affinity *corev1.Affinity, labels map[string]string) *corev1.Affinity {
