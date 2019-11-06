@@ -194,6 +194,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					Affinity:        getAffinity(rf.Spec.Redis.Affinity, labels),
 					Tolerations:     rf.Spec.Redis.Tolerations,
 					SecurityContext: getSecurityContext(rf.Spec.Redis.SecurityContext),
+					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -298,6 +299,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Affinity:        getAffinity(rf.Spec.Sentinel.Affinity, labels),
 					Tolerations:     rf.Spec.Sentinel.Tolerations,
 					SecurityContext: getSecurityContext(rf.Spec.Sentinel.SecurityContext),
+					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
