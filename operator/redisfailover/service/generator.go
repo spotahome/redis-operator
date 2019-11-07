@@ -200,7 +200,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 						{
 							Name:            "redis",
 							Image:           rf.Spec.Redis.Image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: corev1.PullPolicy(rf.Spec.Redis.ImagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "redis",
@@ -306,7 +306,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 						{
 							Name:            "sentinel-config-copy",
 							Image:           rf.Spec.Sentinel.Image,
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: corev1.PullPolicy(rf.Spec.Sentinel.ImagePullPolicy),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "sentinel-config",
@@ -338,7 +338,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 						{
 							Name:            "sentinel",
 							Image:           rf.Spec.Sentinel.Image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: corev1.PullPolicy(rf.Spec.Sentinel.ImagePullPolicy),
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "sentinel",
@@ -438,7 +438,7 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 	container := corev1.Container{
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: corev1.PullPolicy(rf.Spec.Redis.Exporter.ImagePullPolicy),
 		Env: []corev1.EnvVar{
 			{
 				Name: "REDIS_ALIAS",
