@@ -651,3 +651,99 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 		assert.NoError(err)
 	}
 }
+
+func TestRedisImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name                   string
+		policy                 corev1.PullPolicy
+		exporterPolicy         corev1.PullPolicy
+		expectedPolicy         corev1.PullPolicy
+		expectedExporterPolicy corev1.PullPolicy
+	}{
+		{
+			name:                   "Default",
+			expectedPolicy:         corev1.PullAlways,
+			expectedExporterPolicy: corev1.PullAlways,
+		},
+		{
+			name:                   "Custom",
+			policy:                 corev1.PullIfNotPresent,
+			exporterPolicy:         corev1.PullNever,
+			expectedPolicy:         corev1.PullIfNotPresent,
+			expectedExporterPolicy: corev1.PullNever,
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var policy corev1.PullPolicy
+		var exporterPolicy corev1.PullPolicy
+
+		rf := generateRF()
+		rf.Spec.Redis.ImagePullPolicy = test.policy
+		rf.Spec.Redis.Exporter.Enabled = true
+		rf.Spec.Redis.Exporter.ImagePullPolicy = test.expectedExporterPolicy
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			policy = ss.Spec.Template.Spec.Containers[0].ImagePullPolicy
+			exporterPolicy = ss.Spec.Template.Spec.Containers[1].ImagePullPolicy
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(string(test.expectedPolicy), string(policy))
+		assert.Equal(string(test.expectedExporterPolicy), string(exporterPolicy))
+	}
+}
+
+func TestSentinelImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name                 string
+		policy               corev1.PullPolicy
+		expectedPolicy       corev1.PullPolicy
+		expectedConfigPolicy corev1.PullPolicy
+	}{
+		{
+			name:                 "Default",
+			expectedPolicy:       corev1.PullAlways,
+			expectedConfigPolicy: corev1.PullAlways,
+		},
+		{
+			name:                 "Custom",
+			policy:               corev1.PullIfNotPresent,
+			expectedPolicy:       corev1.PullIfNotPresent,
+			expectedConfigPolicy: corev1.PullIfNotPresent,
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var policy corev1.PullPolicy
+		var configPolicy corev1.PullPolicy
+
+		rf := generateRF()
+		rf.Spec.Sentinel.ImagePullPolicy = test.policy
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			policy = d.Spec.Template.Spec.Containers[0].ImagePullPolicy
+			configPolicy = d.Spec.Template.Spec.InitContainers[0].ImagePullPolicy
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(string(test.expectedPolicy), string(policy))
+		assert.Equal(string(test.expectedConfigPolicy), string(configPolicy))
+	}
+}
