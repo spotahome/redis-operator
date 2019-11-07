@@ -641,7 +641,7 @@ func getSentinelCommand(rf *redisfailoverv1.RedisFailover) []string {
 
 func pullPolicy(specPolicy corev1.PullPolicy) corev1.PullPolicy {
 	if specPolicy == "" {
-		return "Always"
+		return corev1.PullAlways
 	}
 	return specPolicy
 }
