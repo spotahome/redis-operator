@@ -25,6 +25,7 @@ type RedisFailoverSpec struct {
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
 	Image             string                      `json:"image,omitempty"`
+	ImagePullPolicy   corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
 	Replicas          int32                       `json:"replicas,omitempty"`
 	Resources         corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig      []string                    `json:"customConfig,omitempty"`
@@ -43,6 +44,7 @@ type RedisSettings struct {
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
 	Image           string                      `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
 	Replicas        int32                       `json:"replicas,omitempty"`
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig    []string                    `json:"customConfig,omitempty"`
@@ -62,8 +64,9 @@ type AuthSettings struct {
 
 // RedisExporter defines the specification for the redis exporter
 type RedisExporter struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	Image   string `json:"image,omitempty"`
+	Enabled         bool              `json:"enabled,omitempty"`
+	Image           string            `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 // RedisStorage defines the structure used to store the Redis Data
