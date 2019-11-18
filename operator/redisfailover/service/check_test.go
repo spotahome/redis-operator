@@ -667,3 +667,159 @@ func TestGetMinimumRedisPodTime(t *testing.T) {
 	expected := now.Sub(oneMinute).Round(time.Second)
 	assert.Equal(expected, minTime.Round(time.Second), "the closest time should be given")
 }
+
+func TestGetRedisPodsNames(t *testing.T) {
+	assert := assert.New(t)
+	rf := generateRF()
+
+	pods := &corev1.PodList{
+		Items: []corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "slave1",
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					PodIP: "0.0.0.0",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "master",
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					PodIP: "1.1.1.1",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "slave2",
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodRunning,
+					PodIP: "0.0.0.0",
+				},
+			},
+		},
+	}
+
+	ms := &mK8SService.Services{}
+	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	mr := &mRedisService.Client{}
+	mr.On("IsMaster", "0.0.0.0", "").Twice().Return(false, nil)
+	mr.On("IsMaster", "1.1.1.1", "").Once().Return(true, nil)
+
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+	master, err := checker.GetRedisesMasterPod(rf)
+
+	assert.NoError(err)
+
+	assert.Equal(master, "master")
+
+	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	mr.On("IsMaster", "0.0.0.0", "").Twice().Return(false, nil)
+	mr.On("IsMaster", "1.1.1.1", "").Once().Return(true, nil)
+
+	namePods, err := checker.GetRedisesSlavesPods(rf)
+
+	assert.NoError(err)
+
+	assert.Equal(namePods, []string{"slave1", "slave2"})
+}
+
+func TestGetStatefulSetUpdateRevision(t *testing.T) {
+	tests := []struct {
+		name             string
+		ss               *appsv1.StatefulSet
+		expectedUVersion string
+		expectedError    error
+	}{
+		{
+			name: "revision ok",
+			ss: &appsv1.StatefulSet{
+				Status: appsv1.StatefulSetStatus{
+					UpdateRevision: "10",
+				},
+			},
+			expectedUVersion: "10",
+			expectedError:    nil,
+		},
+		{
+			name:             "no stateful set",
+			ss:               nil,
+			expectedUVersion: "",
+			expectedError:    errors.New("not found"),
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		rf := generateRF()
+		ms := &mK8SService.Services{}
+		ms.On("GetStatefulSet", namespace, rfservice.GetRedisName(rf)).Once().Return(test.ss, nil)
+		mr := &mRedisService.Client{}
+
+		checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+		version, err := checker.GetStatefulSetUpdateRevision(rf)
+
+		if test.expectedError == nil {
+			assert.NoError(err)
+		} else {
+			assert.Error(err)
+		}
+
+		assert.Equal(version, test.expectedUVersion)
+	}
+
+}
+
+func TestGetRedisRevisionHash(t *testing.T) {
+	tests := []struct {
+		name          string
+		pod           *corev1.Pod
+		expectedHash  string
+		expectedError error
+	}{
+		{
+			name: "has ok",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						appsv1.ControllerRevisionHashLabelKey: "10",
+					},
+				},
+			},
+			expectedHash:  "10",
+			expectedError: nil,
+		},
+		{
+			name:          "no pod",
+			pod:           nil,
+			expectedHash:  "",
+			expectedError: errors.New("not found"),
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		rf := generateRF()
+		ms := &mK8SService.Services{}
+		ms.On("GetPod", namespace, "namepod").Once().Return(test.pod, nil)
+		mr := &mRedisService.Client{}
+
+		checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+		hash, err := checker.GetRedisRevisionHash("namepod", rf)
+
+		if test.expectedError == nil {
+			assert.NoError(err)
+		} else {
+			assert.Error(err)
+		}
+
+		assert.Equal(hash, test.expectedHash)
+	}
+
+}

@@ -180,7 +180,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 			ServiceName: name,
 			Replicas:    &rf.Spec.Redis.Replicas,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: "RollingUpdate",
+				Type: "OnDelete",
 			},
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,

@@ -20,6 +20,7 @@ type RedisFailoverHeal interface {
 	RestoreSentinel(ip string) error
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
+	DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -148,4 +149,10 @@ func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv
 	}
 
 	return r.redisClient.SetCustomRedisConfig(ip, rf.Spec.Redis.CustomConfig, password)
+}
+
+//DeletePod delete a failing pod so kubernetes relaunch it again
+func (r *RedisFailoverHealer) DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error {
+	r.logger.Debugf("Deleting pods %s...", podName)
+	return r.k8sService.DeletePod(rFailover.Namespace, podName)
 }
