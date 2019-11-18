@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.0.0-rc.2] - 2019-11-15
+
+### Changes
+
+- Add custom annotations for pods in the CRD `podAnnotations` @alecjacobs5401
+- Add redis authentication @hoffoo
+- Configurable imagePullSecret @romanfurst 
+- Configurable imagePullPolicy @mcdiae 
+- Support for node selector `nodeSelector` @sergeunity 
+
+### Fix
+
+- Add RBAC policy for the CRD finalizer @mcanevet
+- Examples documentation  @SataQiu @marcemq 
+- Chart service labels @timmyers
+- Memory requests and limits for sentinel @marcemq
+- Execution permissions in shutdown script @glebpom
+- Makefile uid passthrough @adamhf
+
 ## [v1.0.0-rc.1] - 2019-05-10
 
 ### Changed
@@ -229,6 +248,7 @@
 
 - Initial open-sourced release
 
+[v1.0.0-rc.2]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [v1.0.0-rc.1]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0-rc.1
 [0.5.8]: https://github.com/spotahome/redis-operator/compare/0.5.7...0.5.8
 [0.5.7]: https://github.com/spotahome/redis-operator/compare/0.5.6...0.5.7
