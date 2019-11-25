@@ -18,7 +18,7 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		return err
 	}
 
-	//If we have syincing nodes we finish checks
+	// No perform updates when nodes are syncing.
 	for _, rp := range redises {
 		sync, err := r.rfChecker.CheckRedisSyncing(rp, rf)
 		if err != nil {
