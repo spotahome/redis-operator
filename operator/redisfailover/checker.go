@@ -11,7 +11,7 @@ const (
 	timeToPrepare = 2 * time.Minute
 )
 
-//Checks if the running version of pods are equal to the statefulset one
+//UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
 	if err != nil {
