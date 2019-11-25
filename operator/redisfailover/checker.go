@@ -25,7 +25,6 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 			return err
 		}
 		if sync {
-			//currently syncing, we wait next round
 			return nil
 		}
 	}
