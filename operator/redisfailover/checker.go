@@ -52,7 +52,7 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		}
 	}
 
-	//If all slaves are up and synced, we check master
+	// Update stale pod with role master
 	master, err := r.rfChecker.GetRedisesMasterPod(rf)
 
 	masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
