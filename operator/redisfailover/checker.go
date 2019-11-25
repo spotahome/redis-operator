@@ -57,7 +57,6 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 
 	masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
 	if masterRevision != ssUR {
-		//Delete pod and wait next round to check if the new one is synced
 		r.rfHealer.DeletePod(master, rf)
 		return nil
 	}
