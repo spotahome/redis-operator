@@ -147,8 +147,9 @@ spec:
   redis:
     replicas: 1
   auth:
-    secretPath: secret
+    secretPath: redis-auth
 ```
+You need to set secretPath as the secret name which is created before.
 
 ## Cleanup
 
