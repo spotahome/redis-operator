@@ -114,8 +114,8 @@ func (_m *Client) IsMaster(ip string, password string) (bool, error) {
 	return r0, r1
 }
 
-// IsSyncing provides a mock function with given fields: ip, password
-func (_m *Client) IsSyncing(ip string, password string) (bool, error) {
+// SlaveIsReady provides a mock function with given fields: ip, password
+func (_m *Client) SlaveIsReady(ip string, password string) (bool, error) {
 	ret := _m.Called(ip, password)
 
 	var r0 bool

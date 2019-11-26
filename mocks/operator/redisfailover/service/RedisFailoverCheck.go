@@ -43,8 +43,8 @@ func (_m *RedisFailoverCheck) CheckRedisNumber(rFailover *v1.RedisFailover) erro
 	return r0
 }
 
-// CheckRedisSyncing provides a mock function with given fields: slaveIP, rFailover
-func (_m *RedisFailoverCheck) CheckRedisSyncing(slaveIP string, rFailover *v1.RedisFailover) (bool, error) {
+// CheckRedisSlavesReady provides a mock function with given fields: slaveIP, rFailover
+func (_m *RedisFailoverCheck) CheckRedisSlavesReady(slaveIP string, rFailover *v1.RedisFailover) (bool, error) {
 	ret := _m.Called(slaveIP, rFailover)
 
 	var r0 bool

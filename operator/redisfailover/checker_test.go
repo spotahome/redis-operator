@@ -162,7 +162,7 @@ func TestCheckAndHeal(t *testing.T) {
 				expErr = true
 			}
 			if !expErr && continueTests {
-				mrfc.On("GetMasterIP", rf).Once().Return(master, nil)
+				mrfc.On("GetMasterIP", rf).Twice().Return(master, nil)
 				if test.slavesOK {
 					mrfc.On("CheckAllSlavesFromMaster", master, rf).Once().Return(nil)
 				} else {
@@ -170,7 +170,6 @@ func TestCheckAndHeal(t *testing.T) {
 					mrfh.On("SetMasterOnAll", master, rf).Once().Return(nil)
 				}
 				mrfc.On("GetRedisesIPs", rf).Twice().Return([]string{master}, nil)
-				mrfc.On("CheckRedisSyncing", master, rf).Once().Return(false, nil)
 				mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return("1", nil)
 				mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{}, nil)
 				mrfc.On("GetRedisesMasterPod", rf).Once().Return(master, nil)
@@ -214,16 +213,15 @@ func TestCheckAndHeal(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	type podStatus struct {
-		pod     corev1.Pod
-		syncing bool
-		master  bool
+		pod    corev1.Pod
+		ready  bool
+		master bool
 	}
 	tests := []struct {
 		name        string
 		pods        []podStatus
 		ssVersion   string
 		errExpected error
-		syncing     bool
 	}{
 		{
 			name: "all ok, no change needed",
@@ -240,8 +238,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.0",
 						},
 					},
-					master:  false,
-					syncing: false,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -255,8 +253,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.1",
 						},
 					},
-					master:  false,
-					syncing: false,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -270,8 +268,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "1.1.1.1",
 						},
 					},
-					master:  true,
-					syncing: false,
+					master: true,
+					ready:  true,
 				},
 			},
 			ssVersion:   "10",
@@ -292,8 +290,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.0",
 						},
 					},
-					master:  false,
-					syncing: false,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -307,8 +305,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.1",
 						},
 					},
-					master:  false,
-					syncing: true,
+					master: false,
+					ready:  false,
 				},
 				{
 					pod: corev1.Pod{
@@ -322,8 +320,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "1.1.1.1",
 						},
 					},
-					master:  true,
-					syncing: false,
+					master: true,
+					ready:  true,
 				},
 			},
 			ssVersion:   "10",
@@ -344,8 +342,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.0",
 						},
 					},
-					master:  false,
-					syncing: false,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -359,8 +357,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.1",
 						},
 					},
-					master:  false,
-					syncing: true,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -374,8 +372,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "1.1.1.1",
 						},
 					},
-					master:  true,
-					syncing: false,
+					master: true,
+					ready:  true,
 				},
 			},
 			ssVersion:   "1",
@@ -396,8 +394,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.0",
 						},
 					},
-					master:  false,
-					syncing: false,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -411,8 +409,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "0.0.0.1",
 						},
 					},
-					master:  false,
-					syncing: true,
+					master: false,
+					ready:  true,
 				},
 				{
 					pod: corev1.Pod{
@@ -426,8 +424,8 @@ func TestUpdate(t *testing.T) {
 							PodIP: "1.1.1.1",
 						},
 					},
-					master:  true,
-					syncing: false,
+					master: true,
+					ready:  true,
 				},
 			},
 			ssVersion:   "10",
@@ -445,12 +443,15 @@ func TestUpdate(t *testing.T) {
 
 			mrfc := &mRFService.RedisFailoverCheck{}
 			mrfc.On("GetRedisesIPs", rf).Once().Return([]string{"0.0.0.0", "0.0.0.1", "1.1.1.1"}, nil)
+			mrfc.On("GetMasterIP", rf).Once().Return("1.1.1.1", nil)
 
 			next := true
-
 			for _, pod := range test.pods {
-				mrfc.On("CheckRedisSyncing", pod.pod.Status.PodIP, rf).Once().Return(pod.syncing, nil)
-				if pod.syncing {
+
+				if !pod.master {
+					mrfc.On("CheckRedisSlavesReady", pod.pod.Status.PodIP, rf).Once().Return(pod.ready, nil)
+				}
+				if !pod.ready {
 					next = false
 					break
 				}
@@ -464,7 +465,7 @@ func TestUpdate(t *testing.T) {
 				for _, pod := range test.pods {
 					mrfc.On("GetRedisRevisionHash", pod.pod.ObjectMeta.Name, rf).Once().Return(pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey], nil)
 					if pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey] != test.ssVersion {
-						mrfh.On("DeletePod", mock.Anything, mock.Anything)
+						mrfh.On("DeletePod", pod.pod.ObjectMeta.Name, rf).Once().Return(nil)
 						if pod.master == false {
 							next = false
 							break
@@ -473,6 +474,7 @@ func TestUpdate(t *testing.T) {
 				}
 				if next {
 					mrfc.On("GetRedisesMasterPod", rf).Once().Return("master", nil)
+
 				}
 			}
 

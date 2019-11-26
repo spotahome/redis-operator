@@ -31,7 +31,7 @@ type RedisFailoverCheck interface {
 	GetRedisesMasterPod(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetRedisRevisionHash(podName string, rFailover *redisfailoverv1.RedisFailover) (string, error)
-	CheckRedisSyncing(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
+	CheckRedisSlavesReady(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -325,12 +325,12 @@ func (r *RedisFailoverChecker) GetRedisRevisionHash(podName string, rFailover *r
 	return val, nil
 }
 
-// CheckRedisSyncing returns true if the slave is still syncing
-func (r *RedisFailoverChecker) CheckRedisSyncing(ip string, rFailover *redisfailoverv1.RedisFailover) (bool, error) {
+// CheckRedisSlavesReady returns true if the slave is ready (sync, connected, etc)
+func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redisfailoverv1.RedisFailover) (bool, error) {
 	password, err := k8s.GetRedisPassword(r.k8sService, rFailover)
 	if err != nil {
 		return false, err
 	}
 
-	return r.redisClient.IsSyncing(ip, password)
+	return r.redisClient.SlaveIsReady(ip, password)
 }
