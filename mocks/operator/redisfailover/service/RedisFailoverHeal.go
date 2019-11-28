@@ -13,6 +13,20 @@ type RedisFailoverHeal struct {
 	mock.Mock
 }
 
+// DeletePod provides a mock function with given fields: podName, rFailover
+func (_m *RedisFailoverHeal) DeletePod(podName string, rFailover *v1.RedisFailover) error {
+	ret := _m.Called(podName, rFailover)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) error); ok {
+		r0 = rf(podName, rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // MakeMaster provides a mock function with given fields: ip, rFailover
 func (_m *RedisFailoverHeal) MakeMaster(ip string, rFailover *v1.RedisFailover) error {
 	ret := _m.Called(ip, rFailover)

@@ -43,6 +43,27 @@ func (_m *RedisFailoverCheck) CheckRedisNumber(rFailover *v1.RedisFailover) erro
 	return r0
 }
 
+// CheckRedisSlavesReady provides a mock function with given fields: slaveIP, rFailover
+func (_m *RedisFailoverCheck) CheckRedisSlavesReady(slaveIP string, rFailover *v1.RedisFailover) (bool, error) {
+	ret := _m.Called(slaveIP, rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) bool); ok {
+		r0 = rf(slaveIP, rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, *v1.RedisFailover) error); ok {
+		r1 = rf(slaveIP, rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CheckSentinelMonitor provides a mock function with given fields: sentinel, monitor
 func (_m *RedisFailoverCheck) CheckSentinelMonitor(sentinel string, monitor string) error {
 	ret := _m.Called(sentinel, monitor)
@@ -162,8 +183,73 @@ func (_m *RedisFailoverCheck) GetNumberMasters(rFailover *v1.RedisFailover) (int
 	return r0, r1
 }
 
+// GetRedisRevisionHash provides a mock function with given fields: podName, rFailover
+func (_m *RedisFailoverCheck) GetRedisRevisionHash(podName string, rFailover *v1.RedisFailover) (string, error) {
+	ret := _m.Called(podName, rFailover)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) string); ok {
+		r0 = rf(podName, rFailover)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, *v1.RedisFailover) error); ok {
+		r1 = rf(podName, rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetRedisesIPs provides a mock function with given fields: rFailover
 func (_m *RedisFailoverCheck) GetRedisesIPs(rFailover *v1.RedisFailover) ([]string, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) []string); ok {
+		r0 = rf(rFailover)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRedisesMasterPod provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetRedisesMasterPod(rFailover *v1.RedisFailover) (string, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) string); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRedisesSlavesPods provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetRedisesSlavesPods(rFailover *v1.RedisFailover) ([]string, error) {
 	ret := _m.Called(rFailover)
 
 	var r0 []string
@@ -196,6 +282,27 @@ func (_m *RedisFailoverCheck) GetSentinelsIPs(rFailover *v1.RedisFailover) ([]st
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
 		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetStatefulSetUpdateRevision provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetStatefulSetUpdateRevision(rFailover *v1.RedisFailover) (string, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) string); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error

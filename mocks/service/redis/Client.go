@@ -114,6 +114,27 @@ func (_m *Client) IsMaster(ip string, password string) (bool, error) {
 	return r0, r1
 }
 
+// SlaveIsReady provides a mock function with given fields: ip, password
+func (_m *Client) SlaveIsReady(ip string, password string) (bool, error) {
+	ret := _m.Called(ip, password)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string, string) bool); ok {
+		r0 = rf(ip, password)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(ip, password)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // MakeMaster provides a mock function with given fields: ip, password
 func (_m *Client) MakeMaster(ip string, password string) error {
 	ret := _m.Called(ip, password)

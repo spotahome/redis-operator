@@ -23,6 +23,7 @@ type Client interface {
 	GetSentinelMonitor(ip string) (string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string, password string) error
+	SlaveIsReady(ip, password string) (bool, error)
 }
 
 type client struct {
@@ -39,6 +40,9 @@ const (
 	sentinelStatusREString  = "status=([a-z]+)"
 	redisMasterHostREString = "master_host:([0-9.]+)"
 	redisRoleMaster         = "role:master"
+	redisSyncing            = "master_sync_in_progress:1"
+	redisMasterSillPending  = "master_host:127.0.0.1"
+	redisLinkUp             = "master_link_status:up"
 	redisPort               = "6379"
 	sentinelPort            = "26379"
 	masterName              = "mymaster"
@@ -300,4 +304,24 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 		return "", "", fmt.Errorf("configuration '%s' malformed", config)
 	}
 	return s[0], strings.Join(s[1:], " "), nil
+}
+
+func (c *client) SlaveIsReady(ip, password string) (bool, error) {
+	options := &rediscli.Options{
+		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Password: password,
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+	info, err := rClient.Info("replication").Result()
+	if err != nil {
+		return false, err
+	}
+
+	ok := !strings.Contains(info, redisSyncing) &&
+		!strings.Contains(info, redisMasterSillPending) &&
+		strings.Contains(info, redisLinkUp)
+
+	return ok, nil
 }
