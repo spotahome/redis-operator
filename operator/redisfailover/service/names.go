@@ -24,6 +24,11 @@ func GetRedisShutdownName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(redisShutdownName, rf.Name)
 }
 
+// GetRedisReadinessName returns the name for redis resources
+func GetRedisReadinessName(rf *redisfailoverv1.RedisFailover) string {
+	return generateName(redisReadinessName, rf.Name)
+}
+
 // GetSentinelName returns the name for sentinel resources
 func GetSentinelName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(sentinelName, rf.Name)
