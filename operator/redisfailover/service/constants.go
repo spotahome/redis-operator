@@ -26,6 +26,7 @@ const (
 	redisConfigFileName    = "redis.conf"
 	redisName              = "r"
 	redisShutdownName      = "r-s"
+	redisReadinessName     = "r-readiness"
 	redisRoleName          = "redis"
 	redisGroupName         = "mymaster"
 	appLabel               = "redis-failover"
