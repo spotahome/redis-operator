@@ -6,7 +6,7 @@ spec:
   sentinel:
     replicas: 3
     exproter:
-      enable: true
+      enabled: true
       image: leominov/redis_sentinel_exporter:latest
   redis:
     replicas: 3
