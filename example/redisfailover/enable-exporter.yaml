@@ -5,6 +5,9 @@ metadata:
 spec:
   sentinel:
     replicas: 3
+    exproter:
+      enable: true
+      image: leominov/redis_sentinel_exporter:latest
   redis:
     replicas: 3
     exporter: 
