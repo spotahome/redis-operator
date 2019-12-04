@@ -117,6 +117,28 @@ By default, no pod annotations will be applied to Redis nor Sentinel pods.
 
 In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 
+### Control of label propagation.
+By default the operator will propagate all labels on the CRD down to the resources that it creates.  This can be problematic if the
+labels on the CRD are not fully under your own control (for example: being deployed by a gitops operator)
+as a change to a labels value can fail on immutable resources such as PodDisruptionBudgets.  To control what labels the operator propagates
+to resource is creates you can modify the labelWhitelist option in the spec.
+
+By default specifying no whitelist or an empty whitelist will cause all labels to still be copied as not to break backwards compatibility.
+
+Items in the array should be regular expressions, see [here](example/redisfailover/control-label-propagation.yaml) as an example of how they can be used and
+[here](https://github.com/google/re2/wiki/Syntax) for a syntax reference.
+
+The whitelist can also be used as a form of blacklist by specifying a regular expression that will not match any label.
+
+NOTE: The operator will always add the labels it requires for operation to resources.  These are the following:
+```
+app.kubernetes.io/component
+app.kubernetes.io/managed-by
+app.kubernetes.io/name
+app.kubernetes.io/part-of
+redisfailovers.databases.spotahome.com/name
+```
+
 ## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.

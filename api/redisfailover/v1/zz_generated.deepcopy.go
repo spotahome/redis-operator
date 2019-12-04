@@ -123,6 +123,11 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 	in.Redis.DeepCopyInto(&out.Redis)
 	in.Sentinel.DeepCopyInto(&out.Sentinel)
 	out.Auth = in.Auth
+	if in.LabelWhitelist != nil {
+		in, out := &in.LabelWhitelist, &out.LabelWhitelist
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -170,11 +175,30 @@ func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 			(*in).DeepCopyInto(*out)
 		}
 	}
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]core_v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]core_v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.PodAnnotations != nil {
+		in, out := &in.PodAnnotations, &out.PodAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return
@@ -256,11 +280,30 @@ func (in *SentinelSettings) DeepCopyInto(out *SentinelSettings) {
 			(*in).DeepCopyInto(*out)
 		}
 	}
+	if in.ImagePullSecrets != nil {
+		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
+		*out = make([]core_v1.LocalObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]core_v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.PodAnnotations != nil {
+		in, out := &in.PodAnnotations, &out.PodAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return

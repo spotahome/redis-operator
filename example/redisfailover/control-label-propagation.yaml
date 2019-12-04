@@ -1,0 +1,29 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover2
+  labels:
+    # These two labels will be propagated.
+    app.example.com/label1: value
+    app.example.com/label2: value
+    # This one wont be, as there is a non-empty whitelist and the regexp doesnt match it.
+    anotherlabel: value
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+  redis:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
+  labelWhitelist:
+  - ^app.example.com.*
