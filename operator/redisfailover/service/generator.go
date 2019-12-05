@@ -330,7 +330,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
-	return &appsv1.Deployment{
+	sd := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       namespace,
@@ -455,6 +455,11 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 			},
 		},
 	}
+	if rf.Spec.Sentinel.Exporter.Enabled {
+		exporter := createSentinelExporterContainer(rf)
+		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, exporter)
+	}
+	return sd
 }
 
 func generatePodDisruptionBudget(name string, namespace string, labels map[string]string, ownerRefs []metav1.OwnerReference, minAvailable intstr.IntOrString) *policyv1beta1.PodDisruptionBudget {
@@ -534,6 +539,32 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 
 	}
 
+	return container
+}
+
+func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+	container := corev1.Container{
+		Name:            sentinelExporterContainerName,
+		Image:           rf.Spec.Sentinel.Exporter.Image,
+		ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.Exporter.ImagePullPolicy),
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "metrics",
+				ContainerPort: sentinelExporterPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+			},
+		},
+	}
 	return container
 }
 

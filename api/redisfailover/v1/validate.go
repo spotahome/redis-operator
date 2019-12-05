@@ -34,6 +34,10 @@ func (r *RedisFailover) Validate() error {
 		r.Spec.Redis.Exporter.Image = defaultExporterImage
 	}
 
+	if r.Spec.Sentinel.Exporter.Image == "" {
+		r.Spec.Sentinel.Exporter.Image = defaultSentinelExporterImage
+	}
+
 	if len(r.Spec.Sentinel.CustomConfig) == 0 {
 		r.Spec.Sentinel.CustomConfig = defaultSentinelCustomConfig
 	}

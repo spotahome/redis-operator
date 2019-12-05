@@ -7,13 +7,15 @@ const (
 
 // variables refering to the redis exporter port
 const (
-	exporterPort                 = 9121
-	exporterPortName             = "http-metrics"
-	exporterContainerName        = "redis-exporter"
-	exporterDefaultRequestCPU    = "25m"
-	exporterDefaultLimitCPU      = "50m"
-	exporterDefaultRequestMemory = "50Mi"
-	exporterDefaultLimitMemory   = "100Mi"
+	exporterPort                  = 9121
+	sentinelExporterPort          = 9355
+	exporterPortName              = "http-metrics"
+	exporterContainerName         = "redis-exporter"
+	sentinelExporterContainerName = "sentinel-exporter"
+	exporterDefaultRequestCPU     = "25m"
+	exporterDefaultLimitCPU       = "50m"
+	exporterDefaultRequestMemory  = "50Mi"
+	exporterDefaultLimitMemory    = "100Mi"
 )
 
 const (
