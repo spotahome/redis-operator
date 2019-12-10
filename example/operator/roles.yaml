@@ -23,6 +23,7 @@ rules:
       - endpoints
       - events
       - configmaps
+      - secrets
     verbs:
       - "*"
   - apiGroups:
