@@ -15,7 +15,7 @@ function cleanup {
 trap cleanup EXIT
 
 echo "=> Preparing minikube for running integration tests"
-$SUDO minikube start --vm-driver=none --kubernetes-version=v1.10.0
+$SUDO minikube start --vm-driver=none --kubernetes-version=v1.15.6
 
 echo "=> Waiting for minikube to start"
 sleep 30
@@ -23,8 +23,8 @@ sleep 30
 # Hack for Travis. The kubeconfig has to be readable
 if [[ -v IN_TRAVIS ]]
 then
+    $SUDO chown -R travis: ${HOME}/.minikube/
     $SUDO chmod a+r ${HOME}/.kube/config
-    $SUDO chmod a+r ${HOME}/.minikube/client.key
 fi
 
 echo "=> Running integration tests"
