@@ -1,5 +1,25 @@
 # Changelog
 
+## [v1.0.0-rc.3] - 2019-12-10
+
+### Action required
+
+Since update logic has been moved to operator `PodManagementPolicy` is being setted no to `Parallel` in redis statefulSet. This improve bootstrap times.
+This field is inmutable so to upgrade from previous rc releases you need to delete statefulsets manually. *Note*: you can use `--cascade=false` flag to avoid disruption, pods will be adopted by the new statefulSet created by operator.
+example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
+
+### Changes
+
+- Move rolling update strategy to redis-operator to be cluster aware #203 @chusAlvarez
+- Readiness probe check nodes belong to the cluster and are synced #206 @chusAlvarez
+- Support label propagation filter #195 @adamhf
+- Support for sentinel prometheus exporter #207 @shonge
+
+### Fix
+
+- Documentation and examples #204 @shonge
+- Add RBAC policy to access secrets #208 @hoffoo
+
 ## [v1.0.0-rc.2] - 2019-11-15
 
 ### Changes
@@ -248,6 +268,7 @@
 
 - Initial open-sourced release
 
+[v1.0.0-rc.3]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.2...v1.0.0-rc.3
 [v1.0.0-rc.2]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [v1.0.0-rc.1]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0-rc.1
 [0.5.8]: https://github.com/spotahome/redis-operator/compare/0.5.7...0.5.8
