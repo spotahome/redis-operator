@@ -4,13 +4,14 @@
 
 ### Action required
 
-Since update logic has been moved to operator `PodManagementPolicy` is being setted no to `Parallel` in redis statefulSet. This improve bootstrap times.
-This field is inmutable so to upgrade from previous rc releases you need to delete statefulsets manually. *Note*: you can use `--cascade=false` flag to avoid disruption, pods will be adopted by the new statefulSet created by operator.
+Since update logic has been moved to operator, `PodManagementPolicy` has been set to `Parallel` in redis statefulSet. This improve bootstrap times.
+This field is immutable so to upgrade from previous rc releases you need to delete statefulSets manually. 
+*Note:* you can use `--cascade=false` flag to avoid disruption, pods will be adopted by the new statefulSet created by the operator.
 example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 
 ### Changes
 
-- Move rolling update strategy to redis-operator to be cluster aware #203 @chusAlvarez
+- Move rolling update strategy to redis-operator to be cluster-aware #203 @chusAlvarez
 - Readiness probe check nodes belong to the cluster and are synced #206 @chusAlvarez
 - Support label propagation filter #195 @adamhf
 - Support for sentinel prometheus exporter #207 @shonge
