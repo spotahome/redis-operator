@@ -3,8 +3,6 @@ package log
 import (
 	"fmt"
 	"log"
-
-	"github.com/golang/glog"
 )
 
 // Logger is the interface that the loggers used by the library will use.
@@ -22,19 +20,6 @@ type dummy struct{}
 func (d *dummy) Infof(format string, args ...interface{})    {}
 func (d *dummy) Warningf(format string, args ...interface{}) {}
 func (d *dummy) Errorf(format string, args ...interface{})   {}
-
-// Glog is a wrapper for glog logger.
-type Glog struct{}
-
-func (g *Glog) Infof(format string, args ...interface{}) {
-	glog.Infof(format, args...)
-}
-func (g *Glog) Warningf(format string, args ...interface{}) {
-	glog.Warningf(format, args...)
-}
-func (g *Glog) Errorf(format string, args ...interface{}) {
-	glog.Errorf(format, args...)
-}
 
 // Std is a wrapper for go standard library logger.
 type Std struct{}

@@ -5,11 +5,11 @@ services:
 
 language: go
 go:
-  - "1.11.4"
+  - "1.13"
 
 before_install:
-  - curl -Lo minikube https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-  - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUBERNETES_VERSION}/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+  - curl -Lo kind https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64 && chmod +x kind && sudo mv kind /usr/local/bin/
+  - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
 script:
   - make ci
@@ -17,5 +17,5 @@ script:
 env:
   global:
     - GO111MODULE=on
-    - MINIKUBE_VERSION=v0.25.2
-    - KUBERNETES_VERSION=v1.10.0
+    - KIND_VERSION=v0.6.1
+    - KUBERNETES_VERSION=1.15.6

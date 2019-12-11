@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	integrationtestk8scli "github.com/spotahome/kooper/test/integration/operator/client/k8s/clientset/versioned"
@@ -17,9 +18,11 @@ import (
 // * Kubernetes api extensions client.
 // * Custom test integration CR client.
 func GetK8sClients(kubehome string) (kubernetes.Interface, apiextensionscli.Interface, integrationtestk8scli.Interface, error) {
-	// Fallback to default kubehome.
+	// Try fallbacks.
 	if kubehome == "" {
-		kubehome = filepath.Join(homedir.HomeDir(), ".kube", "config")
+		if kubehome = os.Getenv("KUBECONFIG"); kubehome == "" {
+			kubehome = filepath.Join(homedir.HomeDir(), ".kube", "config")
+		}
 	}
 
 	// Load kubernetes local connection.

@@ -72,7 +72,7 @@ func (d *testNestedDecodable) DecodeNestedObjects(_ runtime.Decoder) error {
 func TestNestedDecode(t *testing.T) {
 	n := &testNestedDecodable{nestedErr: fmt.Errorf("unable to decode")}
 	decoder := &mockSerializer{obj: n}
-	codec := NewCodec(nil, decoder, nil, nil, nil, nil, nil, nil)
+	codec := NewCodec(nil, decoder, nil, nil, nil, nil, nil, nil, "TestNestedDecode")
 	if _, _, err := codec.Decode([]byte(`{}`), nil, n); err != n.nestedErr {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -92,12 +92,35 @@ func TestNestedEncode(t *testing.T) {
 		&mockTyper{gvks: []schema.GroupVersionKind{{Kind: "test"}}},
 		nil,
 		schema.GroupVersion{Group: "other"}, nil,
+		"TestNestedEncode",
 	)
 	if err := codec.Encode(n, ioutil.Discard); err != n2.nestedErr {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if n.nestedCalled || !n2.nestedCalled {
 		t.Errorf("did not invoke correct nested decoder")
+	}
+}
+
+func TestNestedEncodeError(t *testing.T) {
+	n := &testNestedDecodable{nestedErr: fmt.Errorf("unable to encode")}
+	gvk1 := schema.GroupVersionKind{Kind: "test", Group: "other", Version: "v1"}
+	gvk2 := schema.GroupVersionKind{Kind: "test", Group: "other", Version: "v2"}
+	n.SetGroupVersionKind(gvk1)
+	codec := NewCodec(
+		nil, nil,
+		&mockConvertor{},
+		nil,
+		&mockTyper{gvks: []schema.GroupVersionKind{gvk1, gvk2}},
+		nil,
+		schema.GroupVersion{Group: "other", Version: "v2"}, nil,
+		"TestNestedEncodeError",
+	)
+	if err := codec.Encode(n, ioutil.Discard); err != n.nestedErr {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if n.GroupVersionKind() != gvk1 {
+		t.Errorf("unexpected gvk of input object: %v", n.GroupVersionKind())
 	}
 }
 
@@ -231,7 +254,7 @@ func TestDecode(t *testing.T) {
 
 	for i, test := range testCases {
 		t.Logf("%d", i)
-		s := NewCodec(test.serializer, test.serializer, test.convertor, test.creater, test.typer, test.defaulter, test.encodes, test.decodes)
+		s := NewCodec(test.serializer, test.serializer, test.convertor, test.creater, test.typer, test.defaulter, test.encodes, test.decodes, fmt.Sprintf("mock-%d", i))
 		obj, gvk, err := s.Decode([]byte(`{}`), test.defaultGVK, test.into)
 
 		if !reflect.DeepEqual(test.expectedGVK, gvk) {
@@ -306,7 +329,29 @@ func (c *checkConvertor) ConvertToVersion(in runtime.Object, outVersion runtime.
 	}
 	return c.obj, c.err
 }
-func (c *checkConvertor) ConvertFieldLabel(version, kind, label, value string) (string, string, error) {
+func (c *checkConvertor) ConvertFieldLabel(gvk schema.GroupVersionKind, label, value string) (string, string, error) {
+	return "", "", fmt.Errorf("unexpected call to ConvertFieldLabel")
+}
+
+type mockConvertor struct {
+}
+
+func (c *mockConvertor) Convert(in, out, context interface{}) error {
+	return fmt.Errorf("unexpect call to Convert")
+}
+
+func (c *mockConvertor) ConvertToVersion(in runtime.Object, outVersion runtime.GroupVersioner) (out runtime.Object, err error) {
+	objectKind := in.GetObjectKind()
+	inGVK := objectKind.GroupVersionKind()
+	if out, ok := outVersion.KindForGroupVersionKinds([]schema.GroupVersionKind{inGVK}); ok {
+		objectKind.SetGroupVersionKind(out)
+	} else {
+		return nil, fmt.Errorf("unexpected conversion")
+	}
+	return in, nil
+}
+
+func (c *mockConvertor) ConvertFieldLabel(gvk schema.GroupVersionKind, label, value string) (string, string, error) {
 	return "", "", fmt.Errorf("unexpected call to ConvertFieldLabel")
 }
 
@@ -369,7 +414,7 @@ func TestDirectCodecEncode(t *testing.T) {
 		},
 	}
 
-	c := DirectEncoder{
+	c := runtime.WithVersionEncoder{
 		Version:     schema.GroupVersion{Group: "expected_group"},
 		Encoder:     &serializer,
 		ObjectTyper: &typer,

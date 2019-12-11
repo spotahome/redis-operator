@@ -1,11 +1,12 @@
 package leaderelection
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -115,6 +116,7 @@ func (r *runner) initResourceLock() error {
 		r.namespace,
 		r.key,
 		r.k8scli.CoreV1(),
+		r.k8scli.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: recorder,
@@ -132,12 +134,12 @@ func (r *runner) initResourceLock() error {
 func (r *runner) Run(f func() error) error {
 	errC := make(chan error, 1) // Channel to get the function returning error.
 
-	// The function to execute when leader aquired.
-	lef := func(stopC <-chan struct{}) {
+	// The function to execute when leader acquired.
+	lef := func(ctx context.Context) {
 		r.logger.Infof("lead acquire, starting...")
 		// Wait until f finishes or leader elector runner stops.
 		select {
-		case <-stopC:
+		case <-ctx.Done():
 			errC <- nil
 		case errC <- f():
 		}
@@ -166,7 +168,7 @@ func (r *runner) Run(f func() error) error {
 
 	// Execute!
 	r.logger.Infof("running in leader election mode, waiting to acquire leadership...")
-	go le.Run()
+	go le.Run(context.TODO())
 
 	// Wait until stopping the execution returns the result.
 	err = <-errC
