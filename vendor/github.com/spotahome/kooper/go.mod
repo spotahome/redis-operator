@@ -1,53 +1,96 @@
 module github.com/spotahome/kooper
 
+// Dependencies we don't really need, except that kubernetes specifies them as v0.0.0 which confuses go.mod
+//replace k8s.io/apiserver => k8s.io/apiserver kubernetes-1.15.6
+//replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver kubernetes-1.15.6
+//replace k8s.io/api => k8s.io/api kubernetes-1.15.6
+//replace k8s.io/component-base => k8s.io/component-base kubernetes-1.15.6
+//replace k8s.io/client-go => k8s.io/client-go kubernetes-1.15.6
+//replace k8s.io/kube-scheduler => k8s.io/kube-scheduler kubernetes-1.15.6
+//replace k8s.io/apimachinery => k8s.io/apimachinery kubernetes-1.15.6
+//replace k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers kubernetes-1.15.6
+//replace k8s.io/kubelet => k8s.io/kubelet kubernetes-1.15.6
+//replace k8s.io/cloud-provider => k8s.io/cloud-provider kubernetes-1.15.6
+//replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib kubernetes-1.15.6
+//replace k8s.io/cli-runtime => k8s.io/cli-runtime kubernetes-1.15.6
+//replace k8s.io/kube-aggregator => k8s.io/kube-aggregator kubernetes-1.15.6
+//replace k8s.io/sample-apiserver => k8s.io/sample-apiserver kubernetes-1.15.6
+//replace k8s.io/metrics => k8s.io/metrics kubernetes-1.15.6
+//replace k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap kubernetes-1.15.6
+//replace k8s.io/kube-controller-manager => k8s.io/kube-controller-manager kubernetes-1.15.6
+//replace k8s.io/kube-proxy => k8s.io/kube-proxy kubernetes-1.15.6
+//replace k8s.io/cri-api => k8s.io/cri-api kubernetes-1.15.6
+//replace k8s.io/code-generator => k8s.io/code-generator kubernetes-1.15.6
+
+replace k8s.io/apiserver => k8s.io/apiserver v0.0.0-20191114102923-bf973bc1a46c
+
+replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20191114105316-e8706470940d
+
+replace k8s.io/api => k8s.io/api v0.0.0-20191114100237-2cd11237263f
+
+replace k8s.io/component-base => k8s.io/component-base v0.0.0-20191114102239-843ff05e8ff4
+
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20191114101336-8cba805ad12d
+
+replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.0.0-20191114111147-29226eb67741
+
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762
+
+replace k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.0.0-20191114112557-fb8eac6d1d79
+
+replace k8s.io/kubelet => k8s.io/kubelet v0.0.0-20191114110913-8a0729368279
+
+replace k8s.io/cloud-provider => k8s.io/cloud-provider v0.0.0-20191114111940-b2efa58ca04c
+
+replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.0.0-20191114112225-e438b10da852
+
+replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.0.0-20191114110057-22fabc8113ba
+
+replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20191114103707-3917fe134eab
+
+replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191114104325-4dc280b03897
+
+replace k8s.io/metrics => k8s.io/metrics v0.0.0-20191114105745-bf91bab17669
+
+replace k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.0.0-20191114111701-466976f32df4
+
+replace k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.0.0-20191114111427-e269b4a0667c
+
+replace k8s.io/kube-proxy => k8s.io/kube-proxy v0.0.0-20191114110636-5b9a03eee945
+
+replace k8s.io/cri-api => k8s.io/cri-api v0.0.0-20190817025403-3ae76f584e79
+
+replace k8s.io/code-generator => k8s.io/code-generator v0.0.0-20190612205613-18da4a14b22b
+
 require (
 	github.com/Pallinder/go-randomdata v0.0.0-20180329154440-dab270d296c6
-	github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/davecgh/go-spew v1.1.0 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/golang/groupcache v0.0.0-20180203143532-66deaeb636df // indirect
-	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
-	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/googleapis/gnostic v0.1.0 // indirect
-	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
-	github.com/hashicorp/golang-lru v0.0.0-20160813221303-0a025b7e63ad // indirect
-	github.com/imdario/mergo v0.0.0-20180119215619-163f41321a19 // indirect
-	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.0 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
-	github.com/onsi/gomega v1.4.2 // indirect
-	github.com/opentracing/opentracing-go v1.0.2
-	github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c // indirect
-	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pkg/errors v0.8.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v0.0.0-20180216131253-e69720d204a4
-	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
-	github.com/prometheus/common v0.0.0-20180110214958-89604d197083 // indirect
-	github.com/prometheus/procfs v0.0.0-20180212145926-282c8707aa21 // indirect
-	github.com/spf13/pflag v1.0.0 // indirect
-	github.com/stretchr/objx v0.1.0 // indirect
-	github.com/stretchr/testify v1.2.0
-	github.com/uber-go/atomic v1.3.2 // indirect
-	github.com/uber/jaeger-client-go v2.14.0+incompatible
-	github.com/uber/jaeger-lib v1.5.0 // indirect
-	go.uber.org/atomic v1.3.2 // indirect
-	golang.org/x/crypto v0.0.0-20180127211104-1875d0a70c90 // indirect
-	golang.org/x/oauth2 v0.0.0-20180207181906-543e37812f10 // indirect
-	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
-	golang.org/x/time v0.0.0-20180314180208-26559e0f760e // indirect
-	google.golang.org/appengine v1.0.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/inf.v0 v0.9.0 // indirect
-	k8s.io/api v0.0.0-20180904230853-4e7be11eab3f
-	k8s.io/apiextensions-apiserver v0.0.0-20180910084140-b05d9bb7cc74
-	k8s.io/apimachinery v0.0.0-20180904193909-def12e63c512
-	k8s.io/client-go v2.0.0-alpha.0.0.20180910083459-2cefa64ff137+incompatible
-	k8s.io/kube-openapi v0.0.0-20180420230433-1e45fb05b063 // indirect
-	k8s.io/kubernetes v1.11.3
+	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
+	github.com/gogo/protobuf v1.3.0 // indirect
+	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
+	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/gophercloud/gophercloud v0.4.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
+	github.com/imdario/mergo v0.3.7 // indirect
+	github.com/opentracing/opentracing-go v1.1.0
+	github.com/prometheus/client_golang v1.1.0
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/testify v1.4.0
+	github.com/uber-go/atomic v1.4.0 // indirect
+	github.com/uber/jaeger-client-go v2.19.0+incompatible
+	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
+	go.uber.org/atomic v1.4.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
+	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
+	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
+	gopkg.in/inf.v0 v0.9.1 // indirect
+	k8s.io/api v0.0.0
+	k8s.io/apiextensions-apiserver v0.0.0
+	k8s.io/apimachinery v0.0.0
+	k8s.io/client-go v0.0.0
+	k8s.io/klog v1.0.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d // indirect
+	k8s.io/utils v0.0.0-20191114200735-6ca3b61696b6 // indirect
 )
+
+go 1.13

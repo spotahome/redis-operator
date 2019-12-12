@@ -8,7 +8,7 @@ import (
 	apiextensionscli "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeversion "k8s.io/kubernetes/pkg/util/version"
+	kubeversion "k8s.io/apimachinery/pkg/util/version"
 
 	"github.com/spotahome/kooper/log"
 	wraptime "github.com/spotahome/kooper/wrapper/time"

@@ -20,14 +20,14 @@ UID := $(shell id -u)
 # cmds
 UNIT_TEST_CMD := ./hack/scripts/unit-test.sh
 INTEGRATION_TEST_CMD := ./hack/scripts/integration-test.sh 
-CI_INTEGRATION_TEST_CMD := ./hack/scripts/integration-test-minikube.sh
+CI_INTEGRATION_TEST_CMD := ./hack/scripts/integration-test-kind.sh
 MOCKS_CMD := ./hack/scripts/mockgen.sh
 DOCKER_RUN_CMD := docker run -v ${PWD}:$(DOCKER_GO_SERVICE_PATH) --rm -it $(SERVICE_NAME)
 RUN_EXAMPLE_POD_ECHO := go run ./examples/echo-pod-controller/cmd/* --development
 RUN_EXAMPLE_POD_ECHO_ONEFILE := go run ./examples/onefile-echo-pod-controller/main.go --development
 RUN_EXAMPLE_POD_TERM := go run ./examples/pod-terminator-operator/cmd/* --development
 DEPS_CMD := GO111MODULE=on go mod tidy && GO111MODULE=on go mod vendor
-K8S_VERSION := "1.11.3"
+K8S_VERSION := "1.15.6"
 SET_K8S_DEPS_CMD := GO111MODULE=on go mod edit \
     -require=k8s.io/apiextensions-apiserver@kubernetes-${K8S_VERSION} \
 	-require=k8s.io/client-go@kubernetes-${K8S_VERSION} \
