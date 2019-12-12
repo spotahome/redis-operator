@@ -250,6 +250,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					Tolerations:      rf.Spec.Redis.Tolerations,
 					NodeSelector:     rf.Spec.Redis.NodeSelector,
 					SecurityContext:  getSecurityContext(rf.Spec.Redis.SecurityContext),
+					HostNetwork:      rf.Spec.Redis.HostNetwork,
+					DNSPolicy:        getDnsPolicy(rf.Spec.Redis.DNSPolicy),
 					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
 					Containers: []corev1.Container{
 						{
@@ -352,6 +354,8 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Tolerations:      rf.Spec.Sentinel.Tolerations,
 					NodeSelector:     rf.Spec.Sentinel.NodeSelector,
 					SecurityContext:  getSecurityContext(rf.Spec.Sentinel.SecurityContext),
+					HostNetwork:      rf.Spec.Sentinel.HostNetwork,
+					DNSPolicy:        getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
 					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
 					InitContainers: []corev1.Container{
 						{
@@ -604,6 +608,13 @@ func getSecurityContext(secctx *corev1.PodSecurityContext) *corev1.PodSecurityCo
 		RunAsGroup:   &defaultUserAndGroup,
 		RunAsNonRoot: &runAsNonRoot,
 	}
+}
+
+func getDnsPolicy(dnspolicy corev1.DNSPolicy) corev1.DNSPolicy {
+	if dnspolicy == "" {
+		return corev1.DNSClusterFirst
+	}
+	return dnspolicy
 }
 
 func getQuorum(rf *redisfailoverv1.RedisFailover) int32 {
