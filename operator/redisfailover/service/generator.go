@@ -170,7 +170,16 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
    ROLE_SLAVE="role:slave"
    IN_SYNC="master_sync_in_progress:1"
    NO_MASTER="master_host:127.0.0.1"
-   
+   RESPONSE="PONG"
+
+   check_connection(){
+        connected=$(redis-cli -h $(hostname) ping | grep $RESPONSE | tr -d "\r" | tr -d "\n")
+        echo $connected
+        if [ -z "$connected" ]; then
+                exit 1
+        fi
+   }
+
    check_master(){
            exit 0
    }
@@ -186,6 +195,7 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
            exit 1
    }
    
+   check_connection
    role=$(redis-cli info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
    
    case $role in
