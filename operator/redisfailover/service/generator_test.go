@@ -728,6 +728,104 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 	}
 }
 
+func TestRedisHostNetworkAndDnsPolicy(t *testing.T) {
+	tests := []struct {
+		name                string
+		hostNetwork         bool
+		expectedHostNetwork bool
+		dnsPolicy           corev1.DNSPolicy
+		expectedDnsPolicy   corev1.DNSPolicy
+	}{
+		{
+			name:                "Default",
+			expectedHostNetwork: false,
+			expectedDnsPolicy:   corev1.DNSClusterFirst,
+		},
+		{
+			name:                "Custom",
+			hostNetwork:         true,
+			expectedHostNetwork: true,
+			dnsPolicy:           corev1.DNSClusterFirstWithHostNet,
+			expectedDnsPolicy:   corev1.DNSClusterFirstWithHostNet,
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		rf := generateRF()
+		rf.Spec.Redis.HostNetwork = test.hostNetwork
+		rf.Spec.Redis.DNSPolicy = test.dnsPolicy
+
+		var actualHostNetwork bool
+		var actualDnsPolicy corev1.DNSPolicy
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			actualHostNetwork = ss.Spec.Template.Spec.HostNetwork
+			actualDnsPolicy = ss.Spec.Template.Spec.DNSPolicy
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+		assert.NoError(err)
+
+		assert.Equal(test.expectedHostNetwork, actualHostNetwork)
+		assert.Equal(test.expectedDnsPolicy, actualDnsPolicy)
+	}
+}
+
+func TestSentinelHostNetworkAndDnsPolicy(t *testing.T) {
+	tests := []struct {
+		name                string
+		hostNetwork         bool
+		expectedHostNetwork bool
+		dnsPolicy           corev1.DNSPolicy
+		expectedDnsPolicy   corev1.DNSPolicy
+	}{
+		{
+			name:                "Default",
+			expectedHostNetwork: false,
+			expectedDnsPolicy:   corev1.DNSClusterFirst,
+		},
+		{
+			name:                "Custom",
+			hostNetwork:         true,
+			expectedHostNetwork: true,
+			dnsPolicy:           corev1.DNSClusterFirstWithHostNet,
+			expectedDnsPolicy:   corev1.DNSClusterFirstWithHostNet,
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		rf := generateRF()
+		rf.Spec.Sentinel.HostNetwork = test.hostNetwork
+		rf.Spec.Sentinel.DNSPolicy = test.dnsPolicy
+
+		var actualHostNetwork bool
+		var actualDnsPolicy corev1.DNSPolicy
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			actualHostNetwork = d.Spec.Template.Spec.HostNetwork
+			actualDnsPolicy = d.Spec.Template.Spec.DNSPolicy
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+		assert.NoError(err)
+
+		assert.Equal(test.expectedHostNetwork, actualHostNetwork)
+		assert.Equal(test.expectedDnsPolicy, actualDnsPolicy)
+	}
+}
+
 func TestRedisImagePullPolicy(t *testing.T) {
 	tests := []struct {
 		name                   string

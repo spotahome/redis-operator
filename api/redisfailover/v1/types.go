@@ -40,6 +40,8 @@ type RedisSettings struct {
 	Tolerations       []corev1.Toleration           `json:"tolerations,omitempty"`
 	NodeSelector      map[string]string             `json:"nodeSelector,omitempty"`
 	PodAnnotations    map[string]string             `json:"podAnnotations,omitempty"`
+	HostNetwork       bool                          `json:"hostNetwork,omitempty"`
+	DNSPolicy         corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -57,6 +59,8 @@ type SentinelSettings struct {
 	NodeSelector     map[string]string             `json:"nodeSelector,omitempty"`
 	PodAnnotations   map[string]string             `json:"podAnnotations,omitempty"`
 	Exporter         SentinelExporter              `json:"exporter,omitempty"`
+	HostNetwork      bool                          `json:"hostNetwork,omitempty"`
+	DNSPolicy        corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 }
 
 // AuthSettings contains settings about auth
