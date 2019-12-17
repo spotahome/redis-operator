@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.0.0-rc.4] - 2019-12-17
+
+### Changes
+- Update kooper to v0.8.0
+- Update kubernetes to v1.15.6
+- Add support for `hostNetwork` and `dnsPolicy` in Redis and Sentinel pods
+
+### Fix
+- connect the redis cluster from outside #109 @pmquang
+
+
 ## [v1.0.0-rc.3] - 2019-12-10
 
 ### Action required
@@ -268,7 +279,7 @@ example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 ### Added
 
 - Initial open-sourced release
-
+[v1.0.0-rc.4]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.3...v1.0.0-rc.4
 [v1.0.0-rc.3]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.2...v1.0.0-rc.3
 [v1.0.0-rc.2]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [v1.0.0-rc.1]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0-rc.1
