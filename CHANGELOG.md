@@ -5,11 +5,7 @@
 ### Changes
 - Update kooper to v0.8.0
 - Update kubernetes to v1.15.6
-- Add support for `hostNetwork` and `dnsPolicy` in Redis and Sentinel pods
-
-### Fix
-- connect the redis cluster from outside #109 @pmquang
-
+- Add support for `hostNetwork` and `dnsPolicy` in Redis and Sentinel pods #212 @paol
 
 ## [v1.0.0-rc.3] - 2019-12-10
 
