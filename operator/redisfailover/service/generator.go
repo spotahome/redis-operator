@@ -607,6 +607,7 @@ func getSecurityContext(secctx *corev1.PodSecurityContext) *corev1.PodSecurityCo
 		RunAsUser:    &defaultUserAndGroup,
 		RunAsGroup:   &defaultUserAndGroup,
 		RunAsNonRoot: &runAsNonRoot,
+		FSGroup:      &defaultUserAndGroup,
 	}
 }
 
