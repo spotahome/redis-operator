@@ -8,6 +8,11 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+const (
+	defCliQPS   = 100
+	defCliBurst = 100
+)
+
 // CMDFlags are the flags used by the cmd
 // TODO: improve flags.
 type CMDFlags struct {
@@ -16,6 +21,8 @@ type CMDFlags struct {
 	Debug       bool
 	ListenAddr  string
 	MetricsPath string
+	CliQPS      float64
+	CliBurst    int
 }
 
 // Init initializes and parse the flags
@@ -27,6 +34,8 @@ func (c *CMDFlags) Init() {
 	flag.BoolVar(&c.Debug, "debug", false, "enable debug mode")
 	flag.StringVar(&c.ListenAddr, "listen-address", ":9710", "Address to listen on for metrics.")
 	flag.StringVar(&c.MetricsPath, "metrics-path", "/metrics", "Path to serve the metrics.")
+	flag.Float64Var(&c.CliQPS, "cli-qps", defCliQPS, "QPS value for kubernetes client.")
+	flag.IntVar(&c.CliBurst, "cli-burst", defCliBurst, "Burst value for kubernetes client.")
 
 	// Parse flags
 	flag.Parse()

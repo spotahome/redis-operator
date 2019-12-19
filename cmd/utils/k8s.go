@@ -29,6 +29,9 @@ func LoadKubernetesConfig(flags *CMDFlags) (*rest.Config, error) {
 		cfg = config
 	}
 
+	cfg.QPS = float32(flags.CliQPS)
+	cfg.Burst = flags.CliBurst
+
 	return cfg, nil
 }
 
