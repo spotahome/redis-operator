@@ -11,6 +11,11 @@ import (
 	redisfailoverclientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
 )
 
+const (
+	defCliQPS   = 100
+	defCliBurst = 100
+)
+
 // LoadKubernetesConfig loads kubernetes configuration based on flags.
 func LoadKubernetesConfig(flags *CMDFlags) (*rest.Config, error) {
 	var cfg *rest.Config
@@ -29,8 +34,8 @@ func LoadKubernetesConfig(flags *CMDFlags) (*rest.Config, error) {
 		cfg = config
 	}
 
-	cfg.QPS = float32(flags.CliQPS)
-	cfg.Burst = flags.CliBurst
+	cfg.QPS = defCliQPS
+	cfg.Burst = defCliBurst
 
 	return cfg, nil
 }
