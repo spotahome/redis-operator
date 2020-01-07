@@ -25,23 +25,24 @@ type RedisFailoverSpec struct {
 
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
-	Image             string                        `json:"image,omitempty"`
-	ImagePullPolicy   corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
-	Replicas          int32                         `json:"replicas,omitempty"`
-	Resources         corev1.ResourceRequirements   `json:"resources,omitempty"`
-	CustomConfig      []string                      `json:"customConfig,omitempty"`
-	Command           []string                      `json:"command,omitempty"`
-	ShutdownConfigMap string                        `json:"shutdownConfigMap,omitempty"`
-	Storage           RedisStorage                  `json:"storage,omitempty"`
-	Exporter          RedisExporter                 `json:"exporter,omitempty"`
-	Affinity          *corev1.Affinity              `json:"affinity,omitempty"`
-	SecurityContext   *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
-	ImagePullSecrets  []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	Tolerations       []corev1.Toleration           `json:"tolerations,omitempty"`
-	NodeSelector      map[string]string             `json:"nodeSelector,omitempty"`
-	PodAnnotations    map[string]string             `json:"podAnnotations,omitempty"`
-	HostNetwork       bool                          `json:"hostNetwork,omitempty"`
-	DNSPolicy         corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
+	Image              string                        `json:"image,omitempty"`
+	ImagePullPolicy    corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
+	Replicas           int32                         `json:"replicas,omitempty"`
+	Resources          corev1.ResourceRequirements   `json:"resources,omitempty"`
+	CustomConfig       []string                      `json:"customConfig,omitempty"`
+	Command            []string                      `json:"command,omitempty"`
+	ShutdownConfigMap  string                        `json:"shutdownConfigMap,omitempty"`
+	Storage            RedisStorage                  `json:"storage,omitempty"`
+	Exporter           RedisExporter                 `json:"exporter,omitempty"`
+	Affinity           *corev1.Affinity              `json:"affinity,omitempty"`
+	SecurityContext    *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
+	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
+	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
+	PodAnnotations     map[string]string             `json:"podAnnotations,omitempty"`
+	ServiceAnnotations map[string]string             `json:"serviceAnnotations,omitempty"`
+	HostNetwork        bool                          `json:"hostNetwork,omitempty"`
+	DNSPolicy          corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster

@@ -38,6 +38,7 @@ func generateSentinelService(rf *redisfailoverv1.RedisFailover, labels map[strin
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Sentinel.ServiceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: selectorLabels,
@@ -59,6 +60,12 @@ func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]s
 
 	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
+	defaultAnnotations := map[string]string{
+		"prometheus.io/scrape": "true",
+		"prometheus.io/port":   "http",
+		"prometheus.io/path":   "/metrics",
+	}
+	annotations := util.MergeLabels(defaultAnnotations, rf.Spec.Redis.ServiceAnnotations)
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -66,11 +73,7 @@ func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]s
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
-			Annotations: map[string]string{
-				"prometheus.io/scrape": "true",
-				"prometheus.io/port":   "http",
-				"prometheus.io/path":   "/metrics",
-			},
+			Annotations:     annotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Type:      corev1.ServiceTypeClusterIP,
@@ -170,24 +173,24 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
    ROLE_SLAVE="role:slave"
    IN_SYNC="master_sync_in_progress:1"
    NO_MASTER="master_host:127.0.0.1"
-   
+
    check_master(){
            exit 0
    }
-   
+
    check_slave(){
            in_sync=$(redis-cli info replication | grep $IN_SYNC | tr -d "\r" | tr -d "\n")
            no_master=$(redis-cli info replication | grep $NO_MASTER | tr -d "\r" | tr -d "\n")
-   
+
            if [ -z "$in_sync" ] && [ -z "$no_master" ]; then
                    exit 0
            fi
-   
+
            exit 1
    }
-   
+
    role=$(redis-cli info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
-   
+
    case $role in
            $ROLE_MASTER)
                    check_master
