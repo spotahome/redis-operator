@@ -117,6 +117,11 @@ By default, no pod annotations will be applied to Redis nor Sentinel pods.
 
 In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 
+### Custom Service Annotations
+By default, no service annotations will be applied to the Redis nor Sentinel services.
+
+In order to apply custom service Annotations, you can provide the `serviceAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
+
 ### Control of label propagation.
 By default the operator will propagate all labels on the CRD down to the resources that it creates.  This can be problematic if the
 labels on the CRD are not fully under your own control (for example: being deployed by a gitops operator)

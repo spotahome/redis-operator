@@ -7,7 +7,11 @@ spec:
     replicas: 3
     podAnnotations:
       imageregistry: "https://hub.docker.com/"
+    serviceAnnotations:
+      imageregistry: "https://hub.docker.com/"
   redis:
     replicas: 3
     podAnnotations:
+      imageregistry: "https://hub.docker.com/"
+    serviceAnnotations:
       imageregistry: "https://hub.docker.com/"

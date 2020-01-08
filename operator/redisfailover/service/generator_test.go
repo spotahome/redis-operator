@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
@@ -725,6 +726,472 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 
 		assert.Equal(test.expectedPodAnnotations, gotPodAnnotations)
 		assert.NoError(err)
+	}
+}
+
+func TestSentinelService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "sentinel",
+							Port:       26379,
+							TargetPort: intstr.FromInt(26379),
+							Protocol:   "TCP",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfs-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "sentinel",
+							Port:       26379,
+							TargetPort: intstr.FromInt(26379),
+							Protocol:   "TCP",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "sentinel",
+							Port:       26379,
+							TargetPort: intstr.FromInt(26379),
+							Protocol:   "TCP",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"some":                        "label",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "sentinel",
+							Port:       26379,
+							TargetPort: intstr.FromInt(26379),
+							Protocol:   "TCP",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{"some": "annotation"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "sentinel",
+							Port:       26379,
+							TargetPort: intstr.FromInt(26379),
+							Protocol:   "TCP",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Sentinel.ServiceAnnotations = test.rfAnnotations
+
+			generatedService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateIfNotExistsService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+			err := client.EnsureSentinelService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedService)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestRedisService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path":   "/metrics",
+						"prometheus.io/port":   "http",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "http-metrics",
+							Port:     9121,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfr-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path":   "/metrics",
+						"prometheus.io/port":   "http",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "http-metrics",
+							Port:     9121,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path":   "/metrics",
+						"prometheus.io/port":   "http",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "http-metrics",
+							Port:     9121,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"some":                        "label",
+					},
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path":   "/metrics",
+						"prometheus.io/port":   "http",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "http-metrics",
+							Port:     9121,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path":   "/metrics",
+						"prometheus.io/port":   "http",
+						"some":                 "annotation",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "http-metrics",
+							Port:     9121,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateIfNotExistsService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+			err := client.EnsureRedisService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedService)
+			assert.NoError(err)
+		})
 	}
 }
 
