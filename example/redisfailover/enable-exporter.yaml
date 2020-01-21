@@ -12,4 +12,4 @@ spec:
     replicas: 3
     exporter: 
       enabled: true
-      image: oliver006/redis_exporter:v0.33.0
+      image: oliver006/redis_exporter:v1.3.5-alpine
