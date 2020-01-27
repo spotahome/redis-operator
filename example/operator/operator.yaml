@@ -21,6 +21,10 @@ spec:
         - image: quay.io/spotahome/redis-operator:latest
           imagePullPolicy: IfNotPresent
           name: app
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
           resources:
             limits:
               cpu: 100m
