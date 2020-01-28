@@ -130,6 +130,10 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 	namespace := rf.Namespace
 
 	minAvailable := intstr.FromInt(2)
+	if rf.Spec.Redis.Replicas <= 2 {
+		minAvailable = intstr.FromInt(int(rf.Spec.Redis.Replicas - 1))
+	}
+
 	labels = util.MergeLabels(labels, generateSelectorLabels(component, rf.Name))
 
 	pdb := generatePodDisruptionBudget(name, namespace, labels, ownerRefs, minAvailable)
