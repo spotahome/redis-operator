@@ -10,13 +10,24 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"bytes"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
+	"text/template"
 )
 
 const (
 	redisConfigurationVolumeName         = "redis-config"
+	// Template used to build the Redis configuration
+	redisConfigTemplate = `slaveof 127.0.0.1 6379
+tcp-keepalive 60
+save 900 1
+save 300 10
+{{- range .Spec.Redis.CustomCommandRenames}}
+rename-command {{.From}} {{.To}}
+{{- end}}
+`
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
 	redisReadinessVolumeName             = "redis-readiness-config"
 	redisStorageVolumeName               = "redis-data"
@@ -115,13 +126,19 @@ sentinel parallel-syncs mymaster 2`
 
 func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
-	namespace := rf.Namespace
-
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
-	redisConfigFileContent := `slaveof 127.0.0.1 6379
-tcp-keepalive 60
-save 900 1
-save 300 10`
+
+	tmpl, err := template.New("redis").Parse(redisConfigTemplate)
+	if err != nil {
+		panic(err)
+	}
+
+	var tplOutput bytes.Buffer
+	if err := tmpl.Execute(&tplOutput, rf); err != nil {
+		panic(err)
+	}
+
+	redisConfigFileContent := tplOutput.String()
 
 	if password != "" {
 		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
@@ -130,7 +147,7 @@ save 300 10`
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
-			Namespace:       namespace,
+			Namespace:       rf.Namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
 		},
