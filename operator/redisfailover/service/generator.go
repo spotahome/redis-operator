@@ -25,7 +25,7 @@ tcp-keepalive 60
 save 900 1
 save 300 10
 {{- range .Spec.Redis.CustomCommandRenames}}
-rename-command {{.From}} {{.To}}
+rename-command "{{.From}}" "{{.To}}"
 {{- end}}
 `
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
