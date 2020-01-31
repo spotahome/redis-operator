@@ -1,0 +1,16 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    customCommandRenames:
+      - from: "monitor"
+        to: ""
+      - from: "flushall"
+        to: "fa"
+      - from: flushdb
+        to: xxfd
