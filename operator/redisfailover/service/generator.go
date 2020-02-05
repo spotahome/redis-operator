@@ -196,8 +196,8 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
    }
 
    check_slave(){
-           in_sync=$(redis-cli info replication | grep $IN_SYNC | tr -d "\r" | tr -d "\n")
-           no_master=$(redis-cli info replication | grep $NO_MASTER | tr -d "\r" | tr -d "\n")
+           in_sync=$(redis-cli -a "${REDIS_PASSWORD}" info replication | grep $IN_SYNC | tr -d "\r" | tr -d "\n")
+           no_master=$(redis-cli -a "${REDIS_PASSWORD}" info replication | grep $NO_MASTER | tr -d "\r" | tr -d "\n")
 
            if [ -z "$in_sync" ] && [ -z "$no_master" ]; then
                    exit 0
@@ -206,7 +206,7 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
            exit 1
    }
 
-   role=$(redis-cli info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
+   role=$(redis-cli -a "${REDIS_PASSWORD}" info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
 
    case $role in
            $ROLE_MASTER)
@@ -338,6 +338,20 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	if rf.Spec.Redis.Exporter.Enabled {
 		exporter := createRedisExporterContainer(rf)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
+	}
+
+	if rf.Spec.Auth.SecretPath != "" {
+		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
 	}
 
 	return ss
