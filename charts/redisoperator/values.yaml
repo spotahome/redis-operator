@@ -16,5 +16,7 @@ rbac:
   imagePullSecrets: []
 monitoring:
   enabled: false
+  serviceMonitor: false
+  labels: {}
   prometheus:
     name: unknown

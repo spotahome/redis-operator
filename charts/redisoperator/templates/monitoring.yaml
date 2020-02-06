@@ -6,6 +6,7 @@ metadata:
   labels:
     prometheus: {{ .Values.monitoring.prometheus.name }}
 {{ include "helm-labels" . | indent 4 }}
+{{ include .Values.monitoring.labes . | indent 4 }}
 spec:
   ports:
     - port: 9710
@@ -16,6 +17,7 @@ spec:
 {{ include "common-labels" . | indent 4 }}
 
 ---
+{{- if .Values.monitoring.serviceMonitor -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -34,4 +36,5 @@ spec:
   endpoints:
   - port: metrics
     interval: 15s
+{{- end -}}
 {{- end -}}
