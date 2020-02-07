@@ -6,7 +6,7 @@ metadata:
   labels:
     prometheus: {{ .Values.monitoring.prometheus.name }}
 {{ include "helm-labels" . | indent 4 }}
-{{ include .Values.monitoring.labes . | indent 4 }}
+{{ include .Values.monitoring.labels . | indent 4 }}
 spec:
   ports:
     - port: 9710
@@ -18,7 +18,7 @@ spec:
 
 ---
 {{- if .Values.monitoring.serviceMonitor -}}
-apiVersion: monitoring.coreos.com/v1
+apiVersion: monitoring.coreos.com/v1 
 kind: ServiceMonitor
 metadata:
   name: {{ template "name" . }}
