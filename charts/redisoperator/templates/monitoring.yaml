@@ -6,7 +6,9 @@ metadata:
   labels:
     prometheus: {{ .Values.monitoring.prometheus.name }}
 {{ include "helm-labels" . | indent 4 }}
-{{ include .Values.monitoring.labels . | indent 4 }}
+{{- if .Values.monitoring.labels -}}
+{{ toYaml .Values.monitoring.labels | indent 4 }}
+{{ end }}
 spec:
   ports:
     - port: 9710
