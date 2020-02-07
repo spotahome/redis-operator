@@ -3,6 +3,7 @@ tag: latest
 pullPolicy: Always
 containerName: redisoperator
 podAnnotations: {}
+serviceAnnotations: {}
 resources:
   requests:
     cpu: 10m
@@ -17,6 +18,6 @@ rbac:
 monitoring:
   enabled: false
   serviceMonitor: false
-  labels: {}
+
   prometheus:
     name: unknown
