@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.0-rc.5] - 2020-02-07
+
+### Changes
+- Custom annotations for services #216 @alecjacobs5401 
+- Update redis-exporter #222 @VerosK
+- Pod security policy to run as non root #228 @logdnalf
+- Custom command renames #234 @logdnalf
+
+### Fix
+- Add fsGroup to security context #215 @ese
+- Pod disruption budget lower than replicas #229 @tkrop
+- Add password support for readiness probes #235 @teamon
+  
 ## [v1.0.0-rc.4] - 2019-12-17
 
 ### Changes
@@ -275,6 +288,7 @@ example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 ### Added
 
 - Initial open-sourced release
+[v1.0.0-rc.5]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [v1.0.0-rc.4]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.3...v1.0.0-rc.4
 [v1.0.0-rc.3]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.2...v1.0.0-rc.3
 [v1.0.0-rc.2]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.1...v1.0.0-rc.2
