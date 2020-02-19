@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -12,6 +13,16 @@ const (
 func (r *RedisFailover) Validate() error {
 	if len(r.Name) > maxNameLength {
 		return fmt.Errorf("name length can't be higher than %d", maxNameLength)
+	}
+
+	if r.Bootstrapping() {
+		if r.Spec.BootstrapNode.Host == "" {
+			return errors.New("BootstrapNode must include a host when provided")
+		}
+
+		if r.Spec.BootstrapNode.Port <= 0 {
+			r.Spec.BootstrapNode.Port = defaultRedisPort
+		}
 	}
 
 	if r.Spec.Redis.Image == "" {
