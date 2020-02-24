@@ -126,7 +126,7 @@ func TestCheckAndHeal(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			rf := generateRF(false)
+			rf := generateRF(false, false)
 
 			expErr := false
 			continueTests := true
@@ -436,7 +436,7 @@ func TestUpdate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			rf := generateRF(false)
+			rf := generateRF(false, false)
 
 			config := generateConfig()
 			mrfs := &mRFService.RedisFailoverClient{}
