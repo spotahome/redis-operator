@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.0.0] - 2020-02-24
+
+### Major changes
+- Custom Resource Definition moved to `databases.spotahome.com`
+- Rolling updates are aware of cluster topology and nodes roles to follow minimum impact strategy
+- Better readiness probes for redis nodes.
+- More customizable options for kubernetes objects.
+- Better bootstrap times.
+- Improve security with password protected redis and security pod policies.
+- Redis 5 as default version
+- Update dependencies
+
+For detailed changelogs see rc relases
+
 ## [v1.0.0-rc.5] - 2020-02-07
 
 ### Changes
@@ -288,6 +302,8 @@ example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 ### Added
 
 - Initial open-sourced release
+
+[v1.0.0]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0
 [v1.0.0-rc.5]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [v1.0.0-rc.4]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.3...v1.0.0-rc.4
 [v1.0.0-rc.3]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.2...v1.0.0-rc.3
