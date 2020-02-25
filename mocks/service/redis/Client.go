@@ -142,6 +142,20 @@ func (_m *Client) MakeSlaveOf(ip string, masterIP string, password string) error
 	return r0
 }
 
+// MakeSlaveOfWithPort provides a mock function with given fields: ip, masterIP, masterPort, password
+func (_m *Client) MakeSlaveOfWithPort(ip string, masterIP string, masterPort string, password string) error {
+	ret := _m.Called(ip, masterIP, masterPort, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
+		r0 = rf(ip, masterIP, masterPort, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // MonitorRedis provides a mock function with given fields: ip, monitor, quorum, password
 func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, password string) error {
 	ret := _m.Called(ip, monitor, quorum, password)
