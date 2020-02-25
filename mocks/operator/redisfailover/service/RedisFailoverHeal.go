@@ -69,6 +69,20 @@ func (_m *RedisFailoverHeal) RestoreSentinel(ip string) error {
 	return r0
 }
 
+// SetExternalMasterOnAll provides a mock function with given fields: masterIP, masterPort, rFailover
+func (_m *RedisFailoverHeal) SetExternalMasterOnAll(masterIP string, masterPort string, rFailover *v1.RedisFailover) error {
+	ret := _m.Called(masterIP, masterPort, rFailover)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *v1.RedisFailover) error); ok {
+		r0 = rf(masterIP, masterPort, rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetMasterOnAll provides a mock function with given fields: masterIP, rFailover
 func (_m *RedisFailoverHeal) SetMasterOnAll(masterIP string, rFailover *v1.RedisFailover) error {
 	ret := _m.Called(masterIP, rFailover)
