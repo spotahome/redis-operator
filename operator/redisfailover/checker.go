@@ -18,7 +18,10 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		return err
 	}
 
-	masterIP, err := r.rfChecker.GetMasterIP(rf)
+	masterIP := ""
+	if !rf.Bootstrapping() {
+		masterIP, _ = r.rfChecker.GetMasterIP(rf)
+	}
 	// No perform updates when nodes are syncing, still not connected, etc.
 	for _, rp := range redises {
 		if rp != masterIP {
@@ -55,19 +58,30 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		}
 	}
 
-	// Update stale pod with role master
-	master, err := r.rfChecker.GetRedisesMasterPod(rf)
+	if !rf.Bootstrapping() {
+		// Update stale pod with role master
+		master, err := r.rfChecker.GetRedisesMasterPod(rf)
+		if err != nil {
+			return err
+		}
 
-	masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
-	if masterRevision != ssUR {
-		r.rfHealer.DeletePod(master, rf)
-		return nil
+		masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
+		if masterRevision != ssUR {
+			r.rfHealer.DeletePod(master, rf)
+			return nil
+		}
 	}
 
 	return nil
 }
 
+// CheckAndHeal runs verifcation checks to ensure the RedisFailover is in an expected and healthy state.
+// If the checks do not match up to expectations, an attempt will be made to "heal" the RedisFailover into a healthy state.
 func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) error {
+	if rf.Bootstrapping() {
+		return r.checkAndHealBootstrapMode(rf)
+	}
+
 	// Number of redis is equal as the set on the RF spec
 	// Number of sentinel is equal as the set on the RF spec
 	// Check only one master
@@ -182,4 +196,14 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 	return nil
+}
+
+func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
+	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
+		return nil
+	}
+
+	bootstrapSettings := rf.Spec.BootstrapNode
+	return r.rfHealer.SetExternalMasterOnAll(bootstrapSettings.Host, bootstrapSettings.Port, rf)
 }
