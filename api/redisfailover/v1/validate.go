@@ -15,6 +15,7 @@ func (r *RedisFailover) Validate() error {
 		return fmt.Errorf("name length can't be higher than %d", maxNameLength)
 	}
 
+	initialRedisCustomConfig := defaultRedisCustomConfig
 	if r.Bootstrapping() {
 		if r.Spec.BootstrapNode.Host == "" {
 			return errors.New("BootstrapNode must include a host when provided")
@@ -23,7 +24,10 @@ func (r *RedisFailover) Validate() error {
 		if r.Spec.BootstrapNode.Port <= 0 {
 			r.Spec.BootstrapNode.Port = defaultRedisPort
 		}
+		initialRedisCustomConfig = bootstrappingRedisCustomConfig
 	}
+
+	r.Spec.Redis.CustomConfig = append(initialRedisCustomConfig, r.Spec.Redis.CustomConfig...)
 
 	if r.Spec.Redis.Image == "" {
 		r.Spec.Redis.Image = defaultImage

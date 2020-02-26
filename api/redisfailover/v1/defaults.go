@@ -14,4 +14,10 @@ var (
 		"down-after-milliseconds 5000",
 		"failover-timeout 10000",
 	}
+	defaultRedisCustomConfig = []string{
+		"replica-priority 100",
+	}
+	bootstrappingRedisCustomConfig = []string{
+		"replica-priority 0",
+	}
 )

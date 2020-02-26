@@ -9,10 +9,12 @@ import (
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
-		name            string
-		rfName          string
-		rfBootstrapNode *BootstrapSettings
-		expectedError   string
+		name                   string
+		rfName                 string
+		rfBootstrapNode        *BootstrapSettings
+		rfRedisCustomConfig    []string
+		rfSentinelCustomConfig []string
+		expectedError          string
 	}{
 		{
 			name:   "populates default values",
@@ -24,15 +26,35 @@ func TestValidate(t *testing.T) {
 			expectedError: "name length can't be higher than 48",
 		},
 		{
+			name:                   "SentinelCustomConfig provided",
+			rfName:                 "test",
+			rfSentinelCustomConfig: []string{"failover-timeout 500"},
+		},
+		{
 			name:            "BootstrapNode provided without a host",
 			rfName:          "test",
 			rfBootstrapNode: &BootstrapSettings{},
 			expectedError:   "BootstrapNode must include a host when provided",
 		},
 		{
+			name:   "SentinelCustomConfig provided",
+			rfName: "test",
+		},
+		{
 			name:            "Populates default bootstrap port when valid",
 			rfName:          "test",
 			rfBootstrapNode: &BootstrapSettings{Host: "127.0.0.1"},
+		},
+		{
+			name:                "Appends applied custom config to default initial values",
+			rfName:              "test",
+			rfRedisCustomConfig: []string{"tcp-keepalive 60"},
+		},
+		{
+			name:                "Appends applied custom config to default initial values when bootstrapping",
+			rfName:              "test",
+			rfRedisCustomConfig: []string{"tcp-keepalive 60"},
+			rfBootstrapNode:     &BootstrapSettings{Host: "127.0.0.1"},
 		},
 	}
 
@@ -40,18 +62,33 @@ func TestValidate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 			rf := generateRedisFailover(test.rfName, test.rfBootstrapNode)
+			rf.Spec.Redis.CustomConfig = test.rfRedisCustomConfig
+			rf.Spec.Sentinel.CustomConfig = test.rfSentinelCustomConfig
 
 			err := rf.Validate()
 
 			if test.expectedError == "" {
 				assert.NoError(err)
 
+				expectedRedisCustomConfig := []string{
+					"replica-priority 100",
+				}
+
 				var expectedBootstrapNode *BootstrapSettings
 				if test.rfBootstrapNode != nil {
+					expectedRedisCustomConfig = []string{
+						"replica-priority 0",
+					}
 					expectedBootstrapNode = &BootstrapSettings{
 						Host: test.rfBootstrapNode.Host,
 						Port: defaultRedisPort,
 					}
+				}
+
+				expectedRedisCustomConfig = append(expectedRedisCustomConfig, test.rfRedisCustomConfig...)
+				expectedSentinelCustomConfig := defaultSentinelCustomConfig
+				if len(test.rfSentinelCustomConfig) > 0 {
+					expectedSentinelCustomConfig = test.rfSentinelCustomConfig
 				}
 
 				expectedRF := &RedisFailover{
@@ -66,11 +103,12 @@ func TestValidate(t *testing.T) {
 							Exporter: RedisExporter{
 								Image: defaultExporterImage,
 							},
+							CustomConfig: expectedRedisCustomConfig,
 						},
 						Sentinel: SentinelSettings{
 							Image:        defaultImage,
 							Replicas:     defaultSentinelNumber,
-							CustomConfig: defaultSentinelCustomConfig,
+							CustomConfig: expectedSentinelCustomConfig,
 							Exporter: SentinelExporter{
 								Image: defaultSentinelExporterImage,
 							},
