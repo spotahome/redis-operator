@@ -21,7 +21,7 @@ func (r *RedisFailover) Validate() error {
 			return errors.New("BootstrapNode must include a host when provided")
 		}
 
-		if r.Spec.BootstrapNode.Port <= 0 {
+		if r.Spec.BootstrapNode.Port == "" {
 			r.Spec.BootstrapNode.Port = defaultRedisPort
 		}
 		initialRedisCustomConfig = bootstrappingRedisCustomConfig

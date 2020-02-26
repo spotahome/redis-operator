@@ -15,6 +15,7 @@ func TestValidate(t *testing.T) {
 		rfRedisCustomConfig    []string
 		rfSentinelCustomConfig []string
 		expectedError          string
+		expectedBootstrapNode  *BootstrapSettings
 	}{
 		{
 			name:   "populates default values",
@@ -41,9 +42,16 @@ func TestValidate(t *testing.T) {
 			rfName: "test",
 		},
 		{
-			name:            "Populates default bootstrap port when valid",
-			rfName:          "test",
-			rfBootstrapNode: &BootstrapSettings{Host: "127.0.0.1"},
+			name:                  "Populates default bootstrap port when valid",
+			rfName:                "test",
+			rfBootstrapNode:       &BootstrapSettings{Host: "127.0.0.1"},
+			expectedBootstrapNode: &BootstrapSettings{Host: "127.0.0.1", Port: "6379"},
+		},
+		{
+			name:                  "Allows for specifying boostrap port",
+			rfName:                "test",
+			rfBootstrapNode:       &BootstrapSettings{Host: "127.0.0.1", Port: "6380"},
+			expectedBootstrapNode: &BootstrapSettings{Host: "127.0.0.1", Port: "6380"},
 		},
 		{
 			name:                "Appends applied custom config to default initial values",
@@ -51,10 +59,11 @@ func TestValidate(t *testing.T) {
 			rfRedisCustomConfig: []string{"tcp-keepalive 60"},
 		},
 		{
-			name:                "Appends applied custom config to default initial values when bootstrapping",
-			rfName:              "test",
-			rfRedisCustomConfig: []string{"tcp-keepalive 60"},
-			rfBootstrapNode:     &BootstrapSettings{Host: "127.0.0.1"},
+			name:                  "Appends applied custom config to default initial values when bootstrapping",
+			rfName:                "test",
+			rfRedisCustomConfig:   []string{"tcp-keepalive 60"},
+			rfBootstrapNode:       &BootstrapSettings{Host: "127.0.0.1"},
+			expectedBootstrapNode: &BootstrapSettings{Host: "127.0.0.1", Port: "6379"},
 		},
 	}
 
@@ -74,14 +83,9 @@ func TestValidate(t *testing.T) {
 					"replica-priority 100",
 				}
 
-				var expectedBootstrapNode *BootstrapSettings
 				if test.rfBootstrapNode != nil {
 					expectedRedisCustomConfig = []string{
 						"replica-priority 0",
-					}
-					expectedBootstrapNode = &BootstrapSettings{
-						Host: test.rfBootstrapNode.Host,
-						Port: defaultRedisPort,
 					}
 				}
 
@@ -113,7 +117,7 @@ func TestValidate(t *testing.T) {
 								Image: defaultSentinelExporterImage,
 							},
 						},
-						BootstrapNode: expectedBootstrapNode,
+						BootstrapNode: test.expectedBootstrapNode,
 					},
 				}
 				assert.Equal(expectedRF, rf)
