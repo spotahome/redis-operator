@@ -64,24 +64,34 @@ func generateRFBootstrappingNode(bootstrapping bool) *redisfailoverv1.BootstrapS
 
 func TestEnsure(t *testing.T) {
 	tests := []struct {
-		name          string
-		exporter      bool
-		bootstrapping bool
+		name                        string
+		exporter                    bool
+		bootstrapping               bool
+		bootstrappingAllowSentinels bool
 	}{
 		{
-			name:          "Call everything, use exporter",
-			exporter:      true,
-			bootstrapping: false,
+			name:                        "Call everything, use exporter",
+			exporter:                    true,
+			bootstrapping:               false,
+			bootstrappingAllowSentinels: false,
 		},
 		{
-			name:          "Call everything, don't use exporter",
-			exporter:      false,
-			bootstrapping: false,
+			name:                        "Call everything, don't use exporter",
+			exporter:                    false,
+			bootstrapping:               false,
+			bootstrappingAllowSentinels: false,
 		},
 		{
-			name:          "Only ensure Redis when bootstrapping",
-			exporter:      false,
-			bootstrapping: true,
+			name:                        "Only ensure Redis when bootstrapping",
+			exporter:                    false,
+			bootstrapping:               true,
+			bootstrappingAllowSentinels: false,
+		},
+		{
+			name:                        "call everything when bootstrapping allows sentinels",
+			exporter:                    false,
+			bootstrapping:               true,
+			bootstrappingAllowSentinels: true,
 		},
 	}
 
@@ -90,6 +100,9 @@ func TestEnsure(t *testing.T) {
 			assert := assert.New(t)
 
 			rf := generateRF(test.exporter, test.bootstrapping)
+			if test.bootstrapping {
+				rf.Spec.BootstrapNode.AllowSentinels = test.bootstrappingAllowSentinels
+			}
 
 			config := generateConfig()
 			mk := &mK8SService.Services{}
@@ -102,7 +115,7 @@ func TestEnsure(t *testing.T) {
 				mrfs.On("EnsureNotPresentRedisService", rf).Once().Return(nil)
 			}
 
-			if !test.bootstrapping {
+			if !test.bootstrapping || test.bootstrappingAllowSentinels {
 				mrfs.On("EnsureSentinelService", rf, mock.Anything, mock.Anything).Once().Return(nil)
 				mrfs.On("EnsureSentinelConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
 				mrfs.On("EnsureSentinelDeployment", rf, mock.Anything, mock.Anything).Once().Return(nil)
