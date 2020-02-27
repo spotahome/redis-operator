@@ -21,7 +21,7 @@ type Client interface {
 	MakeMaster(ip, password string) error
 	MakeSlaveOf(ip, masterIP, password string) error
 	MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error
-	GetSentinelMonitor(ip string) (string, error)
+	GetSentinelMonitor(ip string) (string, string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, configs []string, password string) error
 	SlaveIsReady(ip, password string) (bool, error)
@@ -232,7 +232,7 @@ func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) 
 	return nil
 }
 
-func (c *client) GetSentinelMonitor(ip string) (string, error) {
+func (c *client) GetSentinelMonitor(ip string) (string, string, error) {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
 		Password: "",
@@ -244,10 +244,11 @@ func (c *client) GetSentinelMonitor(ip string) (string, error) {
 	rClient.Process(cmd)
 	res, err := cmd.Result()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	masterIP := res[3].(string)
-	return masterIP, nil
+	masterPort := res[5].(string)
+	return masterIP, masterPort, nil
 }
 
 func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
