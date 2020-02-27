@@ -177,6 +177,20 @@ func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, passwor
 	return r0
 }
 
+// MonitorRedisWithPort provides a mock function with given fields: ip, monitor, port, quorum, password
+func (_m *Client) MonitorRedisWithPort(ip string, monitor string, port string, quorum string, password string) error {
+	ret := _m.Called(ip, monitor, port, quorum, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
+		r0 = rf(ip, monitor, port, quorum, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ResetSentinel provides a mock function with given fields: ip
 func (_m *Client) ResetSentinel(ip string) error {
 	ret := _m.Called(ip)

@@ -18,6 +18,7 @@ type Client interface {
 	GetSlaveOf(ip, password string) (string, error)
 	IsMaster(ip, password string) (bool, error)
 	MonitorRedis(ip, monitor, quorum, password string) error
+	MonitorRedisWithPort(ip, monitor, port, quorum, password string) error
 	MakeMaster(ip, password string) error
 	MakeSlaveOf(ip, masterIP, password string) error
 	MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error
@@ -172,6 +173,10 @@ func (c *client) IsMaster(ip, password string) (bool, error) {
 }
 
 func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
+	return c.MonitorRedisWithPort(ip, monitor, redisPort, quorum, password)
+}
+
+func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string) error {
 	options := &rediscli.Options{
 		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
 		Password: "",
@@ -182,7 +187,7 @@ func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
 	cmd := rediscli.NewBoolCmd("SENTINEL", "REMOVE", masterName)
 	rClient.Process(cmd)
 	// We'll continue even if it fails, the priority is to have the redises monitored
-	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, redisPort, quorum)
+	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, port, quorum)
 	rClient.Process(cmd)
 	_, err := cmd.Result()
 	if err != nil {
