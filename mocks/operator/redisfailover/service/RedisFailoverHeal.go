@@ -55,6 +55,20 @@ func (_m *RedisFailoverHeal) NewSentinelMonitor(ip string, monitor string, rFail
 	return r0
 }
 
+// NewSentinelMonitorWithPort provides a mock function with given fields: ip, monitor, port, rFailover
+func (_m *RedisFailoverHeal) NewSentinelMonitorWithPort(ip string, monitor string, port string, rFailover *v1.RedisFailover) error {
+	ret := _m.Called(ip, monitor, port, rFailover)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, *v1.RedisFailover) error); ok {
+		r0 = rf(ip, monitor, port, rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RestoreSentinel provides a mock function with given fields: ip
 func (_m *RedisFailoverHeal) RestoreSentinel(ip string) error {
 	ret := _m.Called(ip)

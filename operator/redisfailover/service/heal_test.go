@@ -336,6 +336,96 @@ func TestSetExternalMasterOnAll(t *testing.T) {
 			} else {
 				assert.NoError(err)
 			}
+			ms.AssertExpectations(t)
+			mr.AssertExpectations(t)
+		})
+	}
+}
+
+func TestNewSentinelMonitor(t *testing.T) {
+	tests := []struct {
+		name                string
+		errorOnMonitorRedis bool
+	}{
+		{
+			name: "updates provided IP to monitor new redis master",
+		},
+		{
+			name:                "errors on failurer to set monitor",
+			errorOnMonitorRedis: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			rf := generateRF()
+			ms := &mK8SService.Services{}
+			mr := &mRedisService.Client{}
+			errorExpected := false
+
+			if test.errorOnMonitorRedis {
+				errorExpected = true
+				mr.On("MonitorRedis", "0.0.0.0", "1.1.1.1", "2", "").Once().Return(errors.New(""))
+			} else {
+				mr.On("MonitorRedis", "0.0.0.0", "1.1.1.1", "2", "").Once().Return(nil)
+			}
+
+			healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
+
+			err := healer.NewSentinelMonitor("0.0.0.0", "1.1.1.1", rf)
+
+			if errorExpected {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+			ms.AssertExpectations(t)
+			mr.AssertExpectations(t)
+		})
+	}
+}
+
+func TestNewSentinelMonitorWithPort(t *testing.T) {
+	tests := []struct {
+		name                string
+		errorOnMonitorRedis bool
+	}{
+		{
+			name: "updates provided IP to monitor new redis master",
+		},
+		{
+			name:                "errors on failurer to set monitor",
+			errorOnMonitorRedis: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			rf := generateRF()
+			ms := &mK8SService.Services{}
+			mr := &mRedisService.Client{}
+			errorExpected := false
+
+			if test.errorOnMonitorRedis {
+				errorExpected = true
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "").Once().Return(errors.New(""))
+			} else {
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "").Once().Return(nil)
+			}
+
+			healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
+
+			err := healer.NewSentinelMonitorWithPort("0.0.0.0", "1.1.1.1", "6379", rf)
+
+			if errorExpected {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+			ms.AssertExpectations(t)
+			mr.AssertExpectations(t)
 		})
 	}
 }
