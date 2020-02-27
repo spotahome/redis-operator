@@ -33,6 +33,7 @@ func TestCheckAndHeal(t *testing.T) {
 		redisCheckNumberOK             bool
 		redisSetMasterOnAllOK          bool
 		bootstrapping                  bool
+		allowSentinels                 bool
 	}{
 		{
 			name:                           "Everything ok, no need to heal",
@@ -46,6 +47,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "Multiple masters",
@@ -59,6 +61,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "No masters but wait",
@@ -72,6 +75,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "No masters, only one redis available, make master",
@@ -85,6 +89,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "No masters, set random",
@@ -97,6 +102,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			sentinelSlavesNumberInMemoryOK: true,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "Slaves from master wrong",
@@ -110,6 +116,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "Sentinels not pointing correct monitor",
@@ -123,6 +130,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "Sentinels with wrong number of sentinels",
@@ -136,6 +144,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                           "Sentinels with wrong number of slaves",
@@ -149,6 +158,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:             true,
 			redisSetMasterOnAllOK:          true,
 			bootstrapping:                  false,
+			allowSentinels:                 false,
 		},
 		{
 			name:                  "Bootstrapping Mode",
@@ -157,6 +167,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:    true,
 			redisSetMasterOnAllOK: true,
 			bootstrapping:         true,
+			allowSentinels:        false,
 		},
 		{
 			name:                  "Bootstrapping Mode with failure to check redis number",
@@ -165,6 +176,7 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:    false,
 			redisSetMasterOnAllOK: true,
 			bootstrapping:         true,
+			allowSentinels:        false,
 		},
 		{
 			name:                  "Bootstrapping Mode with failure to set master on all",
@@ -173,6 +185,55 @@ func TestCheckAndHeal(t *testing.T) {
 			redisCheckNumberOK:    true,
 			redisSetMasterOnAllOK: false,
 			bootstrapping:         true,
+			allowSentinels:        false,
+		},
+		{
+			name:                           "Bootstrapping Mode that allows sentinels",
+			nMasters:                       1,
+			nRedis:                         3,
+			redisCheckNumberOK:             true,
+			redisSetMasterOnAllOK:          true,
+			sentinelMonitorOK:              true,
+			sentinelNumberInMemoryOK:       true,
+			sentinelSlavesNumberInMemoryOK: true,
+			bootstrapping:                  true,
+			allowSentinels:                 true,
+		},
+		{
+			name:                           "Bootstrapping Mode that allows sentinels sentinel monitor fails",
+			nMasters:                       1,
+			nRedis:                         3,
+			redisCheckNumberOK:             true,
+			redisSetMasterOnAllOK:          true,
+			sentinelMonitorOK:              false,
+			sentinelNumberInMemoryOK:       true,
+			sentinelSlavesNumberInMemoryOK: true,
+			bootstrapping:                  true,
+			allowSentinels:                 true,
+		},
+		{
+			name:                           "Bootstrapping Mode that allows sentinels sentinel with wrong number of sentinels",
+			nMasters:                       1,
+			nRedis:                         3,
+			redisCheckNumberOK:             true,
+			redisSetMasterOnAllOK:          true,
+			sentinelMonitorOK:              true,
+			sentinelNumberInMemoryOK:       false,
+			sentinelSlavesNumberInMemoryOK: true,
+			bootstrapping:                  true,
+			allowSentinels:                 true,
+		},
+		{
+			name:                           "Bootstrapping Mode that allows sentinels sentinel with wrong number of slaves",
+			nMasters:                       1,
+			nRedis:                         3,
+			redisCheckNumberOK:             true,
+			redisSetMasterOnAllOK:          true,
+			sentinelMonitorOK:              true,
+			sentinelNumberInMemoryOK:       true,
+			sentinelSlavesNumberInMemoryOK: false,
+			bootstrapping:                  true,
+			allowSentinels:                 true,
 		},
 	}
 
@@ -180,11 +241,19 @@ func TestCheckAndHeal(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			rf := generateRF(false, test.bootstrapping)
+			allowSentinels := true
+			bootstrappingTests := test.bootstrapping
+			bootstrapMaster := "127.0.0.1"
+			bootstrapMasterPort := "6379"
+
+			rf := generateRF(false, bootstrappingTests)
+			if bootstrappingTests {
+				allowSentinels = test.allowSentinels
+				rf.Spec.BootstrapNode.AllowSentinels = allowSentinels
+			}
 
 			expErr := false
 			continueTests := true
-			bootstrappingTests := test.bootstrapping
 
 			master := "0.0.0.0"
 			sentinel := "1.1.1.1"
@@ -202,9 +271,22 @@ func TestCheckAndHeal(t *testing.T) {
 				mrfc.On("CheckRedisNumber", rf).Once().Return(errors.New(""))
 			}
 
+			if allowSentinels {
+				mrfc.On("CheckSentinelNumber", rf).Once().Return(nil)
+			}
+
 			if bootstrappingTests && continueTests {
-				bootstrapMaster := "127.0.0.1"
-				bootstrapMasterPort := "6379"
+				// once to get ips for config update, once for the UpdateRedisesPods go right
+				mrfc.On("GetRedisesIPs", rf).Twice().Return([]string{"0.0.0.1", "0.0.0.2", "0.0.0.3"}, nil)
+				mrfh.On("SetRedisCustomConfig", "0.0.0.1", rf).Once().Return(nil)
+				mrfh.On("SetRedisCustomConfig", "0.0.0.2", rf).Once().Return(nil)
+				mrfh.On("SetRedisCustomConfig", "0.0.0.3", rf).Once().Return(nil)
+				mrfc.On("CheckRedisSlavesReady", "0.0.0.1", rf).Once().Return(true, nil)
+				mrfc.On("CheckRedisSlavesReady", "0.0.0.2", rf).Once().Return(true, nil)
+				mrfc.On("CheckRedisSlavesReady", "0.0.0.3", rf).Once().Return(true, nil)
+				mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return("1", nil)
+				mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{}, nil)
+
 				if test.redisSetMasterOnAllOK {
 					mrfh.On("SetExternalMasterOnAll", bootstrapMaster, bootstrapMasterPort, rf).Once().Return(nil)
 				} else {
@@ -212,7 +294,6 @@ func TestCheckAndHeal(t *testing.T) {
 					mrfh.On("SetExternalMasterOnAll", bootstrapMaster, bootstrapMasterPort, rf).Once().Return(errors.New(""))
 				}
 			} else if continueTests {
-				mrfc.On("CheckSentinelNumber", rf).Once().Return(nil)
 				mrfc.On("GetNumberMasters", rf).Once().Return(test.nMasters, nil)
 				switch test.nMasters {
 				case 0:
@@ -254,27 +335,39 @@ func TestCheckAndHeal(t *testing.T) {
 					mrfc.On("GetRedisesMasterPod", rf).Once().Return(master, nil)
 					mrfc.On("GetRedisRevisionHash", master, rf).Once().Return("1", nil)
 					mrfh.On("SetRedisCustomConfig", master, rf).Once().Return(nil)
-					mrfc.On("GetSentinelsIPs", rf).Once().Return([]string{sentinel}, nil)
-					if test.sentinelMonitorOK {
+				}
+			}
+
+			if allowSentinels && !expErr && continueTests {
+				mrfc.On("GetSentinelsIPs", rf).Once().Return([]string{sentinel}, nil)
+				if test.sentinelMonitorOK {
+					if test.bootstrapping {
+						mrfc.On("CheckSentinelMonitor", sentinel, bootstrapMaster, bootstrapMasterPort).Once().Return(nil)
+					} else {
 						mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(nil)
+					}
+				} else {
+					if test.bootstrapping {
+						mrfc.On("CheckSentinelMonitor", sentinel, bootstrapMaster, bootstrapMasterPort).Once().Return(errors.New(""))
+						mrfh.On("NewSentinelMonitorWithPort", sentinel, bootstrapMaster, bootstrapMasterPort, rf).Once().Return(nil)
 					} else {
 						mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(errors.New(""))
 						mrfh.On("NewSentinelMonitor", sentinel, master, rf).Once().Return(nil)
 					}
-					if test.sentinelNumberInMemoryOK {
-						mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(nil)
-					} else {
-						mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(errors.New(""))
-						mrfh.On("RestoreSentinel", sentinel).Once().Return(nil)
-					}
-					if test.sentinelSlavesNumberInMemoryOK {
-						mrfc.On("CheckSentinelSlavesNumberInMemory", sentinel, rf).Once().Return(nil)
-					} else {
-						mrfc.On("CheckSentinelSlavesNumberInMemory", sentinel, rf).Once().Return(errors.New(""))
-						mrfh.On("RestoreSentinel", sentinel).Once().Return(nil)
-					}
-					mrfh.On("SetSentinelCustomConfig", sentinel, rf).Once().Return(nil)
 				}
+				if test.sentinelNumberInMemoryOK {
+					mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(nil)
+				} else {
+					mrfc.On("CheckSentinelNumberInMemory", sentinel, rf).Once().Return(errors.New(""))
+					mrfh.On("RestoreSentinel", sentinel).Once().Return(nil)
+				}
+				if test.sentinelSlavesNumberInMemoryOK {
+					mrfc.On("CheckSentinelSlavesNumberInMemory", sentinel, rf).Once().Return(nil)
+				} else {
+					mrfc.On("CheckSentinelSlavesNumberInMemory", sentinel, rf).Once().Return(errors.New(""))
+					mrfh.On("RestoreSentinel", sentinel).Once().Return(nil)
+				}
+				mrfh.On("SetSentinelCustomConfig", sentinel, rf).Once().Return(nil)
 			}
 
 			handler := rfOperator.NewRedisFailoverHandler(config, mrfs, mrfc, mrfh, mk, metrics.Dummy, log.Dummy)

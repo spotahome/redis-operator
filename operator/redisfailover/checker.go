@@ -147,14 +147,8 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 
-	redises, err := r.rfChecker.GetRedisesIPs(rf)
-	if err != nil {
+	if err := r.applyRedisCustomConfig(rf); err != nil {
 		return err
-	}
-	for _, rip := range redises {
-		if err := r.rfHealer.SetRedisCustomConfig(rip, rf); err != nil {
-			return err
-		}
 	}
 
 	err = r.UpdateRedisesPods(rf)
@@ -174,6 +168,66 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			}
 		}
 	}
+	return r.checkAndHealSentinels(rf, sentinels)
+}
+
+func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
+	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
+		return nil
+	}
+
+	err := r.UpdateRedisesPods(rf)
+	if err != nil {
+		return err
+	}
+
+	if err := r.applyRedisCustomConfig(rf); err != nil {
+		return err
+	}
+
+	bootstrapSettings := rf.Spec.BootstrapNode
+	if err := r.rfHealer.SetExternalMasterOnAll(bootstrapSettings.Host, bootstrapSettings.Port, rf); err != nil {
+		return err
+	}
+
+	if rf.SentinelsAllowed() {
+		if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
+			r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
+			return nil
+		}
+
+		sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
+		if err != nil {
+			return err
+		}
+		for _, sip := range sentinels {
+			if err := r.rfChecker.CheckSentinelMonitor(sip, bootstrapSettings.Host, bootstrapSettings.Port); err != nil {
+				r.logger.Debug("Sentinel is not monitoring the correct master")
+				if err := r.rfHealer.NewSentinelMonitorWithPort(sip, bootstrapSettings.Host, bootstrapSettings.Port, rf); err != nil {
+					return err
+				}
+			}
+		}
+		return r.checkAndHealSentinels(rf, sentinels)
+	}
+	return nil
+}
+
+func (r *RedisFailoverHandler) applyRedisCustomConfig(rf *redisfailoverv1.RedisFailover) error {
+	redises, err := r.rfChecker.GetRedisesIPs(rf)
+	if err != nil {
+		return err
+	}
+	for _, rip := range redises {
+		if err := r.rfHealer.SetRedisCustomConfig(rip, rf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFailover, sentinels []string) error {
 	for _, sip := range sentinels {
 		if err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
 			r.logger.Debug("Sentinel has more sentinel in memory than spected")
@@ -196,14 +250,4 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 	return nil
-}
-
-func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
-	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
-		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
-		return nil
-	}
-
-	bootstrapSettings := rf.Spec.BootstrapNode
-	return r.rfHealer.SetExternalMasterOnAll(bootstrapSettings.Host, bootstrapSettings.Port, rf)
 }
