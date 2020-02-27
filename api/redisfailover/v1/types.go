@@ -80,8 +80,9 @@ type AuthSettings struct {
 
 // BootstrapSettings contains settings about a potential bootstrap node
 type BootstrapSettings struct {
-	Host string `json:"host,omitempty"`
-	Port string `json:"port,omitempty"`
+	Host           string `json:"host,omitempty"`
+	Port           string `json:"port,omitempty"`
+	AllowSentinels bool   `json:"allowSentinels,omitempty"`
 }
 
 // RedisExporter defines the specification for the redis exporter
