@@ -1,0 +1,11 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  bootstrapNode:
+    host: "127.0.0.1"
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
