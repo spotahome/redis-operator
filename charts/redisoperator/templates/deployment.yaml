@@ -28,6 +28,8 @@ spec:
       - name: "{{ .Values.containerName }}"
         image: {{ include "image" . | quote }}
         imagePullPolicy: {{ .Values.pullPolicy }}
+        securityContext:
+{{ toYaml .Values.securityContext | indent 10 }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         ports:
