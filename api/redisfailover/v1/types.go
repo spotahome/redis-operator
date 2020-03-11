@@ -17,10 +17,11 @@ type RedisFailover struct {
 
 // RedisFailoverSpec represents a Redis failover spec
 type RedisFailoverSpec struct {
-	Redis          RedisSettings    `json:"redis,omitempty"`
-	Sentinel       SentinelSettings `json:"sentinel,omitempty"`
-	Auth           AuthSettings     `json:"auth,omitempty"`
-	LabelWhitelist []string         `json:"labelWhitelist,omitempty"`
+	Redis          RedisSettings      `json:"redis,omitempty"`
+	Sentinel       SentinelSettings   `json:"sentinel,omitempty"`
+	Auth           AuthSettings       `json:"auth,omitempty"`
+	LabelWhitelist []string           `json:"labelWhitelist,omitempty"`
+	BootstrapNode  *BootstrapSettings `json:"bootstrapNode,omitempty"`
 }
 
 // RedisCommandRename defines the specification of a "rename-command" configuration option
@@ -75,6 +76,13 @@ type SentinelSettings struct {
 // AuthSettings contains settings about auth
 type AuthSettings struct {
 	SecretPath string `json:"secretPath,omitempty"`
+}
+
+// BootstrapSettings contains settings about a potential bootstrap node
+type BootstrapSettings struct {
+	Host           string `json:"host,omitempty"`
+	Port           string `json:"port,omitempty"`
+	AllowSentinels bool   `json:"allowSentinels,omitempty"`
 }
 
 // RedisExporter defines the specification for the redis exporter

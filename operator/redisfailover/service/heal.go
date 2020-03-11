@@ -16,7 +16,9 @@ type RedisFailoverHeal interface {
 	MakeMaster(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetOldestAsMaster(rFailover *redisfailoverv1.RedisFailover) error
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1.RedisFailover) error
+	SetExternalMasterOnAll(masterIP string, masterPort string, rFailover *redisfailoverv1.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1.RedisFailover) error
+	NewSentinelMonitorWithPort(ip string, monitor string, port string, rFailover *redisfailoverv1.RedisFailover) error
 	RestoreSentinel(ip string) error
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
@@ -114,6 +116,29 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 	return nil
 }
 
+// SetExternalMasterOnAll puts all redis nodes as a slave of a given master outside of
+// the current RedisFailover instance
+func (r *RedisFailoverHealer) SetExternalMasterOnAll(masterIP, masterPort string, rf *redisfailoverv1.RedisFailover) error {
+	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
+	if err != nil {
+		return err
+	}
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return err
+	}
+
+	for _, pod := range ssp.Items {
+		r.logger.Debugf("Making pod %s slave of %s:%s", pod.Name, masterIP, masterPort)
+		if err := r.redisClient.MakeSlaveOfWithPort(pod.Status.PodIP, masterIP, masterPort, password); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 // NewSentinelMonitor changes the master that Sentinel has to monitor
 func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
@@ -125,6 +150,19 @@ func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *
 	}
 
 	return r.redisClient.MonitorRedis(ip, monitor, quorum, password)
+}
+
+// NewSentinelMonitorWithPort changes the master that Sentinel has to monitor by the provided IP and Port
+func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor string, monitorPort string, rf *redisfailoverv1.RedisFailover) error {
+	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
+	quorum := strconv.Itoa(int(getQuorum(rf)))
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return err
+	}
+
+	return r.redisClient.MonitorRedisWithPort(ip, monitor, monitorPort, quorum, password)
 }
 
 // RestoreSentinel clear the number of sentinels on memory

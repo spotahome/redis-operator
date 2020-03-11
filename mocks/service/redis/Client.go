@@ -52,7 +52,7 @@ func (_m *Client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 }
 
 // GetSentinelMonitor provides a mock function with given fields: ip
-func (_m *Client) GetSentinelMonitor(ip string) (string, error) {
+func (_m *Client) GetSentinelMonitor(ip string) (string, string, error) {
 	ret := _m.Called(ip)
 
 	var r0 string
@@ -62,14 +62,21 @@ func (_m *Client) GetSentinelMonitor(ip string) (string, error) {
 		r0 = ret.Get(0).(string)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
+	var r1 string
+	if rf, ok := ret.Get(1).(func(string) string); ok {
 		r1 = rf(ip)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(string) error); ok {
+		r2 = rf(ip)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetSlaveOf provides a mock function with given fields: ip, password
@@ -142,6 +149,20 @@ func (_m *Client) MakeSlaveOf(ip string, masterIP string, password string) error
 	return r0
 }
 
+// MakeSlaveOfWithPort provides a mock function with given fields: ip, masterIP, masterPort, password
+func (_m *Client) MakeSlaveOfWithPort(ip string, masterIP string, masterPort string, password string) error {
+	ret := _m.Called(ip, masterIP, masterPort, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
+		r0 = rf(ip, masterIP, masterPort, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // MonitorRedis provides a mock function with given fields: ip, monitor, quorum, password
 func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, password string) error {
 	ret := _m.Called(ip, monitor, quorum, password)
@@ -149,6 +170,20 @@ func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, passwor
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
 		r0 = rf(ip, monitor, quorum, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MonitorRedisWithPort provides a mock function with given fields: ip, monitor, port, quorum, password
+func (_m *Client) MonitorRedisWithPort(ip string, monitor string, port string, quorum string, password string) error {
+	ret := _m.Called(ip, monitor, port, quorum, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
+		r0 = rf(ip, monitor, port, quorum, password)
 	} else {
 		r0 = ret.Error(0)
 	}

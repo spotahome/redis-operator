@@ -31,7 +31,7 @@ func generateConfig() rfOperator.Config {
 	}
 }
 
-func generateRF(enableExporter bool) *redisfailoverv1.RedisFailover {
+func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisFailover {
 	return &redisfailoverv1.RedisFailover{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -47,22 +47,51 @@ func generateRF(enableExporter bool) *redisfailoverv1.RedisFailover {
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: int32(3),
 			},
+			BootstrapNode: generateRFBootstrappingNode(bootstrapping),
 		},
 	}
 }
 
+func generateRFBootstrappingNode(bootstrapping bool) *redisfailoverv1.BootstrapSettings {
+	if bootstrapping {
+		return &redisfailoverv1.BootstrapSettings{
+			Host: "127.0.0.1",
+			Port: "6379",
+		}
+	}
+	return nil
+}
+
 func TestEnsure(t *testing.T) {
 	tests := []struct {
-		name     string
-		exporter bool
+		name                        string
+		exporter                    bool
+		bootstrapping               bool
+		bootstrappingAllowSentinels bool
 	}{
 		{
-			name:     "Call everything, use exporter",
-			exporter: true,
+			name:                        "Call everything, use exporter",
+			exporter:                    true,
+			bootstrapping:               false,
+			bootstrappingAllowSentinels: false,
 		},
 		{
-			name:     "Call everything, don't use exporter",
-			exporter: false,
+			name:                        "Call everything, don't use exporter",
+			exporter:                    false,
+			bootstrapping:               false,
+			bootstrappingAllowSentinels: false,
+		},
+		{
+			name:                        "Only ensure Redis when bootstrapping",
+			exporter:                    false,
+			bootstrapping:               true,
+			bootstrappingAllowSentinels: false,
+		},
+		{
+			name:                        "call everything when bootstrapping allows sentinels",
+			exporter:                    false,
+			bootstrapping:               true,
+			bootstrappingAllowSentinels: true,
 		},
 	}
 
@@ -70,7 +99,10 @@ func TestEnsure(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			rf := generateRF(test.exporter)
+			rf := generateRF(test.exporter, test.bootstrapping)
+			if test.bootstrapping {
+				rf.Spec.BootstrapNode.AllowSentinels = test.bootstrappingAllowSentinels
+			}
 
 			config := generateConfig()
 			mk := &mK8SService.Services{}
@@ -82,13 +114,17 @@ func TestEnsure(t *testing.T) {
 			} else {
 				mrfs.On("EnsureNotPresentRedisService", rf).Once().Return(nil)
 			}
-			mrfs.On("EnsureSentinelService", rf, mock.Anything, mock.Anything).Once().Return(nil)
-			mrfs.On("EnsureSentinelConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
+
+			if !test.bootstrapping || test.bootstrappingAllowSentinels {
+				mrfs.On("EnsureSentinelService", rf, mock.Anything, mock.Anything).Once().Return(nil)
+				mrfs.On("EnsureSentinelConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
+				mrfs.On("EnsureSentinelDeployment", rf, mock.Anything, mock.Anything).Once().Return(nil)
+			}
+
 			mrfs.On("EnsureRedisConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			mrfs.On("EnsureRedisShutdownConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			mrfs.On("EnsureRedisReadinessConfigMap", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			mrfs.On("EnsureRedisStatefulset", rf, mock.Anything, mock.Anything).Once().Return(nil)
-			mrfs.On("EnsureSentinelDeployment", rf, mock.Anything, mock.Anything).Once().Return(nil)
 
 			// Create the Kops client and call the valid logic.
 			handler := rfOperator.NewRedisFailoverHandler(config, mrfs, mrfc, mrfh, mk, metrics.Dummy, log.Dummy)

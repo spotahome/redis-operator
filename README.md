@@ -178,6 +178,32 @@ spec:
 ```
 You need to set secretPath as the secret name which is created before.
 
+### Bootstrapping from pre-existing Redis Instance(s)
+If you are wanting to migrate off of a pre-existing Redis instance, you can provide a `bootstrapNode` to your `RedisFailover` resource spec.
+
+This `bootstrapNode` can be configured as follows:
+|       Key      | Type         | Description                                                                                                                                                                               | Example File                                                                                 |
+|:--------------:|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| host           | **required** | The IP of the target Redis address or the ClusterIP of a pre-existing Kubernetes Service targeting Redis pods                                                                             | [bootstrapping.yaml](example/redisfailover/bootstrapping.yaml)                               |
+| port           | _optional_   | The Port that the target Redis address is listening to. Defaults to `6379`.                                                                                                               | [bootstrapping-with-port.yaml](example/redisfailover/bootstrapping-with-port.yaml)           |
+| allowSentinels | _optional_   | Allow the Operator to also create the specified Sentinel resources and point them to the target Node/Port. By default, the Sentinel resources will **not** be created when bootstrapping. | [bootstrapping-with-sentinels.yaml](example/redisfailover/bootstrapping-with-sentinels.yaml) |
+
+#### What is Bootstrapping?
+When a `bootstrapNode` is provided, the Operator will always set all of the defined Redis instances to replicate from the provided `bootstrapNode` host value.
+This allows for defining a `RedisFailover` that replicates from an existing Redis instance to ease cutover from one instance to another.
+
+**Note: Redis instance will always be configured with `replica-priority 0`. This means that these Redis instances can _never_ be promoted to a `master`.**
+
+Depending on the configuration provided, the Operator will launch the `RedisFailover` in two bootstrapping states: without sentinels and with sentinels.
+
+#### Default Bootstrapping Mode (Without Sentinels)
+By default, if the `RedisFailover` resource defines a valid `bootstrapNode`, **only the redis instances will be created**.
+This allows for ease of bootstrapping from an existing `RedisFailover` instance without the Sentinels intermingling with each other.
+
+#### Bootstrapping With Sentinels
+When `allowSentinels` is provided, the Operator will also create the defined Sentinel resources. These sentinels will be configured to point to the provided
+`bootstrapNode` as their monitored master.
+
 ## Cleanup
 
 ### Operator and CRD

@@ -18,7 +18,10 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		return err
 	}
 
-	masterIP, err := r.rfChecker.GetMasterIP(rf)
+	masterIP := ""
+	if !rf.Bootstrapping() {
+		masterIP, _ = r.rfChecker.GetMasterIP(rf)
+	}
 	// No perform updates when nodes are syncing, still not connected, etc.
 	for _, rp := range redises {
 		if rp != masterIP {
@@ -55,19 +58,30 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		}
 	}
 
-	// Update stale pod with role master
-	master, err := r.rfChecker.GetRedisesMasterPod(rf)
+	if !rf.Bootstrapping() {
+		// Update stale pod with role master
+		master, err := r.rfChecker.GetRedisesMasterPod(rf)
+		if err != nil {
+			return err
+		}
 
-	masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
-	if masterRevision != ssUR {
-		r.rfHealer.DeletePod(master, rf)
-		return nil
+		masterRevision, err := r.rfChecker.GetRedisRevisionHash(master, rf)
+		if masterRevision != ssUR {
+			r.rfHealer.DeletePod(master, rf)
+			return nil
+		}
 	}
 
 	return nil
 }
 
+// CheckAndHeal runs verifcation checks to ensure the RedisFailover is in an expected and healthy state.
+// If the checks do not match up to expectations, an attempt will be made to "heal" the RedisFailover into a healthy state.
 func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) error {
+	if rf.Bootstrapping() {
+		return r.checkAndHealBootstrapMode(rf)
+	}
+
 	// Number of redis is equal as the set on the RF spec
 	// Number of sentinel is equal as the set on the RF spec
 	// Check only one master
@@ -133,14 +147,8 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 
-	redises, err := r.rfChecker.GetRedisesIPs(rf)
-	if err != nil {
+	if err := r.applyRedisCustomConfig(rf); err != nil {
 		return err
-	}
-	for _, rip := range redises {
-		if err := r.rfHealer.SetRedisCustomConfig(rip, rf); err != nil {
-			return err
-		}
 	}
 
 	err = r.UpdateRedisesPods(rf)
@@ -160,6 +168,66 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			}
 		}
 	}
+	return r.checkAndHealSentinels(rf, sentinels)
+}
+
+func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
+	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
+		return nil
+	}
+
+	err := r.UpdateRedisesPods(rf)
+	if err != nil {
+		return err
+	}
+
+	if err := r.applyRedisCustomConfig(rf); err != nil {
+		return err
+	}
+
+	bootstrapSettings := rf.Spec.BootstrapNode
+	if err := r.rfHealer.SetExternalMasterOnAll(bootstrapSettings.Host, bootstrapSettings.Port, rf); err != nil {
+		return err
+	}
+
+	if rf.SentinelsAllowed() {
+		if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
+			r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
+			return nil
+		}
+
+		sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
+		if err != nil {
+			return err
+		}
+		for _, sip := range sentinels {
+			if err := r.rfChecker.CheckSentinelMonitor(sip, bootstrapSettings.Host, bootstrapSettings.Port); err != nil {
+				r.logger.Debug("Sentinel is not monitoring the correct master")
+				if err := r.rfHealer.NewSentinelMonitorWithPort(sip, bootstrapSettings.Host, bootstrapSettings.Port, rf); err != nil {
+					return err
+				}
+			}
+		}
+		return r.checkAndHealSentinels(rf, sentinels)
+	}
+	return nil
+}
+
+func (r *RedisFailoverHandler) applyRedisCustomConfig(rf *redisfailoverv1.RedisFailover) error {
+	redises, err := r.rfChecker.GetRedisesIPs(rf)
+	if err != nil {
+		return err
+	}
+	for _, rip := range redises {
+		if err := r.rfHealer.SetRedisCustomConfig(rip, rf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFailover, sentinels []string) error {
 	for _, sip := range sentinels {
 		if err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
 			r.logger.Debug("Sentinel has more sentinel in memory than spected")

@@ -355,7 +355,7 @@ func TestCheckSentinelMonitorGetSentinelMonitorError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("", errors.New(""))
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("", "", errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -368,7 +368,7 @@ func TestCheckSentinelMonitorMismatch(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("2.2.2.2", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("2.2.2.2", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -381,12 +381,51 @@ func TestCheckSentinelMonitor(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
 	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1")
 	assert.NoError(err)
+}
+
+func TestCheckSentinelMonitorWithPort(t *testing.T) {
+	assert := assert.New(t)
+
+	ms := &mK8SService.Services{}
+	mr := &mRedisService.Client{}
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+
+	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1", "6379")
+	assert.NoError(err)
+}
+
+func TestCheckSentinelMonitorWithPortMismatch(t *testing.T) {
+	assert := assert.New(t)
+
+	ms := &mK8SService.Services{}
+	mr := &mRedisService.Client{}
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+
+	err := checker.CheckSentinelMonitor("0.0.0.0", "0.0.0.0", "6379")
+	assert.Error(err)
+}
+
+func TestCheckSentinelMonitorWithPortIPMismatch(t *testing.T) {
+	assert := assert.New(t)
+
+	ms := &mK8SService.Services{}
+	mr := &mRedisService.Client{}
+	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+
+	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1", "6380")
+	assert.Error(err)
 }
 
 func TestGetMasterIPGetStatefulSetPodsError(t *testing.T) {
