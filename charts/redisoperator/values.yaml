@@ -3,6 +3,10 @@ tag: latest
 pullPolicy: Always
 containerName: redisoperator
 podAnnotations: {}
+securityContext:
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
 resources:
   requests:
     cpu: 10m
