@@ -13,3 +13,9 @@ spec:
     exporter: 
       enabled: true
       image: oliver006/redis_exporter:v1.3.5-alpine
+      args:
+        - --web.telemetry-path
+        - /metrics
+      env:
+        - name: REDIS_EXPORTER_LOG_FORMAT
+          value: txt

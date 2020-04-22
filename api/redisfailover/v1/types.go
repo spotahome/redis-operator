@@ -90,6 +90,8 @@ type RedisExporter struct {
 	Enabled         bool              `json:"enabled,omitempty"`
 	Image           string            `json:"image,omitempty"`
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	Args            []string          `json:"args,omitempty"`
+	Env             []corev1.EnvVar   `json:"env,omitempty"`
 }
 
 // SentinelExporter defines the specification for the sentinel exporter
@@ -97,6 +99,8 @@ type SentinelExporter struct {
 	Enabled         bool              `json:"enabled,omitempty"`
 	Image           string            `json:"image,omitempty"`
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	Args            []string          `json:"args,omitempty"`
+	Env             []corev1.EnvVar   `json:"env,omitempty"`
 }
 
 // RedisStorage defines the structure used to store the Redis Data
