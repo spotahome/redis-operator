@@ -105,7 +105,7 @@ If you need the containers to run as a specific user (or provide any other PodSe
 
 ### Custom command
 
-By default, redis and sentinel will be called with de basic command, giving the configuration file:
+By default, redis and sentinel will be called with the basic command, giving the configuration file:
 
 - Redis: `redis-server /redis/redis.conf`
 - Sentinel: `redis-server /redis/sentinel.conf --sentinel`
