@@ -51,6 +51,7 @@ type RedisSettings struct {
 	ServiceAnnotations   map[string]string             `json:"serviceAnnotations,omitempty"`
 	HostNetwork          bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy            corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
+	PriorityClassName    string                        `json:"priorityClassName,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -71,6 +72,7 @@ type SentinelSettings struct {
 	Exporter           SentinelExporter              `json:"exporter,omitempty"`
 	HostNetwork        bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy          corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
+	PriorityClassName  string                        `json:"priorityClassName,omitempty"`
 }
 
 // AuthSettings contains settings about auth
