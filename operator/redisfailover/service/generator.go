@@ -273,6 +273,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					HostNetwork:      rf.Spec.Redis.HostNetwork,
 					DNSPolicy:        getDnsPolicy(rf.Spec.Redis.DNSPolicy),
 					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
+					PriorityClassName: rf.Spec.Redis.PriorityClassName,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -391,6 +392,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					HostNetwork:      rf.Spec.Sentinel.HostNetwork,
 					DNSPolicy:        getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
 					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
+					PriorityClassName: rf.Spec.Sentinel.PriorityClassName,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
