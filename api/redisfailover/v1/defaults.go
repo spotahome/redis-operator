@@ -7,6 +7,7 @@ const (
 	defaultExporterImage         = "oliver006/redis_exporter:v1.3.5-alpine"
 	defaultImage                 = "redis:5.0-alpine"
 	defaultRedisPort             = "6379"
+	defaultSysctlImage           = "docker.io/bitnami/minideb:stretch"
 )
 
 var (

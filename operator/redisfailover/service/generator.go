@@ -243,6 +243,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 
+	initContainers := getRedisInitContainers(rf.Spec.Redis)
+
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -274,6 +276,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					DNSPolicy:        getDnsPolicy(rf.Spec.Redis.DNSPolicy),
 					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
 					PriorityClassName: rf.Spec.Redis.PriorityClassName,
+					InitContainers: initContainers,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -356,6 +359,44 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	return ss
+}
+
+func getRedisInitContainers(rf redisfailoverv1.RedisSettings) []corev1.Container {
+	containers := []corev1.Container{}
+
+	if rf.SysctlInit.Enabled {
+		sysctlContainer := createRedisSysctlInitContainer(rf.SysctlInit)
+		containers = append(containers, sysctlContainer)
+	}
+
+	return containers
+}
+
+func createRedisSysctlInitContainer(sysctl *redisfailoverv1.RedisSysctlInit) corev1.Container {
+	sysctlRootUser := int64(0)
+	sysctlPrivileged := true
+
+	container := corev1.Container{
+		Name: "init-sysctl",
+		Image: sysctl.Image,
+		ImagePullPolicy: pullPolicy(sysctl.ImagePullPolicy),
+		Command: sysctl.Command,
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser: &sysctlRootUser,
+			Privileged: &sysctlPrivileged,
+		},
+	}
+
+	if sysctl.MountHostSys {
+		container.VolumeMounts = []corev1.VolumeMount{
+			{
+				Name: "host-sys",
+				MountPath: "/host-sys",
+			},
+		}
+	}
+
+	return container
 }
 
 func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1.Deployment {
@@ -727,7 +768,29 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 		volumes = append(volumes, *dataVolume)
 	}
 
+	hostSysVolume := getRedisSysctlHostVolume(rf.Spec.Redis.SysctlInit)
+	if hostSysVolume != nil {
+		volumes = append(volumes, *hostSysVolume)
+	}
+
 	return volumes
+}
+
+func getRedisSysctlHostVolume(sysctl *redisfailoverv1.RedisSysctlInit) *corev1.Volume {
+	if !sysctl.Enabled {
+		return nil
+	}
+	if !sysctl.MountHostSys {
+		return nil
+	}
+	return &corev1.Volume{
+		Name: "host-sys",
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
+				Path: "/sys",
+			},
+		},
+	}
 }
 
 func getRedisDataVolume(rf *redisfailoverv1.RedisFailover) *corev1.Volume {

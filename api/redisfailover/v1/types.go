@@ -52,6 +52,8 @@ type RedisSettings struct {
 	HostNetwork          bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy            corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName    string                        `json:"priorityClassName,omitempty"`
+	SysctlInit           *RedisSysctlInit              `json:"sysctlInit,omitempty"`
+	Env                  []corev1.EnvVar               `json:"env,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -106,6 +108,15 @@ type RedisStorage struct {
 	KeepAfterDeletion     bool                          `json:"keepAfterDeletion,omitempty"`
 	EmptyDir              *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty"`
 	PersistentVolumeClaim *corev1.PersistentVolumeClaim `json:"persistentVolumeClaim,omitempty"`
+}
+
+// RedisSysctlInit defines the specification of an optional init container to update kernel settings
+type RedisSysctlInit struct {
+	Enabled         bool              `json:"enabled,omitempty"`
+	Image           string            `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	MountHostSys    bool              `json:"mountHostSys,omitempty"`
+	Command         []string          `json:"command,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
