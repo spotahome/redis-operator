@@ -291,6 +291,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							},
 							VolumeMounts: volumeMounts,
 							Command:      redisCommand,
+							Env:          rf.Spec.Redis.Env,
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
@@ -364,7 +365,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 func getRedisInitContainers(rf redisfailoverv1.RedisSettings) []corev1.Container {
 	containers := []corev1.Container{}
 
-	if rf.SysctlInit.Enabled {
+	if rf.SysctlInit != nil && rf.SysctlInit.Enabled {
 		sysctlContainer := createRedisSysctlInitContainer(rf.SysctlInit)
 		containers = append(containers, sysctlContainer)
 	}
@@ -777,6 +778,9 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 }
 
 func getRedisSysctlHostVolume(sysctl *redisfailoverv1.RedisSysctlInit) *corev1.Volume {
+	if sysctl == nil {
+		return nil
+	}
 	if !sysctl.Enabled {
 		return nil
 	}
