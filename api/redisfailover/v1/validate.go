@@ -57,5 +57,11 @@ func (r *RedisFailover) Validate() error {
 		r.Spec.Sentinel.CustomConfig = defaultSentinelCustomConfig
 	}
 
+	if r.Spec.Redis.SysctlInit != nil {
+		if r.Spec.Redis.SysctlInit.Image == "" {
+			r.Spec.Redis.SysctlInit.Image = defaultSysctlImage
+		}
+	}
+
 	return nil
 }
