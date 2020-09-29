@@ -119,7 +119,7 @@ func (c *FakeRedisFailovers) DeleteCollection(options *v1.DeleteOptions, listOpt
 // Patch applies the patch and returns the patched redisFailover.
 func (c *FakeRedisFailovers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *redisfailover_v1.RedisFailover, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(redisfailoversResource, c.ns, name, data, subresources...), &redisfailover_v1.RedisFailover{})
+		Invokes(testing.NewPatchSubresourceAction(redisfailoversResource, c.ns, name, pt, data, subresources...), &redisfailover_v1.RedisFailover{})
 
 	if obj == nil {
 		return nil, err

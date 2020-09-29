@@ -581,6 +581,61 @@ func TestRedisStatefulSetCommands(t *testing.T) {
 	}
 }
 
+func TestRedisStatefulSetEnv(t *testing.T) {
+	tests := []struct {
+		name             string
+		givenEnv         []corev1.EnvVar
+		expectedEnv      []corev1.EnvVar
+	}{
+		{
+			name:         "Given env should be used in redis container",
+			givenEnv: []corev1.EnvVar{
+				{
+					Name: "MY_POD_IP",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "status.podIP",
+						},
+					},
+				},
+			},
+			expectedEnv: []corev1.EnvVar{
+				{
+					Name: "MY_POD_IP",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "status.podIP",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RefisFailover
+		rf := generateRF()
+		rf.Spec.Redis.Env = test.givenEnv
+
+		gotEnv := []corev1.EnvVar{}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			gotEnv = ss.Spec.Template.Spec.Containers[0].Env
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedEnv, gotEnv)
+		assert.NoError(err)
+	}
+}
+
 func TestSentinelDeploymentCommands(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -1340,6 +1395,102 @@ func TestRedisImagePullPolicy(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(string(test.expectedPolicy), string(policy))
 		assert.Equal(string(test.expectedExporterPolicy), string(exporterPolicy))
+	}
+}
+
+func TestRedisStatefulSetInitContainers(t *testing.T) {
+	sysUser := int64(0)
+	sysPriv := true
+
+	tests := []struct {
+		name                   string
+		sysctlEnabled          bool
+		sysctlCommand          []string
+		sysctlMountHostSys     bool
+		expectedInitContainers []corev1.Container
+		expectedVolume         *corev1.Volume
+	}{
+		{
+			name:                   "Sysctl disabled",
+			sysctlEnabled:          false,
+			sysctlCommand:          []string{},
+			sysctlMountHostSys:     false,
+			expectedInitContainers: []corev1.Container{},
+			expectedVolume:         nil,
+		},
+		{
+			name:                   "Sysctl enabled",
+			sysctlEnabled:          true,
+			sysctlCommand:          []string{
+				"/bin/sh",
+				"-c",
+				"ulimit -n 65536",
+			},
+			sysctlMountHostSys:     true,
+			expectedInitContainers: []corev1.Container{
+				{
+					Name: "init-sysctl",
+					Image: "init-img",
+					ImagePullPolicy: corev1.PullAlways,
+					Command: []string{
+						"/bin/sh",
+						"-c",
+						"ulimit -n 65536",
+					},
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser: &sysUser,
+						Privileged: &sysPriv,
+					},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name: "host-sys",
+							MountPath: "/host-sys",
+						},
+					},
+				},
+			},
+			expectedVolume: &corev1.Volume{
+				Name: "host-sys",
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: "/sys",
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		rf := generateRF()
+		rf.Spec.Redis.SysctlInit = &redisfailoverv1.RedisSysctlInit{
+			Enabled: test.sysctlEnabled,
+			Image: "init-img",
+			MountHostSys: test.sysctlMountHostSys,
+			Command: test.sysctlCommand,
+		}
+
+		var gotInitContainers []corev1.Container
+		var gotVolume *corev1.Volume
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			gotInitContainers = ss.Spec.Template.Spec.InitContainers
+			gotVolume = &(ss.Spec.Template.Spec.Volumes[len(ss.Spec.Template.Spec.Volumes) - 1])
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedInitContainers, gotInitContainers)
+
+		if test.expectedVolume != nil {
+			assert.Equal(test.expectedVolume, gotVolume)
+		}
 	}
 }
 
