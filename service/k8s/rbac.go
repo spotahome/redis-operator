@@ -14,7 +14,7 @@ type RBAC interface {
 	GetClusterRole(name string) (*rbacv1.ClusterRole, error)
 	GetRole(namespace, name string) (*rbacv1.Role, error)
 	GetRoleBinding(namespace, name string) (*rbacv1.RoleBinding, error)
-	CreateRole(namespace string, tole *rbacv1.Role) error
+	CreateRole(namespace string, role *rbacv1.Role) error
 	UpdateRole(namespace string, role *rbacv1.Role) error
 	CreateOrUpdateRole(namespace string, binding *rbacv1.Role) error
 	CreateRoleBinding(namespace string, binding *rbacv1.RoleBinding) error
