@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 
+	"bytes"
+
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,15 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"bytes"
+
+	"text/template"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
-	"text/template"
 )
 
 const (
-	redisConfigurationVolumeName         = "redis-config"
+	redisConfigurationVolumeName = "redis-config"
 	// Template used to build the Redis configuration
 	redisConfigTemplate = `slaveof 127.0.0.1 6379
 tcp-keepalive 60
@@ -163,17 +165,24 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels ma
 
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	shutdownContent := `master=""
-while [ "${master}" = "" ]; do
+retries=0
+while [ "${master}" = "" ] && [ ${retries} -lt 3 ]; do
+	let "retries++"
 	master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
 	sleep 3
 done
 redis-cli SAVE
 if [[ $master ==  $(hostname -i) ]]; then
 	sentinel_response=""
-  while [ "$sentinel_response" != "OK" ]; do
+	retries=0
+  while [ "${sentinel_response}" != "OK" ] && [ ${retries} -lt 3 ]; do
+		let "retries++"
 		sentinel_response=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster)
 		sleep 3
   done
+	if [ "${sentinel_response}" == "" ]; then
+		exit 1
+	fi
 fi`
 
 	return &corev1.ConfigMap{
