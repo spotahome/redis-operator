@@ -162,10 +162,25 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels ma
 	namespace := rf.Namespace
 
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
-	shutdownContent := `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+	shutdownContent := `master=""
+retries=0
+while [ "${master}" = "" ] && [ ${retries} -lt 3 ]; do
+	let "retries++"
+	master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
+	sleep 3
+done
 redis-cli SAVE
 if [[ $master ==  $(hostname -i) ]]; then
-  redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
+	sentinel_response=""
+	retries=0
+  while [ "${sentinel_response}" != "OK" ] && [ ${retries} -lt 3 ]; do
+		let "retries++"
+		sentinel_response=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster)
+		sleep 3
+  done
+	if [ "${sentinel_response}" == "" ]; then
+		exit 1
+	fi
 fi`
 
 	return &corev1.ConfigMap{
