@@ -729,6 +729,90 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 	}
 }
 
+func TestRedisStatefulSetServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name                       string
+		givenServiceAccountName    string
+		expectedServiceAccountName string
+	}{
+		{
+			name:                       "ServiceAccountName was not defined",
+			givenServiceAccountName:    "",
+			expectedServiceAccountName: "",
+		},
+		{
+			name:                       "ServiceAccountName is defined",
+			givenServiceAccountName:    "redis-sa",
+			expectedServiceAccountName: "redis-sa",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required Service Account
+		rf := generateRF()
+		rf.Spec.Redis.ServiceAccountName = test.givenServiceAccountName
+
+		gotServiceAccountName := ""
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			gotServiceAccountName = ss.Spec.Template.Spec.ServiceAccountName
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedServiceAccountName, gotServiceAccountName)
+		assert.NoError(err)
+	}
+}
+
+func TestSentinelDeploymentServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name                       string
+		givenServiceAccountName    string
+		expectedServiceAccountName string
+	}{
+		{
+			name:                       "ServiceAccountName was not defined",
+			givenServiceAccountName:    "",
+			expectedServiceAccountName: "",
+		},
+		{
+			name:                       "ServiceAccountName is defined",
+			givenServiceAccountName:    "sentinel-sa",
+			expectedServiceAccountName: "sentinel-sa",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required Service Account
+		rf := generateRF()
+		rf.Spec.Sentinel.ServiceAccountName = test.givenServiceAccountName
+
+		gotServiceAccountName := ""
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			gotServiceAccountName = d.Spec.Template.Spec.ServiceAccountName
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedServiceAccountName, gotServiceAccountName)
+		assert.NoError(err)
+	}
+}
+
 func TestSentinelService(t *testing.T) {
 	tests := []struct {
 		name            string

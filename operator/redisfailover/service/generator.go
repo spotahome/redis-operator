@@ -396,7 +396,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					DNSPolicy:          getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
 					ImagePullSecrets:   rf.Spec.Sentinel.ImagePullSecrets,
 					PriorityClassName:  rf.Spec.Sentinel.PriorityClassName,
-					ServiceAccountName: rf.Spec.Redis.ServiceAccountName,
+					ServiceAccountName: rf.Spec.Sentinel.ServiceAccountName,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
