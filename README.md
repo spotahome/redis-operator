@@ -112,17 +112,16 @@ By default, redis and sentinel will be called with the basic command, giving the
 
 If necessary, this command can be changed with the `command` option inside redis/sentinel spec. An example can be found in the [custom command example file](example/redisfailover/custom-command.yaml).
 
-### Custom Pod Annotations
-By default, no pod annotations will be applied to Redis nor Sentinel pods.
-
-In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
-
 ### Custom Priority Class
 In order to use a custom Kubernetes [Priority Class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass) for Redis and/or Sentinel pods, you can set the `priorityClassName` in the redis/sentinel spec, this attribute has no default and depends on the specific cluster configuration. **Note:** the operator doesn't create the referenced `Priority Class` resource.
 
 ### Custom Service Account
 In order to use a custom Kubernetes [Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) for Redis and/or Sentinel pods, you can set the `serviceAccountName` in the redis/sentinel spec, if not specified the `default` Service Account will be used. **Note:** the operator doesn't create the referenced `Service Account` resource.
 
+### Custom Pod Annotations
+By default, no pod annotations will be applied to Redis nor Sentinel pods.
+
+In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 ### Custom Service Annotations
 By default, no service annotations will be applied to the Redis nor Sentinel services.
 
