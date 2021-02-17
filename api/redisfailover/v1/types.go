@@ -52,6 +52,7 @@ type RedisSettings struct {
 	HostNetwork          bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy            corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName    string                        `json:"priorityClassName,omitempty"`
+	ServiceAccountName   string                        `json:"serviceAccountName,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -73,6 +74,7 @@ type SentinelSettings struct {
 	HostNetwork        bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy          corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName  string                        `json:"priorityClassName,omitempty"`
+	ServiceAccountName string                        `json:"serviceAccountName,omitempty"`
 }
 
 // AuthSettings contains settings about auth
