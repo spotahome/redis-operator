@@ -4,12 +4,21 @@ import (
 	"errors"
 	"sort"
 	"strconv"
+	"fmt"
+	"encoding/json"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
+    "k8s.io/apimachinery/pkg/types"
 )
+//RedisFailoverHeal defines struct to update the labels of the Role of a given POD as master or slave
+type patchStringValue struct {
+    Op    string `json:"op"`
+    Path  string `json:"path"`
+    Value string `json:"value"`
+}
 
 // RedisFailoverHeal defines the interface able to fix the problems on the redis failovers
 type RedisFailoverHeal interface {
@@ -46,7 +55,6 @@ func (r *RedisFailoverHealer) MakeMaster(ip string, rf *redisfailoverv1.RedisFai
 	if err != nil {
 		return err
 	}
-
 	return r.redisClient.MakeMaster(ip, password)
 }
 
@@ -75,11 +83,43 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 		if newMasterIP == "" {
 			newMasterIP = pod.Status.PodIP
 			r.logger.Debugf("New master is %s with ip %s", pod.Name, newMasterIP)
+			// Assigns role label of Pod as Master
+			var updateErr error
+            kubeClient :=  r.k8sService.GetCoreV1()
+            api := kubeClient.CoreV1()
+		    payload := []patchStringValue{{
+            Op:    "replace",
+            Path:  "/metadata/labels/role",
+            Value: "master",
+            }}
+            payloadBytes, _ := json.Marshal(payload)
+             _, updateErr = api.Pods(pod.GetNamespace()).Patch(pod.GetName(), types.JSONPatchType, payloadBytes)
+            if updateErr == nil {
+            fmt.Println(fmt.Sprintf("Pod %s labelled  Master successfully.", pod.GetName()))
+             } else {
+            fmt.Println(updateErr)
+            }
 			if err := r.redisClient.MakeMaster(newMasterIP, password); err != nil {
 				return err
 			}
 		} else {
 			r.logger.Debugf("Making pod %s slave of %s", pod.Name, newMasterIP)
+			// Assigns role label of Pod as Slave
+			var updateErr error
+            kubeClient :=  r.k8sService.GetCoreV1()
+            api := kubeClient.CoreV1()
+		    payload := []patchStringValue{{
+            Op:    "replace",
+            Path:  "/metadata/labels/role",
+            Value: "slave",
+            }}
+            payloadBytes, _ := json.Marshal(payload)
+             _, updateErr = api.Pods(pod.GetNamespace()).Patch(pod.GetName(), types.JSONPatchType, payloadBytes)
+            if updateErr == nil {
+            fmt.Println(fmt.Sprintf("Pod %s labelled  Slave successfully.", pod.GetName()))
+             } else {
+            fmt.Println(updateErr)
+            }
 			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, newMasterIP, password); err != nil {
 				return err
 			}
@@ -106,11 +146,43 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 			if err := r.redisClient.MakeMaster(masterIP, password); err != nil {
 				return err
 			}
+			// Assigns role label of Pod as Slave
+			var updateErr error
+            kubeClient :=  r.k8sService.GetCoreV1()
+            api := kubeClient.CoreV1()
+		    payload := []patchStringValue{{
+            Op:    "replace",
+            Path:  "/metadata/labels/role",
+            Value: "master",
+            }}
+            payloadBytes, _ := json.Marshal(payload)
+             _, updateErr = api.Pods(pod.GetNamespace()).Patch(pod.GetName(), types.JSONPatchType, payloadBytes)
+            if updateErr == nil {
+            fmt.Println(fmt.Sprintf("Pod %s labelled  Master successfully.", pod.GetName()))
+             } else {
+            fmt.Println(updateErr)
+            }
 		} else {
 			r.logger.Debugf("Making pod %s slave of %s", pod.Name, masterIP)
 			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, masterIP, password); err != nil {
 				return err
 			}
+			// Assigns role label of Pod as Slave
+			var updateErr error
+            kubeClient :=  r.k8sService.GetCoreV1()
+            api := kubeClient.CoreV1()
+		    payload := []patchStringValue{{
+            Op:    "replace",
+            Path:  "/metadata/labels/role",
+            Value: "slave",
+            }}
+            payloadBytes, _ := json.Marshal(payload)
+             _, updateErr = api.Pods(pod.GetNamespace()).Patch(pod.GetName(), types.JSONPatchType, payloadBytes)
+            if updateErr == nil {
+            fmt.Println(fmt.Sprintf("Pod %s labelled  Slave successfully.", pod.GetName()))
+             } else {
+            fmt.Println(updateErr)
+            }
 		}
 	}
 	return nil
