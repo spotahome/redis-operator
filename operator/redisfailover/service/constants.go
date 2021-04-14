@@ -9,6 +9,7 @@ const (
 const (
 	exporterPort                  = 9121
 	sentinelExporterPort          = 9355
+	SideCarPort                   = 80
 	exporterPortName              = "http-metrics"
 	exporterContainerName         = "redis-exporter"
 	sentinelExporterContainerName = "sentinel-exporter"

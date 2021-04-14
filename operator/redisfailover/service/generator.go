@@ -340,6 +340,11 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		exporter := createRedisExporterContainer(rf)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
 	}
+	//Creates each container from the list of sidecar containers mentioned in the manifest file
+	for _,sidecar := range rf.Spec.Redis.SideCar {
+		SideCar := createRedisSideCarContainer(rf,&sidecar)
+		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, SideCar)
+    }
 
 	if rf.Spec.Auth.SecretPath != "" {
 		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
@@ -582,6 +587,63 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 	return container
 }
 
+func createRedisSideCarContainer(rf *redisfailoverv1.RedisFailover, sidecar *redisfailoverv1.RedisSideCar) corev1.Container {
+	var port int32; //This Port variable is used to retrieve the values of the `Port` field specified in the manifest file
+	if(sidecar.Port == 0) { // if the Port field is not set in the manifest then it retrieves the default value from `constants.go` file
+		port = SideCarPort;
+	} else {
+		port = sidecar.Port;
+	}
+	container := corev1.Container{
+		Name:            sidecar.Name,
+		Image:           sidecar.Image,
+		ImagePullPolicy: pullPolicy(sidecar.ImagePullPolicy),
+		Command:         sidecar.Command,
+		Env: []corev1.EnvVar{
+			{
+				Name: "REDIS_ALIAS",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+		},
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          sidecar.Name,
+				ContainerPort: port,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+			},
+		},
+	}
+
+	if rf.Spec.Auth.SecretPath != "" {
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
+
+	}
+	return container
+}
 func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
 	container := corev1.Container{
 		Name:            sentinelExporterContainerName,
@@ -773,6 +835,7 @@ func getRedisCommand(rf *redisfailoverv1.RedisFailover) []string {
 		fmt.Sprintf("/redis/%s", redisConfigFileName),
 	}
 }
+
 
 func getSentinelCommand(rf *redisfailoverv1.RedisFailover) []string {
 	if len(rf.Spec.Sentinel.Command) > 0 {

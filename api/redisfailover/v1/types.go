@@ -42,6 +42,7 @@ type RedisSettings struct {
 	ShutdownConfigMap    string                        `json:"shutdownConfigMap,omitempty"`
 	Storage              RedisStorage                  `json:"storage,omitempty"`
 	Exporter             RedisExporter                 `json:"exporter,omitempty"`
+	SideCar              []RedisSideCar                 `json:"sidecar,omitempty"`
 	Affinity             *corev1.Affinity              `json:"affinity,omitempty"`
 	SecurityContext      *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
 	ImagePullSecrets     []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
@@ -94,6 +95,14 @@ type RedisExporter struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
+// RedisSideCar defines the specification for the redis SideCar
+type RedisSideCar struct {
+    Name            string            `json:"name"`
+	Image           string            `json:"image,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+ 	Command         []string          `json:"command,omitempty"`
+ 	Port            int32             `json:"port,omitempty"`
+}
 // SentinelExporter defines the specification for the sentinel exporter
 type SentinelExporter struct {
 	Enabled         bool              `json:"enabled,omitempty"`
