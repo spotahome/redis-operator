@@ -22,6 +22,7 @@ type StatefulSet interface {
 	CreateOrUpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error
 	DeleteStatefulSet(namespace string, name string) error
 	ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error)
+	GetCoreV1() (kubernetes.Interface)
 }
 
 // StatefulSetService is the service account service implementation using API calls to kubernetes.
@@ -110,4 +111,9 @@ func (s *StatefulSetService) DeleteStatefulSet(namespace, name string) error {
 // ListStatefulSets will retrieve a list of statefulset in the given namespace
 func (s *StatefulSetService) ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
 	return s.kubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+}
+
+//Returns the kubernetes client interface
+func (s *StatefulSetService) GetCoreV1() ( (kubernetes.Interface)) {
+	return s.kubeClient
 }
