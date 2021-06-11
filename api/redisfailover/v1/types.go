@@ -32,47 +32,50 @@ type RedisCommandRename struct {
 
 // RedisSettings defines the specification of the redis cluster
 type RedisSettings struct {
-	Image                string                        `json:"image,omitempty"`
-	ImagePullPolicy      corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
-	Replicas             int32                         `json:"replicas,omitempty"`
-	Resources            corev1.ResourceRequirements   `json:"resources,omitempty"`
-	CustomConfig         []string                      `json:"customConfig,omitempty"`
-	CustomCommandRenames []RedisCommandRename          `json:"customCommandRenames,omitempty"`
-	Command              []string                      `json:"command,omitempty"`
-	ShutdownConfigMap    string                        `json:"shutdownConfigMap,omitempty"`
-	Storage              RedisStorage                  `json:"storage,omitempty"`
-	Exporter             RedisExporter                 `json:"exporter,omitempty"`
-	Affinity             *corev1.Affinity              `json:"affinity,omitempty"`
-	SecurityContext      *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
-	ImagePullSecrets     []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	Tolerations          []corev1.Toleration           `json:"tolerations,omitempty"`
-	NodeSelector         map[string]string             `json:"nodeSelector,omitempty"`
-	PodAnnotations       map[string]string             `json:"podAnnotations,omitempty"`
-	ServiceAnnotations   map[string]string             `json:"serviceAnnotations,omitempty"`
-	HostNetwork          bool                          `json:"hostNetwork,omitempty"`
-	DNSPolicy            corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
-	PriorityClassName    string                        `json:"priorityClassName,omitempty"`
+	Image                    string                        `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
+	Replicas                 int32                         `json:"replicas,omitempty"`
+	Resources                corev1.ResourceRequirements   `json:"resources,omitempty"`
+	CustomConfig             []string                      `json:"customConfig,omitempty"`
+	CustomCommandRenames     []RedisCommandRename          `json:"customCommandRenames,omitempty"`
+	Command                  []string                      `json:"command,omitempty"`
+	ShutdownConfigMap        string                        `json:"shutdownConfigMap,omitempty"`
+	Storage                  RedisStorage                  `json:"storage,omitempty"`
+	Exporter                 RedisExporter                 `json:"exporter,omitempty"`
+	Affinity                 *corev1.Affinity              `json:"affinity,omitempty"`
+	SecurityContext          *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext       `json:"containerSecurityContext,omitempty"`
+	ImagePullSecrets         []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
+	NodeSelector             map[string]string             `json:"nodeSelector,omitempty"`
+	PodAnnotations           map[string]string             `json:"podAnnotations,omitempty"`
+	ServiceAnnotations       map[string]string             `json:"serviceAnnotations,omitempty"`
+	HostNetwork              bool                          `json:"hostNetwork,omitempty"`
+	DNSPolicy                corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
+	PriorityClassName        string                        `json:"priorityClassName,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
-	Image              string                        `json:"image,omitempty"`
-	ImagePullPolicy    corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
-	Replicas           int32                         `json:"replicas,omitempty"`
-	Resources          corev1.ResourceRequirements   `json:"resources,omitempty"`
-	CustomConfig       []string                      `json:"customConfig,omitempty"`
-	Command            []string                      `json:"command,omitempty"`
-	Affinity           *corev1.Affinity              `json:"affinity,omitempty"`
-	SecurityContext    *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
-	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	Tolerations        []corev1.Toleration           `json:"tolerations,omitempty"`
-	NodeSelector       map[string]string             `json:"nodeSelector,omitempty"`
-	PodAnnotations     map[string]string             `json:"podAnnotations,omitempty"`
-	ServiceAnnotations map[string]string             `json:"serviceAnnotations,omitempty"`
-	Exporter           SentinelExporter              `json:"exporter,omitempty"`
-	HostNetwork        bool                          `json:"hostNetwork,omitempty"`
-	DNSPolicy          corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
-	PriorityClassName  string                        `json:"priorityClassName,omitempty"`
+	Image                    string                        `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy             `json:"imagePullPolicy,omitempty"`
+	Replicas                 int32                         `json:"replicas,omitempty"`
+	Resources                corev1.ResourceRequirements   `json:"resources,omitempty"`
+	CustomConfig             []string                      `json:"customConfig,omitempty"`
+	Command                  []string                      `json:"command,omitempty"`
+	Affinity                 *corev1.Affinity              `json:"affinity,omitempty"`
+	SecurityContext          *corev1.PodSecurityContext    `json:"securityContext,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext       `json:"containerSecurityContext,omitempty"`
+	ImagePullSecrets         []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Tolerations              []corev1.Toleration           `json:"tolerations,omitempty"`
+	NodeSelector             map[string]string             `json:"nodeSelector,omitempty"`
+	PodAnnotations           map[string]string             `json:"podAnnotations,omitempty"`
+	ServiceAnnotations       map[string]string             `json:"serviceAnnotations,omitempty"`
+	Exporter                 SentinelExporter              `json:"exporter,omitempty"`
+	ConfigCopy               SentinelConfigCopy            `json:"configCopy,omitempty`
+	HostNetwork              bool                          `json:"hostNetwork,omitempty"`
+	DNSPolicy                corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
+	PriorityClassName        string                        `json:"priorityClassName,omitempty"`
 }
 
 // AuthSettings contains settings about auth
@@ -89,16 +92,23 @@ type BootstrapSettings struct {
 
 // RedisExporter defines the specification for the redis exporter
 type RedisExporter struct {
-	Enabled         bool              `json:"enabled,omitempty"`
-	Image           string            `json:"image,omitempty"`
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	Enabled                  bool                    `json:"enabled,omitempty"`
+	Image                    string                  `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy       `json:"imagePullPolicy,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
 // SentinelExporter defines the specification for the sentinel exporter
 type SentinelExporter struct {
-	Enabled         bool              `json:"enabled,omitempty"`
-	Image           string            `json:"image,omitempty"`
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	Enabled                  bool                    `json:"enabled,omitempty"`
+	Image                    string                  `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy       `json:"imagePullPolicy,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
+}
+
+// SentinelConfigCopy defines the specification for the sentinel exporter
+type SentinelConfigCopy struct {
+	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
 }
 
 // RedisStorage defines the structure used to store the Redis Data
