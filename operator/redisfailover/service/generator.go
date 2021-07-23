@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 
+	"bytes"
+
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,15 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"bytes"
+
+	"text/template"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
-	"text/template"
 )
 
 const (
-	redisConfigurationVolumeName         = "redis-config"
+	redisConfigurationVolumeName = "redis-config"
 	// Template used to build the Redis configuration
 	redisConfigTemplate = `slaveof 127.0.0.1 6379
 tcp-keepalive 60
@@ -266,14 +268,15 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					Annotations: rf.Spec.Redis.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:         getAffinity(rf.Spec.Redis.Affinity, labels),
-					Tolerations:      rf.Spec.Redis.Tolerations,
-					NodeSelector:     rf.Spec.Redis.NodeSelector,
-					SecurityContext:  getSecurityContext(rf.Spec.Redis.SecurityContext),
-					HostNetwork:      rf.Spec.Redis.HostNetwork,
-					DNSPolicy:        getDnsPolicy(rf.Spec.Redis.DNSPolicy),
-					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
-					PriorityClassName: rf.Spec.Redis.PriorityClassName,
+					Affinity:           getAffinity(rf.Spec.Redis.Affinity, labels),
+					Tolerations:        rf.Spec.Redis.Tolerations,
+					NodeSelector:       rf.Spec.Redis.NodeSelector,
+					SecurityContext:    getSecurityContext(rf.Spec.Redis.SecurityContext),
+					HostNetwork:        rf.Spec.Redis.HostNetwork,
+					DNSPolicy:          getDnsPolicy(rf.Spec.Redis.DNSPolicy),
+					ImagePullSecrets:   rf.Spec.Redis.ImagePullSecrets,
+					PriorityClassName:  rf.Spec.Redis.PriorityClassName,
+					ServiceAccountName: rf.Spec.Redis.ServiceAccountName,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -385,14 +388,15 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Annotations: rf.Spec.Sentinel.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:         getAffinity(rf.Spec.Sentinel.Affinity, labels),
-					Tolerations:      rf.Spec.Sentinel.Tolerations,
-					NodeSelector:     rf.Spec.Sentinel.NodeSelector,
-					SecurityContext:  getSecurityContext(rf.Spec.Sentinel.SecurityContext),
-					HostNetwork:      rf.Spec.Sentinel.HostNetwork,
-					DNSPolicy:        getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
-					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
-					PriorityClassName: rf.Spec.Sentinel.PriorityClassName,
+					Affinity:           getAffinity(rf.Spec.Sentinel.Affinity, labels),
+					Tolerations:        rf.Spec.Sentinel.Tolerations,
+					NodeSelector:       rf.Spec.Sentinel.NodeSelector,
+					SecurityContext:    getSecurityContext(rf.Spec.Sentinel.SecurityContext),
+					HostNetwork:        rf.Spec.Sentinel.HostNetwork,
+					DNSPolicy:          getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
+					ImagePullSecrets:   rf.Spec.Sentinel.ImagePullSecrets,
+					PriorityClassName:  rf.Spec.Sentinel.PriorityClassName,
+					ServiceAccountName: rf.Spec.Sentinel.ServiceAccountName,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
