@@ -303,6 +303,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
+								FailureThreshold:    6,
+								PeriodSeconds:       15,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
@@ -540,14 +542,14 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Image:           rf.Spec.Redis.Exporter.Image,
 		ImagePullPolicy: pullPolicy(rf.Spec.Redis.Exporter.ImagePullPolicy),
 		Args:            rf.Spec.Redis.Exporter.Args,
-		Env:             append(rf.Spec.Redis.Exporter.Env, corev1.EnvVar{
-				Name: "REDIS_ALIAS",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
+		Env: append(rf.Spec.Redis.Exporter.Env, corev1.EnvVar{
+			Name: "REDIS_ALIAS",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
 				},
 			},
+		},
 		),
 		Ports: []corev1.ContainerPort{
 			{
