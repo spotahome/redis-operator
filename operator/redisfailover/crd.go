@@ -30,6 +30,7 @@ func (w *redisfailoverCRD) Initialize() error {
 	crd := k8s.CRDConf{
 		Kind:       redisfailoverv1.RFKind,
 		NamePlural: redisfailoverv1.RFNamePlural,
+		ShortNames: []string{redisfailoverv1.SHORTNAME},
 		Group:      redisfailoverv1.SchemeGroupVersion.Group,
 		Version:    redisfailoverv1.SchemeGroupVersion.Version,
 		Scope:      redisfailoverv1.RFScope,

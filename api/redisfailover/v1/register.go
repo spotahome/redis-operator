@@ -19,6 +19,7 @@ const (
 	RFName       = "redisfailover"
 	RFNamePlural = "redisfailovers"
 	RFScope      = apiextensionsv1beta1.NamespaceScoped
+	SHORTNAME    = "rf"
 )
 
 // SchemeGroupVersion is group version used to register these objects
