@@ -15,7 +15,7 @@ resources:
     cpu: 100m
     memory: 50Mi
 rbac:
-  install: false
+  install: true
   apiVersion: v1
   imagePullSecrets: []
 monitoring:
