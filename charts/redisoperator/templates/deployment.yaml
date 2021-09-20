@@ -1,46 +1,68 @@
-apiVersion: apps/v1
+{{- $fullName := include "chart.fullname" . -}}
+{{- $data := dict "Chart" .Chart "Release" .Release "Values" .Values -}}
+apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ include "name" . | quote }}
+  name: {{ $fullName }}
   labels:
-    app.kubernetes.io/component: app
-{{ include "helm-labels" . | indent 4 }}
+    {{- include "chart.labels" $data | nindent 4 }}
+  {{- if .Values.annotations }}
+  annotations:
+{{ toYaml .Values.annotations | indent 4 }}
+  {{- end }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/component: app
-{{ include "common-labels" . | indent 6 }}
+      {{- include "chart.selectorLabels" $data | nindent 6 }}
+  strategy:
+    type: {{ .Values.updateStrategy.type }}
   template:
     metadata:
-      labels:
-        app.kubernetes.io/component: app
-{{ include "common-labels" . | indent 8 }}
-{{- if .Values.podAnnotations }}
+      {{- with .Values.annotations }}
       annotations:
-{{ toYaml .Values.podAnnotations | indent 8 }}
-{{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "chart.selectorLabels" $data | nindent 8 }}
     spec:
-{{- if .Values.rbac.install }}
-      serviceAccountName: {{ include "name" . | quote }}
-{{- end }}
-{{- with .Values.nodeSelector }}
-      nodeSelector:
-{{- toYaml . | nindent 8 }}
-{{- end }}
-{{- with .Values.tolerations }}
-      tolerations:
-{{- toYaml . | nindent 8 }}
-{{- end }}
+      serviceAccountName: {{ template "chart.serviceAccountName" . }}
       containers:
-      - name: "{{ .Values.containerName }}"
-        image: {{ include "image" . | quote }}
-        imagePullPolicy: {{ .Values.pullPolicy }}
-        securityContext:
-{{ toYaml .Values.securityContext | indent 10 }}
-        resources:
-{{ toYaml .Values.resources | indent 10 }}
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
-        - containerPort: 9710
-          name: metrics
-          protocol: TCP
+          - name: metrics
+            containerPort: {{ .Values.container.port }}
+            protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.container.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          timeoutSeconds: 3
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.container.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+

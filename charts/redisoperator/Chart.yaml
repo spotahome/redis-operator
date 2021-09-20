@@ -1,4 +1,20 @@
+annotations:
+  category: Redis Operator
+appVersion: 3.1.0
 apiVersion: v1
 description: A Helm chart for the Spotahome Redis Operator
-name: redisoperator
-version: 3.1.0
+name: redis-operator
+version: 3.1.1
+engine: gotpl
+home: https://github.com/spotahome/redis-operator
+keywords:
+  - "golang"
+  - "operator"
+  - "cluster"
+maintainers:
+  - email: dev.ops.fedorov@gmail.com
+    name: Fedorov Vitaly
+  - email: v.fedorov@eapteka.ru
+    name: Fedorov Vitaly
+sources:
+- https://github.com/spotahome/redis-operator
