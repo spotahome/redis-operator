@@ -11,10 +11,5 @@ keywords:
   - "golang"
   - "operator"
   - "cluster"
-maintainers:
-  - email: dev.ops.fedorov@gmail.com
-    name: Fedorov Vitaly
-  - email: v.fedorov@eapteka.ru
-    name: Fedorov Vitaly
 sources:
 - https://github.com/spotahome/redis-operator
