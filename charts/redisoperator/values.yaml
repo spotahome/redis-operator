@@ -9,6 +9,7 @@ image:
   tag: latest
 
 imageCredentials:
+  create: false
   registry: url.private.registry
   username: someone
   password: somepassword

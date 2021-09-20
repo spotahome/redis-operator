@@ -1,4 +1,5 @@
 {{- $fullName := include "chart.fullname" . -}}
+{{ $name := "registry" }}
 {{- $data := dict "Chart" .Chart "Release" .Release "Values" .Values -}}
 apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
@@ -27,6 +28,10 @@ spec:
         {{- include "chart.selectorLabels" $data | nindent 8 }}
     spec:
       serviceAccountName: {{ template "chart.serviceAccountName" . }}
+      {{- if .Values.imageCredentials.create }}
+      imagePullSecrets: 
+        - name: {{ $fullName }}-{{ $name }}
+      {{- end }}
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
