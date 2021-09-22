@@ -22,7 +22,8 @@ RUN go get -u github.com/golang/dep/cmd/dep \
     && chmod 777 /go/pkg/dep
 
 # Mock creator
-RUN go get github.com/vektra/mockery/v2/.../
+ARG MOCKERY_VERSION="2.9.4"
+RUN wget -c https://github.com/vektra/mockery/releases/download/v${MOCKERY_VERSION}/mockery_${MOCKERY_VERSION}_$(uname -o)_$(uname -m).tar.gz -O - | tar -xz -C /go/bin/
 
 # Create user
 ARG uid=1000
