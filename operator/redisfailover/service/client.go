@@ -1,6 +1,7 @@
 package service
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -107,20 +108,40 @@ func (r *RedisFailoverKubeClient) EnsureRedisReadinessConfigMap(rf *redisfailove
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
-// EnsureRedisService makes sure the redis statefulset exists
+// EnsureRedisService makes sure the redis service exists
 func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	// create service point to all redis pod
 	svc := generateRedisService(rf, labels, ownerRefs)
+	if err := r.K8SService.CreateIfNotExistsService(rf.Namespace, svc); err != nil {
+		return err
+	}
+
+	//create service point to master
+	svc = generateService(rf, labels, ownerRefs, masterRoleName)
+	if err := r.K8SService.CreateIfNotExistsService(rf.Namespace, svc); err != nil {
+		return err
+	}
+
+	//create service point to slave
+	svc = generateService(rf, labels, ownerRefs, slaveRoleName)
 	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
 }
 
 // EnsureNotPresentRedisService makes sure the redis service is not present
 func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailoverv1.RedisFailover) error {
-	name := GetRedisName(rf)
-	namespace := rf.Namespace
-	// If the service exists (no get error), delete it
-	if _, err := r.K8SService.GetService(namespace, name); err == nil {
-		return r.K8SService.DeleteService(namespace, name)
+	serviceNamesToBeDeleted := []string{
+		GetRedisName(rf),
+		GetRedisNameByRole(rf, slaveRoleName),
+		GetRedisNameByRole(rf, masterRoleName),
 	}
+
+	for _, name := range serviceNamesToBeDeleted {
+		// If the service exists (no get error), delete it
+		if err := r.K8SService.DeleteService(rf.Namespace, name); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+
 	return nil
 }
 

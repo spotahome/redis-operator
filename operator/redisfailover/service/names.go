@@ -14,6 +14,11 @@ func GetRedisShutdownConfigMapName(rf *redisfailoverv1.RedisFailover) string {
 	return GetRedisShutdownName(rf)
 }
 
+// GetRedisNameByRole returns the name for redis master or slave resources
+func GetRedisNameByRole(rf *redisfailoverv1.RedisFailover, role string) string {
+	return generateName(redisName, rf.Name+"-"+role)
+}
+
 // GetRedisName returns the name for redis resources
 func GetRedisName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(redisName, rf.Name)

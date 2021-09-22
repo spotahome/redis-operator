@@ -72,17 +72,25 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 
 	newMasterIP := ""
 	for _, pod := range ssp.Items {
+		if pod.Labels == nil {
+			pod.Labels = make(map[string]string)
+		}
 		if newMasterIP == "" {
 			newMasterIP = pod.Status.PodIP
 			r.logger.Debugf("New master is %s with ip %s", pod.Name, newMasterIP)
 			if err := r.redisClient.MakeMaster(newMasterIP, password); err != nil {
 				return err
 			}
+			pod.Labels["role"] = "master"
 		} else {
 			r.logger.Debugf("Making pod %s slave of %s", pod.Name, newMasterIP)
 			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, newMasterIP, password); err != nil {
 				return err
 			}
+			pod.Labels["role"] = "slave"
+		}
+		if err := r.k8sService.UpdatePod(pod.Namespace, &pod); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -101,16 +109,24 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 	}
 
 	for _, pod := range ssp.Items {
+		if pod.Labels == nil {
+			pod.Labels = make(map[string]string)
+		}
 		if pod.Status.PodIP == masterIP {
 			r.logger.Debugf("Ensure pod %s is master", pod.Name)
 			if err := r.redisClient.MakeMaster(masterIP, password); err != nil {
 				return err
 			}
+			pod.Labels["role"] = "master"
 		} else {
 			r.logger.Debugf("Making pod %s slave of %s", pod.Name, masterIP)
 			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, masterIP, password); err != nil {
 				return err
 			}
+			pod.Labels["role"] = "slave"
+		}
+		if err := r.k8sService.UpdatePod(pod.Namespace, &pod); err != nil {
+			return err
 		}
 	}
 	return nil

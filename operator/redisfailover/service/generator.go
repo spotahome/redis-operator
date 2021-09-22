@@ -67,6 +67,36 @@ func generateSentinelService(rf *redisfailoverv1.RedisFailover, labels map[strin
 	}
 }
 
+func generateService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, role string) *corev1.Service {
+	name := fmt.Sprintf("%s-%s", GetRedisName(rf), role)
+	namespace := rf.Namespace
+	targetPort := intstr.FromInt(6379)
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
+	selectorLabels["role"] = role
+	labels = util.MergeLabels(labels, selectorLabels)
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Redis.ServiceAnnotations,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: selectorLabels,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "redis",
+					Port:       6379,
+					TargetPort: targetPort,
+					Protocol:   "TCP",
+				},
+			},
+		},
+	}
+}
+
 func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace

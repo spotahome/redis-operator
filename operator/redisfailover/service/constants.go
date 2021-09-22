@@ -24,6 +24,8 @@ const (
 	bootstrapName          = "b"
 	sentinelName           = "s"
 	sentinelRoleName       = "sentinel"
+	masterRoleName         = "master"
+	slaveRoleName          = "slave"
 	sentinelConfigFileName = "sentinel.conf"
 	redisConfigFileName    = "redis.conf"
 	redisName              = "r"

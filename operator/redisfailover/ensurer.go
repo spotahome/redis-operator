@@ -18,16 +18,6 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1.RedisFailover, labels 
 		}
 	}
 
-	sentinelsAllowed := rf.SentinelsAllowed()
-	if sentinelsAllowed {
-		if err := w.rfService.EnsureSentinelService(rf, labels, or); err != nil {
-			return err
-		}
-		if err := w.rfService.EnsureSentinelConfigMap(rf, labels, or); err != nil {
-			return err
-		}
-	}
-
 	if err := w.rfService.EnsureRedisShutdownConfigMap(rf, labels, or); err != nil {
 		return err
 	}
@@ -41,11 +31,18 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1.RedisFailover, labels 
 		return err
 	}
 
-	if sentinelsAllowed {
+	if rf.SentinelsAllowed() {
+		if err := w.rfService.EnsureSentinelService(rf, labels, or); err != nil {
+			return err
+		}
+		if err := w.rfService.EnsureSentinelConfigMap(rf, labels, or); err != nil {
+			return err
+		}
 		if err := w.rfService.EnsureSentinelDeployment(rf, labels, or); err != nil {
 			return err
 		}
 	}
+	// TODO: if not allowed sentinel delete resources related
 
 	return nil
 }
