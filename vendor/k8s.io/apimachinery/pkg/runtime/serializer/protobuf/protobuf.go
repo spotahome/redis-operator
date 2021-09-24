@@ -69,18 +69,22 @@ func IsNotMarshalable(err error) bool {
 // NewSerializer creates a Protobuf serializer that handles encoding versioned objects into the proper wire form. If a typer
 // is passed, the encoded object will have group, version, and kind fields set. If typer is nil, the objects will be written
 // as-is (any type info passed with the object will be used).
-func NewSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper) *Serializer {
+//
+// This encoding scheme is experimental, and is subject to change at any time.
+func NewSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper, defaultContentType string) *Serializer {
 	return &Serializer{
-		prefix:  protoEncodingPrefix,
-		creater: creater,
-		typer:   typer,
+		prefix:      protoEncodingPrefix,
+		creater:     creater,
+		typer:       typer,
+		contentType: defaultContentType,
 	}
 }
 
 type Serializer struct {
-	prefix  []byte
-	creater runtime.ObjectCreater
-	typer   runtime.ObjectTyper
+	prefix      []byte
+	creater     runtime.ObjectCreater
+	typer       runtime.ObjectTyper
+	contentType string
 }
 
 var _ runtime.Serializer = &Serializer{}
@@ -134,7 +138,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 	if intoUnknown, ok := into.(*runtime.Unknown); ok && intoUnknown != nil {
 		*intoUnknown = unk
 		if ok, _, _ := s.RecognizesData(bytes.NewBuffer(unk.Raw)); ok {
-			intoUnknown.ContentType = runtime.ContentTypeProtobuf
+			intoUnknown.ContentType = s.contentType
 		}
 		return intoUnknown, &actual, nil
 	}
@@ -299,18 +303,20 @@ func estimateUnknownSize(unk *runtime.Unknown, byteSize uint64) uint64 {
 // encoded object, and thus is not self describing (callers must know what type is being described in order to decode).
 //
 // This encoding scheme is experimental, and is subject to change at any time.
-func NewRawSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper) *RawSerializer {
+func NewRawSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper, defaultContentType string) *RawSerializer {
 	return &RawSerializer{
-		creater: creater,
-		typer:   typer,
+		creater:     creater,
+		typer:       typer,
+		contentType: defaultContentType,
 	}
 }
 
 // RawSerializer encodes and decodes objects without adding a runtime.Unknown wrapper (objects are encoded without identifying
 // type).
 type RawSerializer struct {
-	creater runtime.ObjectCreater
-	typer   runtime.ObjectTyper
+	creater     runtime.ObjectCreater
+	typer       runtime.ObjectTyper
+	contentType string
 }
 
 var _ runtime.Serializer = &RawSerializer{}
@@ -352,7 +358,7 @@ func (s *RawSerializer) Decode(originalData []byte, gvk *schema.GroupVersionKind
 	if intoUnknown, ok := into.(*runtime.Unknown); ok && intoUnknown != nil {
 		intoUnknown.Raw = data
 		intoUnknown.ContentEncoding = ""
-		intoUnknown.ContentType = runtime.ContentTypeProtobuf
+		intoUnknown.ContentType = s.contentType
 		intoUnknown.SetGroupVersionKind(*actual)
 		return intoUnknown, actual, nil
 	}
@@ -404,9 +410,6 @@ func unmarshalToObject(typer runtime.ObjectTyper, creater runtime.ObjectCreater,
 	}
 	if err := proto.Unmarshal(data, pb); err != nil {
 		return nil, actual, err
-	}
-	if actual != nil {
-		obj.GetObjectKind().SetGroupVersionKind(*actual)
 	}
 	return obj, actual, nil
 }
