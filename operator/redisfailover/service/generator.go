@@ -244,6 +244,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	labels = util.MergeLabels(labels, selectorLabels)
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
+	terminationGracePeriodSeconds := getTerminationGracePeriodSeconds(rf)
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -268,15 +269,16 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					Annotations: rf.Spec.Redis.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:           getAffinity(rf.Spec.Redis.Affinity, labels),
-					Tolerations:        rf.Spec.Redis.Tolerations,
-					NodeSelector:       rf.Spec.Redis.NodeSelector,
-					SecurityContext:    getSecurityContext(rf.Spec.Redis.SecurityContext),
-					HostNetwork:        rf.Spec.Redis.HostNetwork,
-					DNSPolicy:          getDnsPolicy(rf.Spec.Redis.DNSPolicy),
-					ImagePullSecrets:   rf.Spec.Redis.ImagePullSecrets,
-					PriorityClassName:  rf.Spec.Redis.PriorityClassName,
-					ServiceAccountName: rf.Spec.Redis.ServiceAccountName,
+					Affinity:                      getAffinity(rf.Spec.Redis.Affinity, labels),
+					Tolerations:                   rf.Spec.Redis.Tolerations,
+					NodeSelector:                  rf.Spec.Redis.NodeSelector,
+					SecurityContext:               getSecurityContext(rf.Spec.Redis.SecurityContext),
+					HostNetwork:                   rf.Spec.Redis.HostNetwork,
+					DNSPolicy:                     getDnsPolicy(rf.Spec.Redis.DNSPolicy),
+					ImagePullSecrets:              rf.Spec.Redis.ImagePullSecrets,
+					PriorityClassName:             rf.Spec.Redis.PriorityClassName,
+					ServiceAccountName:            rf.Spec.Redis.ServiceAccountName,
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -798,4 +800,11 @@ func pullPolicy(specPolicy corev1.PullPolicy) corev1.PullPolicy {
 		return corev1.PullAlways
 	}
 	return specPolicy
+}
+
+func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
+	if rf.Spec.Redis.TerminationGracePeriodSeconds > 0 {
+		return rf.Spec.Redis.TerminationGracePeriodSeconds
+	}
+	return 30
 }
