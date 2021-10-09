@@ -16,7 +16,8 @@ import (
 	"github.com/go-redis/redis/internal/pool"
 )
 
-const nreplicas = 100
+// Hash is type of hash function used in consistent hash.
+type Hash consistenthash.Hash
 
 var errRingShardsDown = errors.New("redis: all ring shards are down")
 
@@ -29,6 +30,27 @@ type RingOptions struct {
 	// Frequency of PING commands sent to check shards availability.
 	// Shard is considered down after 3 subsequent failed checks.
 	HeartbeatFrequency time.Duration
+
+	// Hash function used in consistent hash.
+	// Default is crc32.ChecksumIEEE.
+	Hash Hash
+
+	// Number of replicas in consistent hash.
+	// Default is 100 replicas.
+	//
+	// Higher number of replicas will provide less deviation, that is keys will be
+	// distributed to nodes more evenly.
+	//
+	// Following is deviation for common nreplicas:
+	//  --------------------------------------------------------
+	//  | nreplicas | standard error | 99% confidence interval |
+	//  |     10    |     0.3152     |      (0.37, 1.98)       |
+	//  |    100    |     0.0997     |      (0.76, 1.28)       |
+	//  |   1000    |     0.0316     |      (0.92, 1.09)       |
+	//  --------------------------------------------------------
+	//
+	//  See https://arxiv.org/abs/1406.2294 for reference
+	HashReplicas int
 
 	// Following options are copied from Options struct.
 
@@ -46,6 +68,8 @@ type RingOptions struct {
 	WriteTimeout time.Duration
 
 	PoolSize           int
+	MinIdleConns       int
+	MaxConnAge         time.Duration
 	PoolTimeout        time.Duration
 	IdleTimeout        time.Duration
 	IdleCheckFrequency time.Duration
@@ -54,6 +78,10 @@ type RingOptions struct {
 func (opt *RingOptions) init() {
 	if opt.HeartbeatFrequency == 0 {
 		opt.HeartbeatFrequency = 500 * time.Millisecond
+	}
+
+	if opt.HashReplicas == 0 {
+		opt.HashReplicas = 100
 	}
 
 	switch opt.MinRetryBackoff {
@@ -82,6 +110,8 @@ func (opt *RingOptions) clientOptions() *Options {
 		WriteTimeout: opt.WriteTimeout,
 
 		PoolSize:           opt.PoolSize,
+		MinIdleConns:       opt.MinIdleConns,
+		MaxConnAge:         opt.MaxConnAge,
 		PoolTimeout:        opt.PoolTimeout,
 		IdleTimeout:        opt.IdleTimeout,
 		IdleCheckFrequency: opt.IdleCheckFrequency,
@@ -133,16 +163,21 @@ func (shard *ringShard) Vote(up bool) bool {
 //------------------------------------------------------------------------------
 
 type ringShards struct {
+	opt *RingOptions
+
 	mu     sync.RWMutex
 	hash   *consistenthash.Map
 	shards map[string]*ringShard // read only
 	list   []*ringShard          // read only
+	len    int
 	closed bool
 }
 
-func newRingShards() *ringShards {
+func newRingShards(opt *RingOptions) *ringShards {
 	return &ringShards{
-		hash:   consistenthash.New(nreplicas, nil),
+		opt: opt,
+
+		hash:   newConsistentHash(opt),
 		shards: make(map[string]*ringShard),
 	}
 }
@@ -238,16 +273,30 @@ func (c *ringShards) Heartbeat(frequency time.Duration) {
 
 // rebalance removes dead shards from the Ring.
 func (c *ringShards) rebalance() {
-	hash := consistenthash.New(nreplicas, nil)
-	for name, shard := range c.shards {
+	c.mu.RLock()
+	shards := c.shards
+	c.mu.RUnlock()
+
+	hash := newConsistentHash(c.opt)
+	var shardsNum int
+	for name, shard := range shards {
 		if shard.IsUp() {
 			hash.Add(name)
+			shardsNum++
 		}
 	}
 
 	c.mu.Lock()
 	c.hash = hash
+	c.len = shardsNum
 	c.mu.Unlock()
+}
+
+func (c *ringShards) Len() int {
+	c.mu.RLock()
+	l := c.len
+	c.mu.RUnlock()
+	return l
 }
 
 func (c *ringShards) Close() error {
@@ -274,12 +323,12 @@ func (c *ringShards) Close() error {
 
 //------------------------------------------------------------------------------
 
-// Ring is a Redis client that uses constistent hashing to distribute
+// Ring is a Redis client that uses consistent hashing to distribute
 // keys across multiple Redis servers (shards). It's safe for
 // concurrent use by multiple goroutines.
 //
 // Ring monitors the state of each shard and removes dead shards from
-// the ring. When shard comes online it is added back to the ring. This
+// the ring. When a shard comes online it is added back to the ring. This
 // gives you maximum availability and partition tolerance, but no
 // consistency between different shards or even clients. Each client
 // uses shards that are available to the client and does not do any
@@ -297,6 +346,7 @@ type Ring struct {
 	shards        *ringShards
 	cmdsInfoCache *cmdsInfoCache
 
+	process         func(Cmder) error
 	processPipeline func([]Cmder) error
 }
 
@@ -305,12 +355,14 @@ func NewRing(opt *RingOptions) *Ring {
 
 	ring := &Ring{
 		opt:    opt,
-		shards: newRingShards(),
+		shards: newRingShards(opt),
 	}
 	ring.cmdsInfoCache = newCmdsInfoCache(ring.cmdsInfo)
 
+	ring.process = ring.defaultProcess
 	ring.processPipeline = ring.defaultProcessPipeline
-	ring.cmdable.setProcessor(ring.Process)
+
+	ring.init()
 
 	for name, addr := range opt.Addrs {
 		clopt := opt.clientOptions()
@@ -321,6 +373,10 @@ func NewRing(opt *RingOptions) *Ring {
 	go ring.shards.Heartbeat(opt.HeartbeatFrequency)
 
 	return ring
+}
+
+func (c *Ring) init() {
+	c.cmdable.setProcessor(c.Process)
 }
 
 func (c *Ring) Context() context.Context {
@@ -334,13 +390,15 @@ func (c *Ring) WithContext(ctx context.Context) *Ring {
 	if ctx == nil {
 		panic("nil context")
 	}
-	c2 := c.copy()
+	c2 := c.clone()
 	c2.ctx = ctx
 	return c2
 }
 
-func (c *Ring) copy() *Ring {
+func (c *Ring) clone() *Ring {
 	cp := *c
+	cp.init()
+
 	return &cp
 }
 
@@ -363,9 +421,14 @@ func (c *Ring) PoolStats() *PoolStats {
 		acc.Misses += s.Misses
 		acc.Timeouts += s.Timeouts
 		acc.TotalConns += s.TotalConns
-		acc.FreeConns += s.FreeConns
+		acc.IdleConns += s.IdleConns
 	}
 	return &acc
+}
+
+// Len returns the current number of shards in the ring.
+func (c *Ring) Len() int {
+	return c.shards.Len()
 }
 
 // Subscribe subscribes the client to the specified channels.
@@ -466,20 +529,44 @@ func (c *Ring) cmdShard(cmd Cmder) (*ringShard, error) {
 	return c.shards.GetByKey(firstKey)
 }
 
-func (c *Ring) WrapProcess(fn func(oldProcess func(cmd Cmder) error) func(cmd Cmder) error) {
-	c.ForEachShard(func(c *Client) error {
-		c.WrapProcess(fn)
-		return nil
-	})
+// Do creates a Cmd from the args and processes the cmd.
+func (c *Ring) Do(args ...interface{}) *Cmd {
+	cmd := NewCmd(args...)
+	c.Process(cmd)
+	return cmd
+}
+
+func (c *Ring) WrapProcess(
+	fn func(oldProcess func(cmd Cmder) error) func(cmd Cmder) error,
+) {
+	c.process = fn(c.process)
 }
 
 func (c *Ring) Process(cmd Cmder) error {
-	shard, err := c.cmdShard(cmd)
-	if err != nil {
-		cmd.setErr(err)
-		return err
+	return c.process(cmd)
+}
+
+func (c *Ring) defaultProcess(cmd Cmder) error {
+	for attempt := 0; attempt <= c.opt.MaxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(c.retryBackoff(attempt))
+		}
+
+		shard, err := c.cmdShard(cmd)
+		if err != nil {
+			cmd.setErr(err)
+			return err
+		}
+
+		err = shard.Client.Process(cmd)
+		if err == nil {
+			return nil
+		}
+		if !internal.IsRetryableError(err, cmd.readTimeout() == nil) {
+			return err
+		}
 	}
-	return shard.Client.Process(cmd)
+	return cmd.Err()
 }
 
 func (c *Ring) Pipeline() Pipeliner {
@@ -516,43 +603,49 @@ func (c *Ring) defaultProcessPipeline(cmds []Cmder) error {
 			time.Sleep(c.retryBackoff(attempt))
 		}
 
+		var mu sync.Mutex
 		var failedCmdsMap map[string][]Cmder
+		var wg sync.WaitGroup
 
 		for hash, cmds := range cmdsMap {
-			shard, err := c.shards.GetByHash(hash)
-			if err != nil {
-				setCmdsErr(cmds, err)
-				continue
-			}
+			wg.Add(1)
+			go func(hash string, cmds []Cmder) {
+				defer wg.Done()
 
-			cn, err := shard.Client.getConn()
-			if err != nil {
-				setCmdsErr(cmds, err)
-				continue
-			}
-
-			canRetry, err := shard.Client.pipelineProcessCmds(cn, cmds)
-			if err == nil || internal.IsRedisError(err) {
-				shard.Client.connPool.Put(cn)
-				continue
-			}
-			shard.Client.connPool.Remove(cn)
-
-			if canRetry && internal.IsRetryableError(err, true) {
-				if failedCmdsMap == nil {
-					failedCmdsMap = make(map[string][]Cmder)
+				shard, err := c.shards.GetByHash(hash)
+				if err != nil {
+					setCmdsErr(cmds, err)
+					return
 				}
-				failedCmdsMap[hash] = cmds
-			}
+
+				cn, err := shard.Client.getConn()
+				if err != nil {
+					setCmdsErr(cmds, err)
+					return
+				}
+
+				canRetry, err := shard.Client.pipelineProcessCmds(cn, cmds)
+				shard.Client.releaseConnStrict(cn, err)
+
+				if canRetry && internal.IsRetryableError(err, true) {
+					mu.Lock()
+					if failedCmdsMap == nil {
+						failedCmdsMap = make(map[string][]Cmder)
+					}
+					failedCmdsMap[hash] = cmds
+					mu.Unlock()
+				}
+			}(hash, cmds)
 		}
 
+		wg.Wait()
 		if len(failedCmdsMap) == 0 {
 			break
 		}
 		cmdsMap = failedCmdsMap
 	}
 
-	return firstCmdsErr(cmds)
+	return cmdsFirstErr(cmds)
 }
 
 func (c *Ring) TxPipeline() Pipeliner {
@@ -569,4 +662,41 @@ func (c *Ring) TxPipelined(fn func(Pipeliner) error) ([]Cmder, error) {
 // and shared between many goroutines.
 func (c *Ring) Close() error {
 	return c.shards.Close()
+}
+
+func (c *Ring) Watch(fn func(*Tx) error, keys ...string) error {
+	if len(keys) == 0 {
+		return fmt.Errorf("redis: Watch requires at least one key")
+	}
+
+	var shards []*ringShard
+	for _, key := range keys {
+		if key != "" {
+			shard, err := c.shards.GetByKey(hashtag.Key(key))
+			if err != nil {
+				return err
+			}
+
+			shards = append(shards, shard)
+		}
+	}
+
+	if len(shards) == 0 {
+		return fmt.Errorf("redis: Watch requires at least one shard")
+	}
+
+	if len(shards) > 1 {
+		for _, shard := range shards[1:] {
+			if shard.Client != shards[0].Client {
+				err := fmt.Errorf("redis: Watch requires all keys to be in the same shard")
+				return err
+			}
+		}
+	}
+
+	return shards[0].Client.Watch(fn, keys...)
+}
+
+func newConsistentHash(opt *RingOptions) *consistenthash.Map {
+	return consistenthash.New(opt.HashReplicas, consistenthash.Hash(opt.Hash))
 }
