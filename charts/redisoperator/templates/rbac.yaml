@@ -48,6 +48,8 @@ rules:
       - endpoints
       - events
       - configmaps
+      - persistentvolumeclaims
+      - persistentvolumeclaims/finalizers
     verbs:
       - create
       - delete
