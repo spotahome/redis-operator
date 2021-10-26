@@ -546,7 +546,22 @@ func generatePodDisruptionBudget(name string, namespace string, labels map[strin
 	}
 }
 
+var exporterDefaultResourceRequirements = corev1.ResourceRequirements{
+	Limits: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+		corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
+	},
+	Requests: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+		corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+	},
+}
+
 func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+	resources := exporterDefaultResourceRequirements
+	if rf.Spec.Redis.Exporter.Resources != nil {
+		resources = *rf.Spec.Redis.Exporter.Resources
+	}
 	container := corev1.Container{
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
@@ -568,16 +583,7 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Resources: corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
-			},
-		},
+		Resources: resources,
 	}
 
 	if rf.Spec.Auth.SecretPath != "" {
@@ -599,6 +605,10 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 }
 
 func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+	resources := exporterDefaultResourceRequirements
+	if rf.Spec.Sentinel.Exporter.Resources != nil {
+		resources = *rf.Spec.Sentinel.Exporter.Resources
+	}
 	container := corev1.Container{
 		Name:            sentinelExporterContainerName,
 		Image:           rf.Spec.Sentinel.Exporter.Image,
@@ -612,16 +622,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Resources: corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
-			},
-		},
+		Resources: resources,
 	}
 	return container
 }
