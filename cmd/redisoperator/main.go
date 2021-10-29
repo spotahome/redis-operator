@@ -54,7 +54,10 @@ func (m *Main) Run() error {
 
 	// Set correct logging.
 	if m.flags.Debug {
-		m.logger.Set("debug")
+		err := m.logger.Set("debug")
+		if err != nil {
+			return err
+		}
 		m.logger.Debugf("debug mode activated")
 	}
 
@@ -66,7 +69,10 @@ func (m *Main) Run() error {
 	// Serve metrics.
 	go func() {
 		log.Infof("Listening on %s for metrics exposure", m.flags.ListenAddr)
-		http.ListenAndServe(m.flags.ListenAddr, nil)
+		err := http.ListenAndServe(m.flags.ListenAddr, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	// Kubernetes clients.
