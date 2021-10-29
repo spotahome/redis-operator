@@ -525,17 +525,6 @@ func generatePodDisruptionBudget(name string, namespace string, labels map[strin
 	}
 }
 
-func generateResourceList(cpu string, memory string) corev1.ResourceList {
-	resources := corev1.ResourceList{}
-	if cpu != "" {
-		resources[corev1.ResourceCPU], _ = resource.ParseQuantity(cpu)
-	}
-	if memory != "" {
-		resources[corev1.ResourceMemory], _ = resource.ParseQuantity(memory)
-	}
-	return resources
-}
-
 func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
 	container := corev1.Container{
 		Name:            exporterContainerName,
