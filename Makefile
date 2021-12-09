@@ -1,4 +1,4 @@
-VERSION := v1.0.0
+VERSION := v1.1.0
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -7,7 +7,7 @@ SERVICE_NAME := redis-operator
 IMAGE_NAME := spotahome/$(SERVICE_NAME)
 
 # Repository url for this project
-REPOSITORY := quay.io/$(IMAGE_NAME)
+REPOSITORY ?= quay.io/$(IMAGE_NAME)
 
 # Shell to use for running scripts
 SHELL := $(shell which bash)
@@ -32,8 +32,8 @@ PORT := 9710
 # CMDs
 UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
-GET_DEPS_CMD := dep ensure
-UPDATE_DEPS_CMD := dep ensure
+GET_DEPS_CMD := go mod download
+UPDATE_DEPS_CMD := go mod download
 UPDATE_CODEGEN_CMD := ./hack/update-codegen.sh
 MOCKS_CMD := go generate ./mocks
 

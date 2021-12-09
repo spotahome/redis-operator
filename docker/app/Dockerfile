@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.16-alpine
 
 WORKDIR /go/src/github.com/spotahome/redis-operator
 COPY . .

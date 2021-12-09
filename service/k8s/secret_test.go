@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"testing"
 
 	"github.com/spotahome/redis-operator/log"
@@ -50,7 +51,7 @@ func TestSecretServiceGet(t *testing.T) {
 			return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), a.Name)
 		})
 
-		_, err := mcli.CoreV1().Secrets(secret.ObjectMeta.Namespace).Create(&secret)
+		_, err := mcli.CoreV1().Secrets(secret.ObjectMeta.Namespace).Create(context.Background(), &secret, metav1.CreateOptions{})
 		assert.NoError(err)
 
 		// test getting the secret

@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +37,7 @@ func NewPodService(kubeClient kubernetes.Interface, logger log.Logger) *PodServi
 }
 
 func (p *PodService) GetPod(namespace string, name string) (*corev1.Pod, error) {
-	pod, err := p.kubeClient.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
+	pod, err := p.kubeClient.CoreV1().Pods(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +45,7 @@ func (p *PodService) GetPod(namespace string, name string) (*corev1.Pod, error) 
 }
 
 func (p *PodService) CreatePod(namespace string, pod *corev1.Pod) error {
-	_, err := p.kubeClient.CoreV1().Pods(namespace).Create(pod)
+	_, err := p.kubeClient.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func (p *PodService) CreatePod(namespace string, pod *corev1.Pod) error {
 	return nil
 }
 func (p *PodService) UpdatePod(namespace string, pod *corev1.Pod) error {
-	_, err := p.kubeClient.CoreV1().Pods(namespace).Update(pod)
+	_, err := p.kubeClient.CoreV1().Pods(namespace).Update(context.Background(), pod, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -77,9 +79,9 @@ func (p *PodService) CreateOrUpdatePod(namespace string, pod *corev1.Pod) error 
 }
 
 func (p *PodService) DeletePod(namespace string, name string) error {
-	return p.kubeClient.CoreV1().Pods(namespace).Delete(name, &metav1.DeleteOptions{})
+	return p.kubeClient.CoreV1().Pods(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 }
 
 func (p *PodService) ListPods(namespace string) (*corev1.PodList, error) {
-	return p.kubeClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	return p.kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
 }

@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
@@ -34,10 +36,10 @@ func NewRedisFailoverService(crdcli redisfailoverclientset.Interface, logger log
 
 // ListRedisFailovers satisfies redisfailover.Service interface.
 func (r *RedisFailoverService) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
-	return r.crdClient.DatabasesV1().RedisFailovers(namespace).List(opts)
+	return r.crdClient.DatabasesV1().RedisFailovers(namespace).List(context.Background(), opts)
 }
 
 // WatchRedisFailovers satisfies redisfailover.Service interface.
 func (r *RedisFailoverService) WatchRedisFailovers(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return r.crdClient.DatabasesV1().RedisFailovers(namespace).Watch(opts)
+	return r.crdClient.DatabasesV1().RedisFailovers(namespace).Watch(context.Background(), opts)
 }

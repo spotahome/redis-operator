@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -41,7 +42,7 @@ func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger) *
 
 // GetStatefulSet will retrieve the requested statefulset based on namespace and name
 func (s *StatefulSetService) GetStatefulSet(namespace, name string) (*appsv1.StatefulSet, error) {
-	statefulSet, err := s.kubeClient.AppsV1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
+	statefulSet, err := s.kubeClient.AppsV1().StatefulSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -59,12 +60,12 @@ func (s *StatefulSetService) GetStatefulSetPods(namespace, name string) (*corev1
 		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
 	}
 	selector := strings.Join(labels, ",")
-	return s.kubeClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector})
+	return s.kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selector})
 }
 
 // CreateStatefulSet will create the given statefulset
 func (s *StatefulSetService) CreateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
-	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Create(statefulSet)
+	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Create(context.Background(), statefulSet, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func (s *StatefulSetService) CreateStatefulSet(namespace string, statefulSet *ap
 
 // UpdateStatefulSet will update the given statefulset
 func (s *StatefulSetService) UpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
-	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Update(statefulSet)
+	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Update(context.Background(), statefulSet, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -104,10 +105,10 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 // DeleteStatefulSet will delete the statefulset
 func (s *StatefulSetService) DeleteStatefulSet(namespace, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return s.kubeClient.AppsV1().StatefulSets(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation})
+	return s.kubeClient.AppsV1().StatefulSets(namespace).Delete(context.Background(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
 }
 
 // ListStatefulSets will retrieve a list of statefulset in the given namespace
 func (s *StatefulSetService) ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
-	return s.kubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+	return s.kubeClient.AppsV1().StatefulSets(namespace).List(context.Background(), metav1.ListOptions{})
 }
