@@ -129,8 +129,11 @@ func (c *client) ResetSentinel(ip string) error {
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	cmd := rediscli.NewIntCmd("SENTINEL", "reset", "*")
-	rClient.Process(cmd)
-	_, err := cmd.Result()
+	err := rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
+	_, err = cmd.Result()
 	if err != nil {
 		return err
 	}
@@ -185,18 +188,35 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	cmd := rediscli.NewBoolCmd("SENTINEL", "REMOVE", masterName)
-	rClient.Process(cmd)
+	err := rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
+	err = rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
 	// We'll continue even if it fails, the priority is to have the redises monitored
 	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, port, quorum)
-	rClient.Process(cmd)
-	_, err := cmd.Result()
+	err = rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
+	err = rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
+	_, err = cmd.Result()
 	if err != nil {
 		return err
 	}
 
 	if password != "" {
 		cmd = rediscli.NewBoolCmd("SENTINEL", "SET", masterName, "auth-pass", password)
-		rClient.Process(cmd)
+		err := rClient.Process(cmd)
+		if err != nil {
+			return err
+		}
 		_, err = cmd.Result()
 		if err != nil {
 			return err
@@ -246,7 +266,10 @@ func (c *client) GetSentinelMonitor(ip string) (string, string, error) {
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	cmd := rediscli.NewSliceCmd("SENTINEL", "master", masterName)
-	rClient.Process(cmd)
+	err := rClient.Process(cmd)
+	if err != nil {
+		return "", "", err
+	}
 	res, err := cmd.Result()
 	if err != nil {
 		return "", "", err
@@ -305,7 +328,10 @@ func (c *client) applyRedisConfig(parameter string, value string, rClient *redis
 
 func (c *client) applySentinelConfig(parameter string, value string, rClient *rediscli.Client) error {
 	cmd := rediscli.NewStatusCmd("SENTINEL", "set", masterName, parameter, value)
-	rClient.Process(cmd)
+	err := rClient.Process(cmd)
+	if err != nil {
+		return err
+	}
 	return cmd.Err()
 }
 

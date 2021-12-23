@@ -1,10 +1,5 @@
 package service
 
-const (
-	logNameField      = "redisfailover"
-	logNamespaceField = "namespace"
-)
-
 // variables refering to the redis exporter port
 const (
 	exporterPort                  = 9121
@@ -19,9 +14,7 @@ const (
 )
 
 const (
-	description            = "Manage a Redis Failover deployment"
 	baseName               = "rf"
-	bootstrapName          = "b"
 	sentinelName           = "s"
 	sentinelRoleName       = "sentinel"
 	sentinelConfigFileName = "sentinel.conf"
@@ -30,7 +23,6 @@ const (
 	redisShutdownName      = "r-s"
 	redisReadinessName     = "r-readiness"
 	redisRoleName          = "redis"
-	redisGroupName         = "mymaster"
 	appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
 )
