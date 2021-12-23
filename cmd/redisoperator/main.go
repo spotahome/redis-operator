@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"k8s.io/client-go/rest"
 
 	"github.com/spotahome/redis-operator/cmd/utils"
 	"github.com/spotahome/redis-operator/log"
@@ -28,10 +27,9 @@ const (
 
 // Main is the  main runner.
 type Main struct {
-	flags     *utils.CMDFlags
-	k8sConfig rest.Config
-	logger    log.Logger
-	stopC     chan struct{}
+	flags  *utils.CMDFlags
+	logger log.Logger
+	stopC  chan struct{}
 }
 
 // New returns a Main object.
