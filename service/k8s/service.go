@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +38,7 @@ func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger) *Serv
 }
 
 func (s *ServiceService) GetService(namespace string, name string) (*corev1.Service, error) {
-	service, err := s.kubeClient.CoreV1().Services(namespace).Get(name, metav1.GetOptions{})
+	service, err := s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +46,7 @@ func (s *ServiceService) GetService(namespace string, name string) (*corev1.Serv
 }
 
 func (s *ServiceService) CreateService(namespace string, service *corev1.Service) error {
-	_, err := s.kubeClient.CoreV1().Services(namespace).Create(service)
+	_, err := s.kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -64,7 +66,7 @@ func (s *ServiceService) CreateIfNotExistsService(namespace string, service *cor
 }
 
 func (s *ServiceService) UpdateService(namespace string, service *corev1.Service) error {
-	_, err := s.kubeClient.CoreV1().Services(namespace).Update(service)
+	_, err := s.kubeClient.CoreV1().Services(namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -91,9 +93,9 @@ func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1
 
 func (s *ServiceService) DeleteService(namespace string, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return s.kubeClient.CoreV1().Services(namespace).Delete(name, &metav1.DeleteOptions{PropagationPolicy: &propagation})
+	return s.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
 }
 
 func (s *ServiceService) ListServices(namespace string) (*corev1.ServiceList, error) {
-	return s.kubeClient.CoreV1().Services(namespace).List(metav1.ListOptions{})
+	return s.kubeClient.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 }
