@@ -10,7 +10,6 @@ import (
 
 // Service is the K8s service entrypoint.
 type Services interface {
-	CRD
 	ConfigMap
 	Secret
 	Pod
@@ -23,7 +22,6 @@ type Services interface {
 }
 
 type services struct {
-	CRD
 	ConfigMap
 	Secret
 	Pod
@@ -38,7 +36,6 @@ type services struct {
 // New returns a new Kubernetes service.
 func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger) Services {
 	return &services{
-		CRD:                 NewCRDService(apiextcli, logger),
 		ConfigMap:           NewConfigMapService(kubecli, logger),
 		Secret:              NewSecretService(kubecli, logger),
 		Pod:                 NewPodService(kubecli, logger),
