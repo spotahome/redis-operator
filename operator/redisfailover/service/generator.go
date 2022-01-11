@@ -193,13 +193,20 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
    IN_SYNC="master_sync_in_progress:1"
    NO_MASTER="master_host:127.0.0.1"
 
+   cmd="redis-cli"
+   if [[ ! -z "${REDIS_PASSWORD}" ]]; then
+        cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+   fi
+
+   cmd="${cmd} info replication"
+
    check_master(){
            exit 0
    }
 
    check_slave(){
-           in_sync=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $IN_SYNC | tr -d "\r" | tr -d "\n")
-           no_master=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $NO_MASTER | tr -d "\r" | tr -d "\n")
+           in_sync=$(echo "${cmd} | grep ${IN_SYNC} | tr -d \"\\r\" | tr -d \"\\n\"" | xargs -0 sh -c)  
+           no_master=$(echo "${cmd} | grep ${NO_MASTER} | tr -d \"\\r\" | tr -d \"\\n\"" |  xargs -0 sh -c) 
 
            if [ -z "$in_sync" ] && [ -z "$no_master" ]; then
                    exit 0
@@ -208,8 +215,7 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
            exit 1
    }
 
-   role=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
-
+   role=$(echo "${cmd} | grep $ROLE | tr -d \"\\r\" | tr -d \"\\n\"" | xargs -0 sh -c)
    case $role in
            $ROLE_MASTER)
                    check_master
