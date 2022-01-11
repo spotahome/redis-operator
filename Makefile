@@ -163,3 +163,11 @@ update-codegen:
 	-e GROUPS_VERSION="redisfailover:v1" \
 	-e GENERATION_TARGETS="deepcopy,client" \
 	$(CODEGEN_IMAGE)
+
+generate-crd:
+	docker run -it --rm \
+	-v $(PWD):/go/src/$(PROJECT_PACKAGE) \
+	-e GO_PROJECT_ROOT=/go/src/$(PROJECT_PACKAGE) \
+	-e CRD_TYPES_PATH=/go/src/$(PROJECT_PACKAGE)/api \
+	-e CRD_OUT_PATH=/go/src/$(PROJECT_PACKAGE)/manifests \
+	$(CODEGEN_IMAGE) update-crd.sh
