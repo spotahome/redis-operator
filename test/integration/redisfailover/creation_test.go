@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package redisfailover_test
@@ -8,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"

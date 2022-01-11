@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,12 +35,12 @@ type RedisFailoverHandler struct {
 	rfService  rfservice.RedisFailoverClient
 	rfChecker  rfservice.RedisFailoverCheck
 	rfHealer   rfservice.RedisFailoverHeal
-	mClient    metrics.Instrumenter
+	mClient    metrics.Recorder
 	logger     log.Logger
 }
 
 // NewRedisFailoverHandler returns a new RF handler
-func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Service, mClient metrics.Instrumenter, logger log.Logger) *RedisFailoverHandler {
+func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Service, mClient metrics.Recorder, logger log.Logger) *RedisFailoverHandler {
 	return &RedisFailoverHandler{
 		config:     config,
 		rfService:  rfService,
@@ -53,8 +52,8 @@ func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverCli
 	}
 }
 
-// Add will ensure the redis failover is in the expected state.
-func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error {
+// Handle will ensure the redis failover is in the expected state.
+func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) error {
 	rf, ok := obj.(*redisfailoverv1.RedisFailover)
 	if !ok {
 		return fmt.Errorf("can't handle the received object: not a redisfailover")
@@ -83,18 +82,6 @@ func (r *RedisFailoverHandler) Add(_ context.Context, obj runtime.Object) error 
 	}
 
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
-	return nil
-}
-
-// Delete handles the deletion of a RF.
-func (r *RedisFailoverHandler) Delete(_ context.Context, name string) error {
-	n := strings.Split(name, "/")
-	if len(n) >= 2 {
-		r.mClient.DeleteCluster(n[0], n[1])
-	}
-	// No need to do anything, it will be handled by the owner reference done
-	// on the creation.
-	r.logger.Debugf("ignoring, kubernetes GCs all using the objects OwnerReference metadata")
 	return nil
 }
 

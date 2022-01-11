@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"context"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,19 +40,19 @@ func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger) *RBACSer
 }
 
 func (r *RBACService) GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
-	return r.kubeClient.RbacV1().ClusterRoles().Get(name, metav1.GetOptions{})
+	return r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (r *RBACService) GetRole(namespace, name string) (*rbacv1.Role, error) {
-	return r.kubeClient.RbacV1().Roles(namespace).Get(name, metav1.GetOptions{})
+	return r.kubeClient.RbacV1().Roles(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (r *RBACService) GetRoleBinding(namespace, name string) (*rbacv1.RoleBinding, error) {
-	return r.kubeClient.RbacV1().RoleBindings(namespace).Get(name, metav1.GetOptions{})
+	return r.kubeClient.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (r *RBACService) DeleteRole(namespace, name string) error {
-	err := r.kubeClient.RbacV1().Roles(namespace).Delete(name, &metav1.DeleteOptions{})
+	err := r.kubeClient.RbacV1().Roles(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -59,7 +61,7 @@ func (r *RBACService) DeleteRole(namespace, name string) error {
 }
 
 func (r *RBACService) CreateRole(namespace string, role *rbacv1.Role) error {
-	_, err := r.kubeClient.RbacV1().Roles(namespace).Create(role)
+	_, err := r.kubeClient.RbacV1().Roles(namespace).Create(context.TODO(), role, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -68,7 +70,7 @@ func (r *RBACService) CreateRole(namespace string, role *rbacv1.Role) error {
 }
 
 func (s *RBACService) UpdateRole(namespace string, role *rbacv1.Role) error {
-	_, err := s.kubeClient.RbacV1().Roles(namespace).Update(role)
+	_, err := s.kubeClient.RbacV1().Roles(namespace).Update(context.TODO(), role, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -95,7 +97,7 @@ func (r *RBACService) CreateOrUpdateRole(namespace string, role *rbacv1.Role) er
 }
 
 func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
-	err := r.kubeClient.RbacV1().RoleBindings(namespace).Delete(name, &metav1.DeleteOptions{})
+	err := r.kubeClient.RbacV1().RoleBindings(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -104,7 +106,7 @@ func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
 }
 
 func (r *RBACService) CreateRoleBinding(namespace string, binding *rbacv1.RoleBinding) error {
-	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Create(binding)
+	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Create(context.TODO(), binding, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -113,7 +115,7 @@ func (r *RBACService) CreateRoleBinding(namespace string, binding *rbacv1.RoleBi
 }
 
 func (r *RBACService) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBinding) error {
-	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Update(binding)
+	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}

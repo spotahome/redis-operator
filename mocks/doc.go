@@ -12,9 +12,6 @@ package mocks // import "github.com/spotahome/redis-operator/mocks"
 // K8SClient mocks
 //go:generate mockery --output service/k8s --dir ../service/k8s --name Services
 
-// CRD mocks
-//go:generate mockery --output service/k8s --dir ../service/k8s --name CRD
-
 // RedisFailover mocks
 //go:generate mockery --output operator/redisfailover --dir ../service/k8s --name RedisFailover
 
