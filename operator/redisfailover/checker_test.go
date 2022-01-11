@@ -874,7 +874,7 @@ func TestUpdate(t *testing.T) {
 						}
 					}
 				}
-				fmt.Println(fmt.Sprintf("%v - %v", test.name, next))
+				fmt.Printf("%v - %v\n", test.name, next)
 				if next && !test.bootstrapping {
 					if test.noMaster {
 						mrfc.On("GetRedisesMasterPod", rf).Once().Return("", errors.New(""))

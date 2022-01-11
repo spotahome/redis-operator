@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,9 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	kmetrics "github.com/spotahome/kooper/monitoring/metrics"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"k8s.io/client-go/rest"
 
 	"github.com/spotahome/redis-operator/cmd/utils"
 	"github.com/spotahome/redis-operator/log"
@@ -28,10 +27,9 @@ const (
 
 // Main is the  main runner.
 type Main struct {
-	flags     *utils.CMDFlags
-	k8sConfig rest.Config
-	logger    log.Logger
-	stopC     chan struct{}
+	flags  *utils.CMDFlags
+	logger log.Logger
+	stopC  chan struct{}
 }
 
 // New returns a Main object.
@@ -54,19 +52,24 @@ func (m *Main) Run() error {
 
 	// Set correct logging.
 	if m.flags.Debug {
-		m.logger.Set("debug")
+		err := m.logger.Set("debug")
+		if err != nil {
+			return err
+		}
 		m.logger.Debugf("debug mode activated")
 	}
 
 	// Create the metrics client.
-	registry := prometheus.NewRegistry()
-	metricsServer := metrics.NewPrometheusMetrics(m.flags.MetricsPath, metricsNamespace, http.DefaultServeMux, registry)
-	kooperMetricsServer := kmetrics.NewPrometheus(registry)
+	metricsRecorder := metrics.NewRecorder(metricsNamespace, prometheus.DefaultRegisterer)
+	//kooperMetricsServer := kmetrics.NewPrometheus(registry)
 
 	// Serve metrics.
 	go func() {
 		log.Infof("Listening on %s for metrics exposure", m.flags.ListenAddr)
-		http.ListenAndServe(m.flags.ListenAddr, nil)
+		err := http.ListenAndServe(m.flags.ListenAddr, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	// Kubernetes clients.
@@ -82,9 +85,13 @@ func (m *Main) Run() error {
 	redisClient := redis.New()
 
 	// Create operator and run.
-	redisfailoverOperator := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, redisClient, metricsServer, kooperMetricsServer, m.logger)
+	redisfailoverOperator, err := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, redisClient, metricsRecorder, m.logger)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		errC <- redisfailoverOperator.Run(m.stopC)
+		errC <- redisfailoverOperator.Run(context.Background())
 	}()
 
 	// Await signals.

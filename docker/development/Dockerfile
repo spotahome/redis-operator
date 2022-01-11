@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.17-alpine
 
 ENV CODEGEN_VERSION="1.11.9"
 
@@ -15,11 +15,6 @@ RUN wget http://github.com/kubernetes/code-generator/archive/kubernetes-${CODEGE
     tar zxvf kubernetes-${CODEGEN_VERSION}.tar.gz --strip 1 -C /go/src/k8s.io/code-generator/ && \
     mkdir -p /go/src/k8s.io/kubernetes/hack/boilerplate/ && \
     touch /go/src/k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt
-
-# Go dep installation
-RUN go get -u github.com/golang/dep/cmd/dep \
-    && mkdir -p /go/pkg/dep \
-    && chmod 777 /go/pkg/dep
 
 # Mock creator
 ARG MOCKERY_VERSION="2.9.4"

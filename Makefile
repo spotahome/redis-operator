@@ -27,6 +27,8 @@ COMMIT=$(shell git rev-parse HEAD)
 # Branch from git
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
+PROJECT_PACKAGE := github.com/spotahome/redis-operator
+CODEGEN_IMAGE := quay.io/slok/kube-code-generator:v1.22.0
 PORT := 9710
 
 # CMDs
@@ -34,7 +36,6 @@ UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
 GET_DEPS_CMD := dep ensure
 UPDATE_DEPS_CMD := dep ensure
-UPDATE_CODEGEN_CMD := ./hack/update-codegen.sh
 MOCKS_CMD := go generate ./mocks
 
 # environment dirs
@@ -152,6 +153,21 @@ endif
 
 # Generate kubernetes code for types..
 .PHONY: update-codegen
-update-codegen: docker-build
+update-codegen:
 	@echo ">> Generating code for Kubernetes CRD types..."
-	docker run --rm -v $(PWD):/go/src/github.com/spotahome/redis-operator/ $(REPOSITORY)-dev /bin/bash -c '$(UPDATE_CODEGEN_CMD)'
+	docker run --rm -it \
+	-v $(PWD):/go/src/$(PROJECT_PACKAGE) \
+	-e PROJECT_PACKAGE=$(PROJECT_PACKAGE) \
+	-e CLIENT_GENERATOR_OUT=$(PROJECT_PACKAGE)/client/k8s \
+	-e APIS_ROOT=$(PROJECT_PACKAGE)/api \
+	-e GROUPS_VERSION="redisfailover:v1" \
+	-e GENERATION_TARGETS="deepcopy,client" \
+	$(CODEGEN_IMAGE)
+
+generate-crd:
+	docker run -it --rm \
+	-v $(PWD):/go/src/$(PROJECT_PACKAGE) \
+	-e GO_PROJECT_ROOT=/go/src/$(PROJECT_PACKAGE) \
+	-e CRD_TYPES_PATH=/go/src/$(PROJECT_PACKAGE)/api \
+	-e CRD_OUT_PATH=/go/src/$(PROJECT_PACKAGE)/manifests \
+	$(CODEGEN_IMAGE) update-crd.sh

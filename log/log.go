@@ -40,6 +40,7 @@ type Logger interface {
 
 	With(key string, value interface{}) Logger
 	WithField(key string, value interface{}) Logger
+	WithFields(values map[string]interface{}) Logger
 	Set(level Level) error
 }
 
@@ -126,6 +127,10 @@ func (l logger) With(key string, value interface{}) Logger {
 
 func (l logger) WithField(key string, value interface{}) Logger {
 	return &logger{l.entry.WithField(key, value)}
+}
+
+func (l logger) WithFields(values map[string]interface{}) Logger {
+	return &logger{l.entry.WithFields(logrus.Fields(values))}
 }
 
 func (l *logger) Set(level Level) error {

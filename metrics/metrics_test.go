@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/stretchr/testify/assert"
 
@@ -17,14 +18,14 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		addMetrics func(pm *metrics.PromMetrics)
+		addMetrics func(rec metrics.Recorder)
 		expMetrics []string
 		expCode    int
 	}{
 		{
 			name: "Setting OK should give an OK",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
@@ -33,8 +34,8 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Setting Error should give an Error",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterError("testns", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterError("testns", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 0`,
@@ -43,9 +44,9 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Setting Error after ok should give an Error",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns", "test")
-				pm.SetClusterError("testns", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns", "test")
+				rec.SetClusterError("testns", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 0`,
@@ -54,9 +55,9 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Setting OK after Error should give an OK",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterError("testns", "test")
-				pm.SetClusterOK("testns", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterError("testns", "test")
+				rec.SetClusterOK("testns", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
@@ -65,9 +66,9 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Multiple clusters should appear",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns", "test")
-				pm.SetClusterOK("testns", "test2")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns", "test")
+				rec.SetClusterOK("testns", "test2")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns"} 1`,
@@ -77,9 +78,9 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Same name on different namespaces should appear",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns1", "test")
-				pm.SetClusterOK("testns2", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns1", "test")
+				rec.SetClusterOK("testns2", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns1"} 1`,
@@ -89,19 +90,19 @@ func TestPrometheusMetrics(t *testing.T) {
 		},
 		{
 			name: "Deleting a cluster should remove it",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns1", "test")
-				pm.DeleteCluster("testns1", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns1", "test")
+				rec.DeleteCluster("testns1", "test")
 			},
 			expMetrics: []string{},
 			expCode:    http.StatusOK,
 		},
 		{
 			name: "Deleting a cluster should remove only the desired one",
-			addMetrics: func(pm *metrics.PromMetrics) {
-				pm.SetClusterOK("testns1", "test")
-				pm.SetClusterOK("testns2", "test")
-				pm.DeleteCluster("testns1", "test")
+			addMetrics: func(rec metrics.Recorder) {
+				rec.SetClusterOK("testns1", "test")
+				rec.SetClusterOK("testns2", "test")
+				rec.DeleteCluster("testns1", "test")
 			},
 			expMetrics: []string{
 				`my_metrics_controller_cluster_ok{name="test",namespace="testns2"} 1`,
@@ -114,20 +115,17 @@ func TestPrometheusMetrics(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			path := "/awesome-metrics"
-
 			// Create the muxer for testing.
-			mx := http.NewServeMux()
 			reg := prometheus.NewRegistry()
-			pm := metrics.NewPrometheusMetrics(path, "my_metrics", mx, reg)
+			rec := metrics.NewRecorder("my_metrics", reg)
 
 			// Add metrics to prometheus.
-			test.addMetrics(pm)
+			test.addMetrics(rec)
 
 			// Make the request to the metrics.
-			req := httptest.NewRequest("GET", path, nil)
+			h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 			w := httptest.NewRecorder()
-			mx.ServeHTTP(w, req)
+			h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 
 			resp := w.Result()
 			if assert.Equal(test.expCode, resp.StatusCode) {

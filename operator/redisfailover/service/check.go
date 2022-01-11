@@ -233,7 +233,7 @@ func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisF
 			continue
 		}
 		start := redisNode.Status.StartTime.Round(time.Second)
-		alive := time.Now().Sub(start)
+		alive := time.Since(start)
 		r.logger.Debugf("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
 		if alive < minTime {
 			minTime = alive
@@ -325,7 +325,7 @@ func (r *RedisFailoverChecker) GetRedisRevisionHash(podName string, rFailover *r
 		return "", errors.New("labels not found")
 	}
 
-	val, _ := pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey]
+	val := pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey]
 
 	return val, nil
 }
