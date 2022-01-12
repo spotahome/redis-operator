@@ -188,21 +188,10 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	cmd := rediscli.NewBoolCmd("SENTINEL", "REMOVE", masterName)
-	err := rClient.Process(cmd)
-	if err != nil {
-		return err
-	}
-	err = rClient.Process(cmd)
-	if err != nil {
-		return err
-	}
+	_ = rClient.Process(cmd)
 	// We'll continue even if it fails, the priority is to have the redises monitored
 	cmd = rediscli.NewBoolCmd("SENTINEL", "MONITOR", masterName, monitor, port, quorum)
-	err = rClient.Process(cmd)
-	if err != nil {
-		return err
-	}
-	err = rClient.Process(cmd)
+	err := rClient.Process(cmd)
 	if err != nil {
 		return err
 	}

@@ -21,3 +21,21 @@ jobs:
         with:
           go-version: 1.17
       - run: make ci-unit-test
+
+  integration-test:
+    name: Integration test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Install conntrack
+        run: sudo apt-get install -y conntrack
+      - uses: medyagh/setup-minikube@v0.0.7
+        with:
+          kubernetes-version: 1.22.2
+          driver: none
+      - name: Add redisfailover CRD
+        run: kubectl apply -f manifests/databases.spotahome.com_redisfailovers.yaml
+      - run: make ci-integration-test
