@@ -1,4 +1,20 @@
 # Changelog
+## [v1.1.0-rc.1] - 2022-01-12
+
+### Major Changes
+- Add bootstrap from node
+- Custom Resource Definition management is removed from operator logic. It must be added to the API, helm chart manage it now or can be applied with kubectl
+- Upgraded libraries to match kubernetes 1.22
+- Enable customization for `terminationGracePeriod`
+- Fix support for redis 6.2>
+- Fix ClusterRole compatible with openshift
+- Improve reiliability on liveness probes
+- Enable customization of nodeSelector and Tolerations
+- Enable customization for command and args in exporter
+- Improve auth handling
+- Support priorityclassname
+
+Thanks all contributors: @alecjacobs5401, @andriilahuta, @chusAlvarez, @Perfect-Web, Ilya Lesikov, @bit-cloner, Gregory Farnell, @technoplayer, @ThickDrinkLots, @ese, @identw, @LukeCarrier, @k3daevin, @dkulchinsky, @lucming, @cndoit18, @hoffoo, @chlins, @obsessionsys
 
 ## [v1.0.0] - 2020-02-24
 
@@ -303,6 +319,8 @@ example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 
 - Initial open-sourced release
 
+
+[v1.1.0-rc.1]: https://github.com/spotahome/redis-operator/compare/v1.0.0...v1.1.0-rc.1
 [v1.0.0]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0
 [v1.0.0-rc.5]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [v1.0.0-rc.4]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.3...v1.0.0-rc.4
