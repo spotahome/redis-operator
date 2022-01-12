@@ -34,7 +34,7 @@ PORT := 9710
 # CMDs
 UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
-GO_INTEGRATION_TEST_CMD := go list ./... | grep test/integration` -v -tags='integration'
+GO_INTEGRATION_TEST_CMD := go test `go list ./... | grep test/integration` -v -tags='integration'
 GET_DEPS_CMD := dep ensure
 UPDATE_DEPS_CMD := dep ensure
 MOCKS_CMD := go generate ./mocks
