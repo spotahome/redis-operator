@@ -36,4 +36,6 @@ jobs:
         with:
           kubernetes-version: 1.22.2
           driver: none
+      - name: Add redisfailover CRD
+        run: kubectl apply -f manifests/databases.spotahome.com_redisfailovers.yaml
       - run: make ci-integration-test
