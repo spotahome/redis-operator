@@ -1,13 +1,13 @@
 # redis-operator
 
-[![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator)
+[![Build Status](https://github.com/spotahome/redis-operator/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/spotahome/redis-operator)
 [![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
 
 Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
 ## Requirements
 
-Redis Operator is meant to be run on Kubernetes 1.9+.
+Redis Operator is meant to be run on Kubernetes 1.19+.
 All dependencies have been vendored, so there's no need to any additional download.
 
 ### Versions deployed
