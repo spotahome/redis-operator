@@ -4,6 +4,7 @@
 package redisfailover_test
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/util/homedir"
 
@@ -52,12 +54,12 @@ func (c *clients) prepareNS() error {
 			Name: namespace,
 		},
 	}
-	_, err := c.k8sClient.CoreV1().Namespaces().Create(ns)
+	_, err := c.k8sClient.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 	return err
 }
 
 func (c *clients) cleanup(stopC chan struct{}) {
-	c.k8sClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
+	c.k8sClient.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
 	close(stopC)
 }
 
@@ -98,9 +100,11 @@ func TestRedisFailover(t *testing.T) {
 	time.Sleep(15 * time.Second)
 
 	// Create operator and run.
-	redisfailoverOperator := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, kmetrics.Dummy, log.Dummy)
+	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
+	require.NoError(err)
+
 	go func() {
-		errC <- redisfailoverOperator.Run(stopC)
+		errC <- redisfailoverOperator.Run(context.Background())
 	}()
 
 	// Prepare cleanup for when the test ends
@@ -119,7 +123,7 @@ func TestRedisFailover(t *testing.T) {
 			"password": []byte(testPass),
 		},
 	}
-	_, err = stdclient.CoreV1().Secrets(namespace).Create(secret)
+	_, err = stdclient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 	require.NoError(err)
 
 	// Check that if we create a RedisFailover, it is certainly created and we can get it
@@ -174,8 +178,8 @@ func (c *clients) testCRCreation(t *testing.T) {
 		},
 	}
 
-	c.rfClient.DatabasesV1().RedisFailovers(namespace).Create(toCreate)
-	gotRF, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Get(name, metav1.GetOptions{})
+	c.rfClient.DatabasesV1().RedisFailovers(namespace).Create(context.Background(), toCreate, metav1.CreateOptions{})
+	gotRF, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Get(context.Background(), name, metav1.GetOptions{})
 
 	assert.NoError(err)
 	assert.Equal(toCreate.Spec, gotRF.Spec)
@@ -183,14 +187,14 @@ func (c *clients) testCRCreation(t *testing.T) {
 
 func (c *clients) testRedisStatefulSet(t *testing.T) {
 	assert := assert.New(t)
-	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Equal(redisSize, int32(redisSS.Status.Replicas))
 }
 
 func (c *clients) testSentinelDeployment(t *testing.T) {
 	assert := assert.New(t)
-	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
+	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(context.Background(), fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Equal(3, int(sentinelD.Status.Replicas))
 }
@@ -199,13 +203,15 @@ func (c *clients) testRedisMaster(t *testing.T) {
 	assert := assert.New(t)
 	masters := []string{}
 
-	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(redisSS.Spec.Selector.MatchLabels),
 	}
-	redisPodList, err := c.k8sClient.CoreV1().Pods(namespace).List(listOptions)
+
+	redisPodList, err := c.k8sClient.CoreV1().Pods(namespace).List(context.Background(), listOptions)
+
 	assert.NoError(err)
 
 	for _, pod := range redisPodList.Items {
@@ -222,13 +228,13 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 	assert := assert.New(t)
 	masters := []string{}
 
-	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
+	sentinelD, err := c.k8sClient.AppsV1().Deployments(namespace).Get(context.Background(), fmt.Sprintf("rfs-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(sentinelD.Spec.Selector.MatchLabels),
 	}
-	sentinelPodList, err := c.k8sClient.CoreV1().Pods(namespace).List(listOptions)
+	sentinelPodList, err := c.k8sClient.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 	assert.NoError(err)
 
 	for _, pod := range sentinelPodList.Items {
@@ -250,12 +256,12 @@ func (c *clients) testAuth(t *testing.T) {
 
 	assert := assert.New(t)
 
-	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Contains(redisCfg.Data["redis.conf"], "requirepass "+testPass)
 	assert.Contains(redisCfg.Data["redis.conf"], "masterauth "+testPass)
 
-	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
 	assert.NoError(err)
 
 	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
