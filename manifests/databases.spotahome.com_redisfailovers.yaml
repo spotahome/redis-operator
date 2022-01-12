@@ -13,10 +13,25 @@ spec:
     kind: RedisFailover
     listKind: RedisFailoverList
     plural: redisfailovers
+    shortNames:
+    - rf
     singular: redisfailover
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.name
+      name: NAME
+      type: string
+    - jsonPath: .spec.redis.replicas
+      name: REDIS
+      type: integer
+    - jsonPath: .spec.sentinel.replicas
+      name: SENTINELS
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
         description: RedisFailover represents a Redis failover
@@ -1600,6 +1615,9 @@ spec:
                             type: object
                         type: object
                     type: object
+                  terminationGracePeriod:
+                    format: int64
+                    type: integer
                   tolerations:
                     items:
                       description: The pod this Toleration is attached to tolerates
@@ -2925,6 +2943,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""
