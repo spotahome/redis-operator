@@ -34,6 +34,7 @@ PORT := 9710
 # CMDs
 UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
+GO_INTEGRATION_TEST_CMD := go list ./... | grep test/integration` -v -tags='integration'
 GET_DEPS_CMD := dep ensure
 UPDATE_DEPS_CMD := dep ensure
 MOCKS_CMD := go generate ./mocks
@@ -112,6 +113,10 @@ unit-test: docker-build
 ci-unit-test:
 	$(UNIT_TEST_CMD)
 
+.PHONY: ci-integration-test
+ci-integration-test:
+	$(GO_INTEGRATION_TEST_CMD)
+
 .PHONY: integration-test
 integration-test:
 	./scripts/integration-tests.sh
@@ -122,7 +127,7 @@ helm-test:
 
 # Run all tests
 .PHONY: test
-test: ci-unit-test integration-test helm-test
+test: ci-unit-test ci-integration-test helm-test
 
 .PHONY: go-generate
 go-generate: docker-build
