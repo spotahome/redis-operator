@@ -39,7 +39,9 @@ This will create a deployment named `redisoperator`.
 From the root folder of the project, execute the following:
 
 ```
-helm install --name redisfailover charts/redisoperator
+helm repo add redis-operator https://spotahome.github.io/redis-operator
+helm repo update
+helm install redis-operator redis-operator/redis-operator
 ```
 
 ## Usage
