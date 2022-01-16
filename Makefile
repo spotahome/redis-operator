@@ -23,9 +23,21 @@ UID := $(shell id -u)
 
 # Commit hash from git
 COMMIT=$(shell git rev-parse HEAD)
+GITTAG_COMMIT := $(shell git rev-list --tags --max-count=1)
+GITTAG := $(shell git describe --abbrev=0 --tags ${GITTAG_COMMIT} 2>/dev/null || true)
 
 # Branch from git
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
+
+TAG := $(GITTAG:v%=%)
+ifneq ($(COMMIT), $(GITTAG_COMMIT))
+    TAG := $(COMMIT)
+endif
+
+ifneq ($(shell git status --porcelain),)
+    TAG := $(TAG)-dirty
+endif
+
 
 PROJECT_PACKAGE := github.com/spotahome/redis-operator
 CODEGEN_IMAGE := quay.io/slok/kube-code-generator:v1.22.0
@@ -86,6 +98,18 @@ image: deps-development
 	-f $(APP_DIR)/Dockerfile \
 	.
 
+.PHONY: image-release
+image-release:
+	docker buildx build \
+	--platform linux/amd64,linux/arm64,linux/arm/v7 \
+	--push \
+	--build-arg VERSION=$(TAG) \
+	-t $(REPOSITORY):latest \
+	-t $(REPOSITORY):$(COMMIT) \
+	-t $(REPOSITORY):$(TAG) \
+	-f $(APP_DIR)/Dockerfile \
+	.
+
 .PHONY: testing
 testing: image
 	docker push $(REPOSITORY):$(BRANCH)
@@ -102,7 +126,7 @@ publish:
 	docker push $(REPOSITORY):latest
 
 .PHONY: release
-release: tag image publish
+release: tag image-release
 
 # Test stuff in dev
 .PHONY: unit-test
