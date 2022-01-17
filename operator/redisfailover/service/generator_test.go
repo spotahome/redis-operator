@@ -248,6 +248,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
@@ -266,8 +270,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 				},
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -354,6 +358,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 								OwnerReferences: []metav1.OwnerReference{
@@ -377,8 +385,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 				},
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -465,6 +473,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
@@ -484,8 +496,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
 				KeepAfterDeletion: true,
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{

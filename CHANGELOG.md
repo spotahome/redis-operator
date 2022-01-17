@@ -1,4 +1,14 @@
 # Changelog
+##  [v1.1.0-rc.2] - X
+
+
+Update notes:
+
+Ensure you update the CRD definition since CRD is no longer managed by the operator:
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/basic.yaml
+```
+
 ## [v1.1.0-rc.1] - 2022-01-12
 
 ### Major Changes
