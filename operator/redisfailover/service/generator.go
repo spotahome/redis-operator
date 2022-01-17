@@ -6,7 +6,6 @@ import (
 	"bytes"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -263,9 +262,9 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 			ServiceName: name,
 			Replicas:    &rf.Spec.Redis.Replicas,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: v1.OnDeleteStatefulSetStrategyType,
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
 			},
-			PodManagementPolicy: v1.ParallelPodManagement,
+			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -340,12 +339,26 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.Storage.PersistentVolumeClaim != nil {
+		pvc := corev1.PersistentVolumeClaim{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "PersistentVolumeClaim",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Name,
+				Labels:            rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Labels,
+				Annotations:       rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Annotations,
+				CreationTimestamp: metav1.Time{},
+			},
+			Spec:   rf.Spec.Redis.Storage.PersistentVolumeClaim.Spec,
+			Status: rf.Spec.Redis.Storage.PersistentVolumeClaim.Status,
+		}
 		if !rf.Spec.Redis.Storage.KeepAfterDeletion {
 			// Set an owner reference so the persistent volumes are deleted when the RF is
-			rf.Spec.Redis.Storage.PersistentVolumeClaim.OwnerReferences = ownerRefs
+			pvc.OwnerReferences = ownerRefs
 		}
 		ss.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
-			*rf.Spec.Redis.Storage.PersistentVolumeClaim,
+			pvc,
 		}
 	}
 
