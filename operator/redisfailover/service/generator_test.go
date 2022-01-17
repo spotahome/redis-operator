@@ -248,6 +248,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
@@ -354,6 +358,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 								OwnerReferences: []metav1.OwnerReference{
@@ -465,6 +473,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
