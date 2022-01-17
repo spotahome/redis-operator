@@ -10,29 +10,9 @@ Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 Redis Operator is meant to be run on Kubernetes 1.19+.
 All dependencies have been vendored, so there's no need to any additional download.
 
-### Versions deployed
-
-The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
-
-## Images
-
-### Redis Operator
-
-[![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
-
 ## Operator deployment on kubernetes
 
 In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with [deployment](example/operator) or with the provided [Helm chart](charts/redisoperator).
-
-### Using a Deployment
-
-To create the operator, you can directly create it with kubectl:
-
-```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
-```
-
-This will create a deployment named `redisoperator`.
 
 ### Using the Helm chart
 
@@ -43,6 +23,27 @@ helm repo add redis-operator https://spotahome.github.io/redis-operator
 helm repo update
 helm install redis-operator redis-operator/redis-operator
 ```
+
+#### Update helm chart
+
+Helm chart only manage the creation of CRD in the first install. In order to update the CRD you will need to apply directly.
+
+```
+kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml
+```
+
+```
+helm upgrade redis-operator redis-operator/redis-operator
+```
+### Using kubectl
+
+To create the operator, you can directly create it with kubectl:
+
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
+```
+
+This will create a deployment named `redisoperator`.
 
 ## Usage
 
@@ -211,13 +212,16 @@ This allows for ease of bootstrapping from an existing `RedisFailover` instance 
 When `allowSentinels` is provided, the Operator will also create the defined Sentinel resources. These sentinels will be configured to point to the provided
 `bootstrapNode` as their monitored master.
 
+### Default versions
+
+The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
 ## Cleanup
 
 ### Operator and CRD
 
 If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted.
 
-Also, the CRD has to be deleted too:
+Also, the CRD has to be deleted. Deleting CRD automatically wil delete all redis failover custom resources and their managed resources:
 
 ```
 kubectl delete crd redisfailovers.databases.spotahome.com
@@ -231,6 +235,11 @@ Thanks to Kubernetes' `OwnerReference`, all the objects created from a redis-fai
 kubectl delete redisfailover <NAME>
 ```
 
+## Docker Images
+
+### Redis Operator
+
+[![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 ## Documentation
 
 For the code documentation, you can lookup on the [GoDoc](https://godoc.org/github.com/spotahome/redis-operator).
