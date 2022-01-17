@@ -1,6 +1,9 @@
 # Changelog
-##  [v1.1.0-rc.2] - X
-
+##  [v1.1.0-rc.2] - 2022-01-17
+### Changes
+- Allow configuration of exporter resource
+- Fix persistent volume claim metadata management
+- Add arm64,arm,amd64 docker images 
 
 Update notes:
 
