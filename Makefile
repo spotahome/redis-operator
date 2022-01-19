@@ -1,4 +1,4 @@
-VERSION := v1.1.0-rc.2
+VERSION := v1.1.0-rc.3
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -29,7 +29,7 @@ GITTAG := $(shell git describe --abbrev=0 --tags ${GITTAG_COMMIT} 2>/dev/null ||
 # Branch from git
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
-TAG := $(GITTAG:v%=%)
+TAG := $(GITTAG)
 ifneq ($(COMMIT), $(GITTAG_COMMIT))
     TAG := $(COMMIT)
 endif

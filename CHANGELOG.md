@@ -1,5 +1,9 @@
 # Changelog
-##  [v1.1.0-rc.2] - 2022-01-17
+## [v1.1.0-rc.3] - 2022-01-19
+### Changes
+- Fixed support for kubernetes <1.21
+
+## [v1.1.0-rc.2] - 2022-01-17
 ### Changes
 - Allow configuration of exporter resource
 - Fix persistent volume claim metadata management
