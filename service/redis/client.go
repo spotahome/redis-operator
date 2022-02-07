@@ -3,7 +3,7 @@ package redis
 import (
 	"errors"
 	"fmt"
-        "net"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
