@@ -3,6 +3,7 @@ package redis
 import (
 	"errors"
 	"fmt"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -60,7 +61,7 @@ var (
 // GetNumberSentinelsInMemory return the number of sentinels that the requested sentinel has
 func (c *client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -87,7 +88,7 @@ func (c *client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 // GetNumberSentinelsInMemory return the number of sentinels that the requested sentinel has
 func (c *client) GetNumberSentinelSlavesInMemory(ip string) (int32, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -122,7 +123,7 @@ func isSentinelReady(info string) error {
 // ResetSentinel sends a sentinel reset * for the given sentinel
 func (c *client) ResetSentinel(ip string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -143,7 +144,7 @@ func (c *client) ResetSentinel(ip string) error {
 // GetSlaveOf returns the master of the given redis, or nil if it's master
 func (c *client) GetSlaveOf(ip, password string) (string, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Addr:     net.JoinHostPort(ip, redisPort),
 		Password: password,
 		DB:       0,
 	}
@@ -162,7 +163,7 @@ func (c *client) GetSlaveOf(ip, password string) (string, error) {
 
 func (c *client) IsMaster(ip, password string) (bool, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Addr:     net.JoinHostPort(ip, redisPort),
 		Password: password,
 		DB:       0,
 	}
@@ -181,7 +182,7 @@ func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
 
 func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -216,7 +217,7 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 
 func (c *client) MakeMaster(ip string, password string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Addr:     net.JoinHostPort(ip, redisPort),
 		Password: password,
 		DB:       0,
 	}
@@ -234,7 +235,7 @@ func (c *client) MakeSlaveOf(ip, masterIP, password string) error {
 
 func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort), // this is IP and Port for the RedisFailover redis
+		Addr:     net.JoinHostPort(ip, redisPort), // this is IP and Port for the RedisFailover redis
 		Password: password,
 		DB:       0,
 	}
@@ -248,7 +249,7 @@ func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) 
 
 func (c *client) GetSentinelMonitor(ip string) (string, string, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -270,7 +271,7 @@ func (c *client) GetSentinelMonitor(ip string) (string, string, error) {
 
 func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, sentinelPort),
+		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
 		DB:       0,
 	}
@@ -291,7 +292,7 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 
 func (c *client) SetCustomRedisConfig(ip string, configs []string, password string) error {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Addr:     net.JoinHostPort(ip, redisPort),
 		Password: password,
 		DB:       0,
 	}
@@ -334,7 +335,7 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 
 func (c *client) SlaveIsReady(ip, password string) (bool, error) {
 	options := &rediscli.Options{
-		Addr:     fmt.Sprintf("%s:%s", ip, redisPort),
+		Addr:     net.JoinHostPort(ip, redisPort),
 		Password: password,
 		DB:       0,
 	}
