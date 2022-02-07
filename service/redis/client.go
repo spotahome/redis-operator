@@ -3,10 +3,10 @@ package redis
 import (
 	"errors"
 	"fmt"
+        "net"
 	"regexp"
 	"strconv"
 	"strings"
-        "net"
 
 	rediscli "github.com/go-redis/redis"
 )
