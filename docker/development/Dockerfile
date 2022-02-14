@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.17-alpine
 
 ENV CODEGEN_VERSION="1.11.9"
 
@@ -16,13 +16,9 @@ RUN wget http://github.com/kubernetes/code-generator/archive/kubernetes-${CODEGE
     mkdir -p /go/src/k8s.io/kubernetes/hack/boilerplate/ && \
     touch /go/src/k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt
 
-# Go dep installation
-RUN go get -u github.com/golang/dep/cmd/dep \
-    && mkdir -p /go/pkg/dep \
-    && chmod 777 /go/pkg/dep
-
 # Mock creator
-RUN go get github.com/vektra/mockery/.../
+ARG MOCKERY_VERSION="2.9.4"
+RUN wget -c https://github.com/vektra/mockery/releases/download/v${MOCKERY_VERSION}/mockery_${MOCKERY_VERSION}_$(uname -o)_$(uname -m).tar.gz -O - | tar -xz -C /go/bin/
 
 # Create user
 ARG uid=1000

@@ -1,16 +1,20 @@
-FROM golang:1.13-alpine
+FROM --platform=$BUILDPLATFORM golang:1.17-alpine AS build
+RUN apk --no-cache add \
+  bash
 
-WORKDIR /go/src/github.com/spotahome/redis-operator
+WORKDIR /src
 COPY . .
-RUN ./scripts/build.sh
+
+ARG TARGETOS TARGETARCH VERSION
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH VERSION=$VERSION ./scripts/build.sh
 
 FROM alpine:latest
 RUN apk --no-cache add \
   ca-certificates
-COPY --from=0 /go/src/github.com/spotahome/redis-operator/bin/linux/redis-operator /usr/local/bin
+COPY --from=build /src/bin/redis-operator /usr/local/bin
 RUN addgroup -g 1000 rf && \
-    adduser -D -u 1000 -G rf rf && \
-    chown rf:rf /usr/local/bin/redis-operator
+  adduser -D -u 1000 -G rf rf && \
+  chown rf:rf /usr/local/bin/redis-operator
 USER rf
 
 ENTRYPOINT ["/usr/local/bin/redis-operator"]

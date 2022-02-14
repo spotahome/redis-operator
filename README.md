@@ -1,46 +1,50 @@
 # redis-operator
 
-[![Build Status](https://travis-ci.org/spotahome/redis-operator.png)](https://travis-ci.org/spotahome/redis-operator)
-[![Go Report Card](http://goreportcard.com/badge/spotahome/redis-operator)](http://goreportcard.com/report/spotahome/redis-operator)
+[![Build Status](https://github.com/spotahome/redis-operator/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/spotahome/redis-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/spotahome/redis-operator)](https://goreportcard.com/report/github.com/spotahome/redis-operator)
 
 Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
 ## Requirements
 
-Redis Operator is meant to be run on Kubernetes 1.9+.
+Redis Operator is meant to be run on Kubernetes 1.19+.
 All dependencies have been vendored, so there's no need to any additional download.
-
-### Versions deployed
-
-The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
-
-## Images
-
-### Redis Operator
-
-[![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 
 ## Operator deployment on kubernetes
 
 In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with [deployment](example/operator) or with the provided [Helm chart](charts/redisoperator).
-
-### Using a Deployment
-
-To create the operator, you can directly create it with kubectl:
-
-```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
-```
-
-This will create a deployment named `redisoperator`.
 
 ### Using the Helm chart
 
 From the root folder of the project, execute the following:
 
 ```
-helm install --name redisfailover charts/redisoperator
+helm repo add redis-operator https://spotahome.github.io/redis-operator
+helm repo update
+helm install redis-operator redis-operator/redis-operator
 ```
+
+#### Update helm chart
+
+Helm chart only manage the creation of CRD in the first install. In order to update the CRD you will need to apply directly.
+
+```
+kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml
+```
+
+```
+helm upgrade redis-operator redis-operator/redis-operator
+```
+### Using kubectl
+
+To create the operator, you can directly create it with kubectl:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml
+kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
+```
+
+This will create a deployment named `redisoperator`.
 
 ## Usage
 
@@ -118,11 +122,16 @@ By default, redis and sentinel will be called with the basic command, giving the
 
 If necessary, this command can be changed with the `command` option inside redis/sentinel spec. An example can be found in the [custom command example file](example/redisfailover/custom-command.yaml).
 
+### Custom Priority Class
+In order to use a custom Kubernetes [Priority Class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass) for Redis and/or Sentinel pods, you can set the `priorityClassName` in the redis/sentinel spec, this attribute has no default and depends on the specific cluster configuration. **Note:** the operator doesn't create the referenced `Priority Class` resource.
+
+### Custom Service Account
+In order to use a custom Kubernetes [Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) for Redis and/or Sentinel pods, you can set the `serviceAccountName` in the redis/sentinel spec, if not specified the `default` Service Account will be used. **Note:** the operator doesn't create the referenced `Service Account` resource.
+
 ### Custom Pod Annotations
 By default, no pod annotations will be applied to Redis nor Sentinel pods.
 
 In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
-
 ### Custom Service Annotations
 By default, no service annotations will be applied to the Redis nor Sentinel services.
 
@@ -210,13 +219,16 @@ This allows for ease of bootstrapping from an existing `RedisFailover` instance 
 When `allowSentinels` is provided, the Operator will also create the defined Sentinel resources. These sentinels will be configured to point to the provided
 `bootstrapNode` as their monitored master.
 
+### Default versions
+
+The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
 ## Cleanup
 
 ### Operator and CRD
 
 If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted.
 
-Also, the CRD has to be deleted too:
+Also, the CRD has to be deleted. Deleting CRD automatically wil delete all redis failover custom resources and their managed resources:
 
 ```
 kubectl delete crd redisfailovers.databases.spotahome.com
@@ -230,6 +242,11 @@ Thanks to Kubernetes' `OwnerReference`, all the objects created from a redis-fai
 kubectl delete redisfailover <NAME>
 ```
 
+## Docker Images
+
+### Redis Operator
+
+[![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
 ## Documentation
 
 For the code documentation, you can lookup on the [GoDoc](https://godoc.org/github.com/spotahome/redis-operator).

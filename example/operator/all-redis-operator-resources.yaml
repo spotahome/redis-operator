@@ -18,7 +18,7 @@ spec:
     spec:
       serviceAccountName: redisoperator
       containers:
-        - image: quay.io/spotahome/redis-operator:latest
+        - image: quay.io/spotahome/redis-operator:v1.1.0
           imagePullPolicy: IfNotPresent
           name: app
           securityContext:
@@ -56,6 +56,7 @@ rules:
       - databases.spotahome.com
     resources:
       - redisfailovers
+      - redisfailovers/finalizers
     verbs:
       - "*"
   - apiGroups:
@@ -72,6 +73,8 @@ rules:
       - endpoints
       - events
       - configmaps
+      - persistentvolumeclaims
+      - persistentvolumeclaims/finalizers
     verbs:
       - "*"
   - apiGroups:

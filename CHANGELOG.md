@@ -1,5 +1,41 @@
 # Changelog
 
+Check [releases](https://github.com/spotahome/redis-operator/releases) section for Changelog
+
+## [v1.1.0-rc.3] - 2022-01-19
+### Changes
+- Fixed support for kubernetes <1.21
+
+## [v1.1.0-rc.2] - 2022-01-17
+### Changes
+- Allow configuration of exporter resource
+- Fix persistent volume claim metadata management
+- Add arm64,arm,amd64 docker images 
+
+Update notes:
+
+Ensure you update the CRD definition since CRD is no longer managed by the operator:
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/basic.yaml
+```
+
+## [v1.1.0-rc.1] - 2022-01-12
+
+### Major Changes
+- Add bootstrap from node
+- Custom Resource Definition management is removed from operator logic. It must be added to the API, helm chart manage it now or can be applied with kubectl
+- Upgraded libraries to match kubernetes 1.22
+- Enable customization for `terminationGracePeriod`
+- Fix support for redis 6.2>
+- Fix ClusterRole compatible with openshift
+- Improve reiliability on liveness probes
+- Enable customization of nodeSelector and Tolerations
+- Enable customization for command and args in exporter
+- Improve auth handling
+- Support priorityclassname
+
+Thanks all contributors: @alecjacobs5401, @andriilahuta, @chusAlvarez, @Perfect-Web, Ilya Lesikov, @bit-cloner, Gregory Farnell, @technoplayer, @ThickDrinkLots, @ese, @identw, @LukeCarrier, @k3daevin, @dkulchinsky, @lucming, @cndoit18, @hoffoo, @chlins, @obsessionsys
+
 ## [v1.0.0] - 2020-02-24
 
 ### Major changes
@@ -303,6 +339,8 @@ example: `kubectl delete statefulset --cascade=false rfr-redisfailover`
 
 - Initial open-sourced release
 
+
+[v1.1.0-rc.1]: https://github.com/spotahome/redis-operator/compare/v1.0.0...v1.1.0-rc.1
 [v1.0.0]: https://github.com/spotahome/redis-operator/compare/0.5.8...v1.0.0
 [v1.0.0-rc.5]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.4...v1.0.0-rc.5
 [v1.0.0-rc.4]: https://github.com/spotahome/redis-operator/compare/v1.0.0-rc.3...v1.0.0-rc.4

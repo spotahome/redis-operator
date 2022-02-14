@@ -3,22 +3,23 @@ package service
 import (
 	"fmt"
 
+	"bytes"
+
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"bytes"
+
+	"text/template"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
-	"text/template"
 )
 
 const (
-	redisConfigurationVolumeName         = "redis-config"
+	redisConfigurationVolumeName = "redis-config"
 	// Template used to build the Redis configuration
 	redisConfigTemplate = `slaveof 127.0.0.1 6379
 tcp-keepalive 60
@@ -164,7 +165,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels ma
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	shutdownContent := `master=$(redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
 redis-cli SAVE
-if [[ $master ==  $(hostname -i) ]]; then
+if [ "$master" = "$(hostname -i)" ]; then
   redis-cli -h ${RFS_REDIS_SERVICE_HOST} -p ${RFS_REDIS_SERVICE_PORT_SENTINEL} SENTINEL failover mymaster
 fi`
 
@@ -191,13 +192,20 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
    IN_SYNC="master_sync_in_progress:1"
    NO_MASTER="master_host:127.0.0.1"
 
+   cmd="redis-cli"
+   if [ ! -z "${REDIS_PASSWORD}" ]; then
+        cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+   fi
+
+   cmd="${cmd} info replication"
+
    check_master(){
            exit 0
    }
 
    check_slave(){
-           in_sync=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $IN_SYNC | tr -d "\r" | tr -d "\n")
-           no_master=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $NO_MASTER | tr -d "\r" | tr -d "\n")
+           in_sync=$(echo "${cmd} | grep ${IN_SYNC} | tr -d \"\\r\" | tr -d \"\\n\"" | xargs -0 sh -c)
+           no_master=$(echo "${cmd} | grep ${NO_MASTER} | tr -d \"\\r\" | tr -d \"\\n\"" |  xargs -0 sh -c)
 
            if [ -z "$in_sync" ] && [ -z "$no_master" ]; then
                    exit 0
@@ -206,8 +214,7 @@ func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels m
            exit 1
    }
 
-   role=$(redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" info replication | grep $ROLE | tr -d "\r" | tr -d "\n")
-
+   role=$(echo "${cmd} | grep $ROLE | tr -d \"\\r\" | tr -d \"\\n\"" | xargs -0 sh -c)
    case $role in
            $ROLE_MASTER)
                    check_master
@@ -242,6 +249,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	labels = util.MergeLabels(labels, selectorLabels)
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
+	terminationGracePeriodSeconds := getTerminationGracePeriodSeconds(rf)
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -254,9 +262,9 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 			ServiceName: name,
 			Replicas:    &rf.Spec.Redis.Replicas,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: v1.OnDeleteStatefulSetStrategyType,
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
 			},
-			PodManagementPolicy: v1.ParallelPodManagement,
+			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -266,14 +274,16 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 					Annotations: rf.Spec.Redis.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:         getAffinity(rf.Spec.Redis.Affinity, labels),
-					Tolerations:      rf.Spec.Redis.Tolerations,
-					NodeSelector:     rf.Spec.Redis.NodeSelector,
-					SecurityContext:  getSecurityContext(rf.Spec.Redis.SecurityContext),
-					HostNetwork:      rf.Spec.Redis.HostNetwork,
-					DNSPolicy:        getDnsPolicy(rf.Spec.Redis.DNSPolicy),
-					ImagePullSecrets: rf.Spec.Redis.ImagePullSecrets,
-					PriorityClassName: rf.Spec.Redis.PriorityClassName,
+					Affinity:                      getAffinity(rf.Spec.Redis.Affinity, labels),
+					Tolerations:                   rf.Spec.Redis.Tolerations,
+					NodeSelector:                  rf.Spec.Redis.NodeSelector,
+					SecurityContext:               getSecurityContext(rf.Spec.Redis.SecurityContext),
+					HostNetwork:                   rf.Spec.Redis.HostNetwork,
+					DNSPolicy:                     getDnsPolicy(rf.Spec.Redis.DNSPolicy),
+					ImagePullSecrets:              rf.Spec.Redis.ImagePullSecrets,
+					PriorityClassName:             rf.Spec.Redis.PriorityClassName,
+					ServiceAccountName:            rf.Spec.Redis.ServiceAccountName,
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []corev1.Container{
 						{
 							Name:            "redis",
@@ -301,6 +311,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
+								FailureThreshold:    6,
+								PeriodSeconds:       15,
 								Handler: corev1.Handler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
@@ -328,12 +340,26 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.Storage.PersistentVolumeClaim != nil {
+		pvc := corev1.PersistentVolumeClaim{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "PersistentVolumeClaim",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Name,
+				Labels:            rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Labels,
+				Annotations:       rf.Spec.Redis.Storage.PersistentVolumeClaim.EmbeddedObjectMetadata.Annotations,
+				CreationTimestamp: metav1.Time{},
+			},
+			Spec:   rf.Spec.Redis.Storage.PersistentVolumeClaim.Spec,
+			Status: rf.Spec.Redis.Storage.PersistentVolumeClaim.Status,
+		}
 		if !rf.Spec.Redis.Storage.KeepAfterDeletion {
 			// Set an owner reference so the persistent volumes are deleted when the RF is
-			rf.Spec.Redis.Storage.PersistentVolumeClaim.OwnerReferences = ownerRefs
+			pvc.OwnerReferences = ownerRefs
 		}
 		ss.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
-			*rf.Spec.Redis.Storage.PersistentVolumeClaim,
+			pvc,
 		}
 	}
 
@@ -386,14 +412,15 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Annotations: rf.Spec.Sentinel.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:         getAffinity(rf.Spec.Sentinel.Affinity, labels),
-					Tolerations:      rf.Spec.Sentinel.Tolerations,
-					NodeSelector:     rf.Spec.Sentinel.NodeSelector,
-					SecurityContext:  getSecurityContext(rf.Spec.Sentinel.SecurityContext),
-					HostNetwork:      rf.Spec.Sentinel.HostNetwork,
-					DNSPolicy:        getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
-					ImagePullSecrets: rf.Spec.Sentinel.ImagePullSecrets,
-					PriorityClassName: rf.Spec.Sentinel.PriorityClassName,
+					Affinity:           getAffinity(rf.Spec.Sentinel.Affinity, labels),
+					Tolerations:        rf.Spec.Sentinel.Tolerations,
+					NodeSelector:       rf.Spec.Sentinel.NodeSelector,
+					SecurityContext:    getSecurityContext(rf.Spec.Sentinel.SecurityContext),
+					HostNetwork:        rf.Spec.Sentinel.HostNetwork,
+					DNSPolicy:          getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
+					ImagePullSecrets:   rf.Spec.Sentinel.ImagePullSecrets,
+					PriorityClassName:  rf.Spec.Sentinel.PriorityClassName,
+					ServiceAccountName: rf.Spec.Sentinel.ServiceAccountName,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
@@ -522,33 +549,37 @@ func generatePodDisruptionBudget(name string, namespace string, labels map[strin
 	}
 }
 
-func generateResourceList(cpu string, memory string) corev1.ResourceList {
-	resources := corev1.ResourceList{}
-	if cpu != "" {
-		resources[corev1.ResourceCPU], _ = resource.ParseQuantity(cpu)
-	}
-	if memory != "" {
-		resources[corev1.ResourceMemory], _ = resource.ParseQuantity(memory)
-	}
-	return resources
+var exporterDefaultResourceRequirements = corev1.ResourceRequirements{
+	Limits: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
+		corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
+	},
+	Requests: corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
+		corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
+	},
 }
 
 func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+	resources := exporterDefaultResourceRequirements
+	if rf.Spec.Redis.Exporter.Resources != nil {
+		resources = *rf.Spec.Redis.Exporter.Resources
+	}
 	container := corev1.Container{
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
 		ImagePullPolicy: pullPolicy(rf.Spec.Redis.Exporter.ImagePullPolicy),
 		SecurityContext:  getContainerSecurityContext(rf.Spec.Redis.Exporter.ContainerSecurityContext),
-		Env: []corev1.EnvVar{
-			{
-				Name: "REDIS_ALIAS",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
+		Args:            rf.Spec.Redis.Exporter.Args,
+		Env: append(rf.Spec.Redis.Exporter.Env, corev1.EnvVar{
+			Name: "REDIS_ALIAS",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
 				},
 			},
 		},
+		),
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "metrics",
@@ -556,16 +587,7 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Resources: corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
-			},
-		},
+		Resources: resources,
 	}
 
 	if rf.Spec.Auth.SecretPath != "" {
@@ -587,11 +609,17 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 }
 
 func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+	resources := exporterDefaultResourceRequirements
+	if rf.Spec.Sentinel.Exporter.Resources != nil {
+		resources = *rf.Spec.Sentinel.Exporter.Resources
+	}
 	container := corev1.Container{
 		Name:            sentinelExporterContainerName,
 		Image:           rf.Spec.Sentinel.Exporter.Image,
 		ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.Exporter.ImagePullPolicy),
 		SecurityContext:  getContainerSecurityContext(rf.Spec.Sentinel.Exporter.ContainerSecurityContext),
+		Args:            rf.Spec.Sentinel.Exporter.Args,
+		Env:             rf.Spec.Sentinel.Exporter.Env,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "metrics",
@@ -599,16 +627,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Resources: corev1.ResourceRequirements{
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultLimitCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultLimitMemory),
-			},
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(exporterDefaultRequestCPU),
-				corev1.ResourceMemory: resource.MustParse(exporterDefaultRequestMemory),
-			},
-		},
+		Resources: resources,
 	}
 	return container
 }
@@ -824,4 +843,11 @@ func pullPolicy(specPolicy corev1.PullPolicy) corev1.PullPolicy {
 		return corev1.PullAlways
 	}
 	return specPolicy
+}
+
+func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
+	if rf.Spec.Redis.TerminationGracePeriodSeconds > 0 {
+		return rf.Spec.Redis.TerminationGracePeriodSeconds
+	}
+	return 30
 }

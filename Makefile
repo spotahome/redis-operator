@@ -1,4 +1,4 @@
-VERSION := v1.0.0
+VERSION := v1.1.1
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -23,18 +23,32 @@ UID := $(shell id -u)
 
 # Commit hash from git
 COMMIT=$(shell git rev-parse HEAD)
+GITTAG_COMMIT := $(shell git rev-list --tags --max-count=1)
+GITTAG := $(shell git describe --abbrev=0 --tags ${GITTAG_COMMIT} 2>/dev/null || true)
 
 # Branch from git
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
+TAG := $(GITTAG)
+ifneq ($(COMMIT), $(GITTAG_COMMIT))
+    TAG := $(COMMIT)
+endif
+
+ifneq ($(shell git status --porcelain),)
+    TAG := $(TAG)-dirty
+endif
+
+
+PROJECT_PACKAGE := github.com/spotahome/redis-operator
+CODEGEN_IMAGE := quay.io/slok/kube-code-generator:v1.22.0
 PORT := 9710
 
 # CMDs
 UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
+GO_INTEGRATION_TEST_CMD := go test `go list ./... | grep test/integration` -v -tags='integration'
 GET_DEPS_CMD := dep ensure
 UPDATE_DEPS_CMD := dep ensure
-UPDATE_CODEGEN_CMD := ./hack/update-codegen.sh
 MOCKS_CMD := go generate ./mocks
 
 # environment dirs
@@ -84,6 +98,18 @@ image: deps-development
 	-f $(APP_DIR)/Dockerfile \
 	.
 
+.PHONY: image-release
+image-release:
+	docker buildx build \
+	--platform linux/amd64,linux/arm64,linux/arm/v7 \
+	--push \
+	--build-arg VERSION=$(TAG) \
+	-t $(REPOSITORY):latest \
+	-t $(REPOSITORY):$(COMMIT) \
+	-t $(REPOSITORY):$(TAG) \
+	-f $(APP_DIR)/Dockerfile \
+	.
+
 .PHONY: testing
 testing: image
 	docker push $(REPOSITORY):$(BRANCH)
@@ -100,7 +126,7 @@ publish:
 	docker push $(REPOSITORY):latest
 
 .PHONY: release
-release: tag image publish
+release: tag image-release
 
 # Test stuff in dev
 .PHONY: unit-test
@@ -110,6 +136,10 @@ unit-test: docker-build
 .PHONY: ci-unit-test
 ci-unit-test:
 	$(UNIT_TEST_CMD)
+
+.PHONY: ci-integration-test
+ci-integration-test:
+	$(GO_INTEGRATION_TEST_CMD)
 
 .PHONY: integration-test
 integration-test:
@@ -121,7 +151,7 @@ helm-test:
 
 # Run all tests
 .PHONY: test
-test: ci-unit-test integration-test helm-test
+test: ci-unit-test ci-integration-test helm-test
 
 .PHONY: go-generate
 go-generate: docker-build
@@ -152,6 +182,21 @@ endif
 
 # Generate kubernetes code for types..
 .PHONY: update-codegen
-update-codegen: docker-build
+update-codegen:
 	@echo ">> Generating code for Kubernetes CRD types..."
-	docker run --rm -v $(PWD):/go/src/github.com/spotahome/redis-operator/ $(REPOSITORY)-dev /bin/bash -c '$(UPDATE_CODEGEN_CMD)'
+	docker run --rm -it \
+	-v $(PWD):/go/src/$(PROJECT_PACKAGE) \
+	-e PROJECT_PACKAGE=$(PROJECT_PACKAGE) \
+	-e CLIENT_GENERATOR_OUT=$(PROJECT_PACKAGE)/client/k8s \
+	-e APIS_ROOT=$(PROJECT_PACKAGE)/api \
+	-e GROUPS_VERSION="redisfailover:v1" \
+	-e GENERATION_TARGETS="deepcopy,client" \
+	$(CODEGEN_IMAGE)
+
+generate-crd:
+	docker run -it --rm \
+	-v $(PWD):/go/src/$(PROJECT_PACKAGE) \
+	-e GO_PROJECT_ROOT=/go/src/$(PROJECT_PACKAGE) \
+	-e CRD_TYPES_PATH=/go/src/$(PROJECT_PACKAGE)/api \
+	-e CRD_OUT_PATH=/go/src/$(PROJECT_PACKAGE)/manifests \
+	$(CODEGEN_IMAGE) update-crd.sh

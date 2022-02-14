@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
@@ -12,32 +14,32 @@ import (
 // RedisFailover the RF service that knows how to interact with k8s to get them
 type RedisFailover interface {
 	// ListRedisFailovers lists the redisfailovers on a cluster.
-	ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error)
+	ListRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error)
 	// WatchRedisFailovers watches the redisfailovers on a cluster.
-	WatchRedisFailovers(namespace string, opts metav1.ListOptions) (watch.Interface, error)
+	WatchRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // RedisFailoverService is the RedisFailover service implementation using API calls to kubernetes.
 type RedisFailoverService struct {
-	crdClient redisfailoverclientset.Interface
-	logger    log.Logger
+	k8sCli redisfailoverclientset.Interface
+	logger log.Logger
 }
 
 // NewRedisFailoverService returns a new Workspace KubeService.
-func NewRedisFailoverService(crdcli redisfailoverclientset.Interface, logger log.Logger) *RedisFailoverService {
+func NewRedisFailoverService(k8scli redisfailoverclientset.Interface, logger log.Logger) *RedisFailoverService {
 	logger = logger.With("service", "k8s.redisfailover")
 	return &RedisFailoverService{
-		crdClient: crdcli,
-		logger:    logger,
+		k8sCli: k8scli,
+		logger: logger,
 	}
 }
 
 // ListRedisFailovers satisfies redisfailover.Service interface.
-func (r *RedisFailoverService) ListRedisFailovers(namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
-	return r.crdClient.DatabasesV1().RedisFailovers(namespace).List(opts)
+func (r *RedisFailoverService) ListRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error) {
+	return r.k8sCli.DatabasesV1().RedisFailovers(namespace).List(ctx, opts)
 }
 
 // WatchRedisFailovers satisfies redisfailover.Service interface.
-func (r *RedisFailoverService) WatchRedisFailovers(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return r.crdClient.DatabasesV1().RedisFailovers(namespace).Watch(opts)
+func (r *RedisFailoverService) WatchRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (watch.Interface, error) {
+	return r.k8sCli.DatabasesV1().RedisFailovers(namespace).Watch(ctx, opts)
 }

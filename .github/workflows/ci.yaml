@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check:
+    name: Golang Check
+    runs-on: ubuntu-latest
+    # Execute the checks inside the container instead the VM.
+    container: golangci/golangci-lint:v1.43.0-alpine
+    steps:
+      - uses: actions/checkout@v2
+      - run: ./scripts/check.sh
+
+  unit-test:
+    name: Unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - run: make ci-unit-test
+
+  integration-test:
+    name: Integration test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Install conntrack
+        run: sudo apt-get install -y conntrack
+      - uses: medyagh/setup-minikube@v0.0.7
+        with:
+          kubernetes-version: 1.22.2
+          driver: none
+      - name: Add redisfailover CRD
+        run: kubectl apply -f manifests/databases.spotahome.com_redisfailovers.yaml
+      - run: make ci-integration-test
+
+  chart-test:
+    name: Chart testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.7.2
+
+      - name: Helm test
+        run: make helm-test

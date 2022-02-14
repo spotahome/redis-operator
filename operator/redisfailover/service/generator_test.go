@@ -248,6 +248,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
@@ -266,8 +270,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 				},
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -354,6 +358,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 								OwnerReferences: []metav1.OwnerReference{
@@ -377,8 +385,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 				},
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -465,6 +473,10 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 					},
 					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 						{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "PersistentVolumeClaim",
+								APIVersion: "v1",
+							},
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "pvc-data",
 							},
@@ -484,8 +496,8 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 			},
 			rfRedisStorage: redisfailoverv1.RedisStorage{
 				KeepAfterDeletion: true,
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
+				PersistentVolumeClaim: &redisfailoverv1.EmbeddedPersistentVolumeClaim{
+					EmbeddedObjectMetadata: redisfailoverv1.EmbeddedObjectMetadata{
 						Name: "pvc-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -725,6 +737,90 @@ func TestSentinelDeploymentPodAnnotations(t *testing.T) {
 		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
 
 		assert.Equal(test.expectedPodAnnotations, gotPodAnnotations)
+		assert.NoError(err)
+	}
+}
+
+func TestRedisStatefulSetServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name                       string
+		givenServiceAccountName    string
+		expectedServiceAccountName string
+	}{
+		{
+			name:                       "ServiceAccountName was not defined",
+			givenServiceAccountName:    "",
+			expectedServiceAccountName: "",
+		},
+		{
+			name:                       "ServiceAccountName is defined",
+			givenServiceAccountName:    "redis-sa",
+			expectedServiceAccountName: "redis-sa",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required Service Account
+		rf := generateRF()
+		rf.Spec.Redis.ServiceAccountName = test.givenServiceAccountName
+
+		gotServiceAccountName := ""
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ss := args.Get(1).(*appsv1.StatefulSet)
+			gotServiceAccountName = ss.Spec.Template.Spec.ServiceAccountName
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedServiceAccountName, gotServiceAccountName)
+		assert.NoError(err)
+	}
+}
+
+func TestSentinelDeploymentServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name                       string
+		givenServiceAccountName    string
+		expectedServiceAccountName string
+	}{
+		{
+			name:                       "ServiceAccountName was not defined",
+			givenServiceAccountName:    "",
+			expectedServiceAccountName: "",
+		},
+		{
+			name:                       "ServiceAccountName is defined",
+			givenServiceAccountName:    "sentinel-sa",
+			expectedServiceAccountName: "sentinel-sa",
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		// Generate a default RedisFailover and attaching the required Service Account
+		rf := generateRF()
+		rf.Spec.Sentinel.ServiceAccountName = test.givenServiceAccountName
+
+		gotServiceAccountName := ""
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			gotServiceAccountName = d.Spec.Template.Spec.ServiceAccountName
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.Equal(test.expectedServiceAccountName, gotServiceAccountName)
 		assert.NoError(err)
 	}
 }

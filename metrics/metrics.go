@@ -1,10 +1,9 @@
 package metrics
 
 import (
-	"net/http"
-
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	koopercontroller "github.com/spotahome/kooper/v2/controller"
+	kooperprometheus "github.com/spotahome/kooper/v2/metrics/prometheus"
 )
 
 const (
@@ -12,25 +11,24 @@ const (
 )
 
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
-type Instrumenter interface {
+type Recorder interface {
+	koopercontroller.MetricsRecorder
+
 	SetClusterOK(namespace string, name string)
 	SetClusterError(namespace string, name string)
 	DeleteCluster(namespace string, name string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
-type PromMetrics struct {
+type recorder struct {
 	// Metrics fields.
 	clusterOK *prometheus.GaugeVec // clusterOk is the status of a cluster
 
-	// Instrumentation fields.
-	registry prometheus.Registerer
-	path     string
-	mux      *http.ServeMux
+	koopercontroller.MetricsRecorder
 }
 
 // NewPrometheusMetrics returns a new PromMetrics object.
-func NewPrometheusMetrics(path string, namespace string, mux *http.ServeMux, registry *prometheus.Registry) *PromMetrics {
+func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	// Create metrics.
 	clusterOK := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
@@ -40,40 +38,33 @@ func NewPrometheusMetrics(path string, namespace string, mux *http.ServeMux, reg
 	}, []string{"namespace", "name"})
 
 	// Create the instance.
-	p := &PromMetrics{
+	r := recorder{
 		clusterOK: clusterOK,
 
-		registry: registry,
-		path:     path,
-		mux:      mux,
+		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
+			Registerer: reg,
+		}),
 	}
 
-	// Register metrics on prometheus.
-	p.register()
+	// Register metrics.
+	reg.MustRegister(
+		r.clusterOK,
+	)
 
-	// Register prometheus handler so we can serve the metrics.
-	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-	mux.Handle(path, handler)
-
-	return p
-}
-
-// register will register all the required prometheus metrics on the Prometheus collector.
-func (p *PromMetrics) register() {
-	p.registry.MustRegister(p.clusterOK)
+	return r
 }
 
 // SetClusterOK set the cluster status to OK
-func (p *PromMetrics) SetClusterOK(namespace string, name string) {
-	p.clusterOK.WithLabelValues(namespace, name).Set(1)
+func (r recorder) SetClusterOK(namespace string, name string) {
+	r.clusterOK.WithLabelValues(namespace, name).Set(1)
 }
 
 // SetClusterError set the cluster status to Error
-func (p *PromMetrics) SetClusterError(namespace string, name string) {
-	p.clusterOK.WithLabelValues(namespace, name).Set(0)
+func (r recorder) SetClusterError(namespace string, name string) {
+	r.clusterOK.WithLabelValues(namespace, name).Set(0)
 }
 
 // DeleteCluster set the cluster status to Error
-func (p *PromMetrics) DeleteCluster(namespace string, name string) {
-	p.clusterOK.DeleteLabelValues(namespace, name)
+func (r recorder) DeleteCluster(namespace string, name string) {
+	r.clusterOK.DeleteLabelValues(namespace, name)
 }
