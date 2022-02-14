@@ -83,7 +83,7 @@ type SentinelSettings struct {
 	HostNetwork              bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy                corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName        string                        `json:"priorityClassName,omitempty"`
-	ServiceAccountName string                              `json:"serviceAccountName,omitempty"`
+	ServiceAccountName       string                        `json:"serviceAccountName,omitempty"`
 }
 
 // AuthSettings contains settings about auth
@@ -100,24 +100,24 @@ type BootstrapSettings struct {
 
 // RedisExporter defines the specification for the redis exporter
 type RedisExporter struct {
-	Enabled                  bool                    `json:"enabled,omitempty"`
-	Image                    string                  `json:"image,omitempty"`
-	ImagePullPolicy          corev1.PullPolicy       `json:"imagePullPolicy,omitempty"`
-	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
-	Args            []string                         `json:"args,omitempty"`
-	Env             []corev1.EnvVar                  `json:"env,omitempty"`
-	Resources       *corev1.ResourceRequirements     `json:"resources,omitempty"`
+	Enabled                  bool                         `json:"enabled,omitempty"`
+	Image                    string                       `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext      `json:"containerSecurityContext,omitempty"`
+	Args                     []string                     `json:"args,omitempty"`
+	Env                      []corev1.EnvVar              `json:"env,omitempty"`
+	Resources                *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // SentinelExporter defines the specification for the sentinel exporter
 type SentinelExporter struct {
-	Enabled                  bool                    `json:"enabled,omitempty"`
-	Image                    string                  `json:"image,omitempty"`
-	ImagePullPolicy          corev1.PullPolicy       `json:"imagePullPolicy,omitempty"`
-	ContainerSecurityContext *corev1.SecurityContext `json:"containerSecurityContext,omitempty"`
-	Args            []string                         `json:"args,omitempty"`
-	Env             []corev1.EnvVar                  `json:"env,omitempty"`
-	Resources       *corev1.ResourceRequirements     `json:"resources,omitempty"`
+	Enabled                  bool                         `json:"enabled,omitempty"`
+	Image                    string                       `json:"image,omitempty"`
+	ImagePullPolicy          corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`
+	ContainerSecurityContext *corev1.SecurityContext      `json:"containerSecurityContext,omitempty"`
+	Args                     []string                     `json:"args,omitempty"`
+	Env                      []corev1.EnvVar              `json:"env,omitempty"`
+	Resources                *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // SentinelConfigCopy defines the specification for the sentinel exporter

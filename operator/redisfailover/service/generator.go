@@ -289,7 +289,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							Name:            "redis",
 							Image:           rf.Spec.Redis.Image,
 							ImagePullPolicy: pullPolicy(rf.Spec.Redis.ImagePullPolicy),
-							SecurityContext:  getContainerSecurityContext(rf.Spec.Redis.ContainerSecurityContext),
+							SecurityContext: getContainerSecurityContext(rf.Spec.Redis.ContainerSecurityContext),
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "redis",
@@ -426,7 +426,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							Name:            "sentinel-config-copy",
 							Image:           rf.Spec.Sentinel.Image,
 							ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.ImagePullPolicy),
-							SecurityContext:  getContainerSecurityContext(rf.Spec.Sentinel.ConfigCopy.ContainerSecurityContext),
+							SecurityContext: getContainerSecurityContext(rf.Spec.Sentinel.ConfigCopy.ContainerSecurityContext),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "sentinel-config",
@@ -459,7 +459,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							Name:            "sentinel",
 							Image:           rf.Spec.Sentinel.Image,
 							ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.ImagePullPolicy),
-							SecurityContext:  getContainerSecurityContext(rf.Spec.Sentinel.ContainerSecurityContext),
+							SecurityContext: getContainerSecurityContext(rf.Spec.Sentinel.ContainerSecurityContext),
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "sentinel",
@@ -569,7 +569,7 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Name:            exporterContainerName,
 		Image:           rf.Spec.Redis.Exporter.Image,
 		ImagePullPolicy: pullPolicy(rf.Spec.Redis.Exporter.ImagePullPolicy),
-		SecurityContext:  getContainerSecurityContext(rf.Spec.Redis.Exporter.ContainerSecurityContext),
+		SecurityContext: getContainerSecurityContext(rf.Spec.Redis.Exporter.ContainerSecurityContext),
 		Args:            rf.Spec.Redis.Exporter.Args,
 		Env: append(rf.Spec.Redis.Exporter.Env, corev1.EnvVar{
 			Name: "REDIS_ALIAS",
@@ -617,7 +617,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 		Name:            sentinelExporterContainerName,
 		Image:           rf.Spec.Sentinel.Exporter.Image,
 		ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.Exporter.ImagePullPolicy),
-		SecurityContext:  getContainerSecurityContext(rf.Spec.Sentinel.Exporter.ContainerSecurityContext),
+		SecurityContext: getContainerSecurityContext(rf.Spec.Sentinel.Exporter.ContainerSecurityContext),
 		Args:            rf.Spec.Sentinel.Exporter.Args,
 		Env:             rf.Spec.Sentinel.Exporter.Env,
 		Ports: []corev1.ContainerPort{
@@ -677,8 +677,7 @@ func getContainerSecurityContext(secctx *corev1.SecurityContext) *corev1.Securit
 	}
 
 	capabilities := &corev1.Capabilities{
-		Add: []corev1.Capability{
-		},
+		Add: []corev1.Capability{},
 		Drop: []corev1.Capability{
 			"ALL",
 		},
@@ -690,13 +689,13 @@ func getContainerSecurityContext(secctx *corev1.SecurityContext) *corev1.Securit
 	readOnlyRootFilesystem := true
 
 	return &corev1.SecurityContext{
-		Capabilities:               capabilities,
-		Privileged:                 &privileged,
-		RunAsUser:                  &defaultUserAndGroup,
-		RunAsGroup:                 &defaultUserAndGroup,
-		RunAsNonRoot:               &runAsNonRoot,
-		ReadOnlyRootFilesystem:     &readOnlyRootFilesystem,
-		AllowPrivilegeEscalation:   &allowPrivilegeEscalation,
+		Capabilities:             capabilities,
+		Privileged:               &privileged,
+		RunAsUser:                &defaultUserAndGroup,
+		RunAsGroup:               &defaultUserAndGroup,
+		RunAsNonRoot:             &runAsNonRoot,
+		ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
 	}
 }
 
