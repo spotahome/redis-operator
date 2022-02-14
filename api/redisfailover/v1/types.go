@@ -79,7 +79,7 @@ type SentinelSettings struct {
 	PodAnnotations           map[string]string             `json:"podAnnotations,omitempty"`
 	ServiceAnnotations       map[string]string             `json:"serviceAnnotations,omitempty"`
 	Exporter                 SentinelExporter              `json:"exporter,omitempty"`
-	ConfigCopy               SentinelConfigCopy            `json:"configCopy,omitempty`
+	ConfigCopy               SentinelConfigCopy            `json:"configCopy,omitempty"`
 	HostNetwork              bool                          `json:"hostNetwork,omitempty"`
 	DNSPolicy                corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName        string                        `json:"priorityClassName,omitempty"`
