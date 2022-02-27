@@ -17,7 +17,8 @@ import (
 type RedisFailover struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              RedisFailoverSpec `json:"spec"`
+	Spec              RedisFailoverSpec   `json:"spec"`
+	Status            RedisFailoverStatus `json:"status,omitempty"`
 }
 
 // RedisFailoverSpec represents a Redis failover spec
@@ -60,6 +61,7 @@ type RedisSettings struct {
 	PriorityClassName             string                        `json:"priorityClassName,omitempty"`
 	ServiceAccountName            string                        `json:"serviceAccountName,omitempty"`
 	TerminationGracePeriodSeconds int64                         `json:"terminationGracePeriod,omitempty"`
+	RestartAt                     *metav1.Time                  `json:"restartAt,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -84,6 +86,7 @@ type SentinelSettings struct {
 	DNSPolicy                corev1.DNSPolicy              `json:"dnsPolicy,omitempty"`
 	PriorityClassName        string                        `json:"priorityClassName,omitempty"`
 	ServiceAccountName       string                        `json:"serviceAccountName,omitempty"`
+	RestartAt                *metav1.Time                  `json:"restartAt,omitempty"`
 }
 
 // AuthSettings contains settings about auth
@@ -177,6 +180,14 @@ type EmbeddedObjectMetadata struct {
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+}
+
+// RedisFailoverStatus is the status for a RedisFailover resource
+type RedisFailoverStatus struct {
+	// RestartedAt indicates last time a Rollout was restarted
+	RestartedAt *metav1.Time `json:"restartedAt,omitempty"`
+	// ClusterStatus indicates RedisFailover status as a whole
+	ClusterStatus string `json:"clusterStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

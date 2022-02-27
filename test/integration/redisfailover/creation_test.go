@@ -34,7 +34,7 @@ import (
 
 const (
 	name           = "testing"
-	namespace      = "rf-integration-tests"
+	namespace      = "redis-operator"
 	redisSize      = int32(3)
 	sentinelSize   = int32(3)
 	authSecretPath = "redis-auth"
@@ -102,6 +102,7 @@ func TestRedisFailover(t *testing.T) {
 	// Create operator and run.
 	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
 	require.NoError(err)
+	fmt.Println("Starting operator...")
 
 	go func() {
 		errC <- redisfailoverOperator.Run(context.Background())

@@ -61,6 +61,7 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 
 	if err := rf.Validate(); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
+		fmt.Println("Validation error:", err)
 		return err
 	}
 
@@ -73,15 +74,18 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 
 	if err := r.Ensure(rf, labels, oRefs); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
+		fmt.Println("Ensure error:", err)
 		return err
 	}
 
 	if err := r.CheckAndHeal(rf); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
+		fmt.Println("CheckAndHeal error:", err)
 		return err
 	}
 
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
+	fmt.Println("Cluster is Ok")
 	return nil
 }
 
