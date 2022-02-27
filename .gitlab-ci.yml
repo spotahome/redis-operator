@@ -1,0 +1,15 @@
+# CAVEAT: changing this file need to be approved by SRE team.
+
+include:
+  - project: SRE/ci-cd
+    file: common.yml
+
+variables:
+  project: sre
+  application: redis-operator
+
+bake:
+  only:
+    - add-redis-restart
+  extends: .bake
+
