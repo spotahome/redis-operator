@@ -95,7 +95,8 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 						t := metav1.Now()
 						rfrRestartAt = &t
 					}
-					r.rfService.UpdateRedisRestartedAt(rf, &rfrRestartAt.Time)
+					restartedAt := rfrRestartAt.Time.UTC()
+					r.rfService.UpdateRedisRestartedAt(rf, &restartedAt)
 				}
 			}
 			return nil
@@ -129,7 +130,8 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 				t := metav1.Now()
 				rfrRestartAt = &t
 			}
-			r.rfService.UpdateRedisRestartedAt(rf, &rfrRestartAt.Time)
+			restartAt := rfrRestartAt.Time.UTC()
+			r.rfService.UpdateRedisRestartedAt(rf, &restartAt)
 			return nil
 		}
 	}
@@ -171,7 +173,8 @@ func (r *RedisFailoverHandler) CheckAndRestartSentinels(rf *redisfailoverv1.Redi
 					t := metav1.Now()
 					rfsRestartAt = &t
 				}
-				r.rfService.UpdateSentinelRestartedAt(rf, &rfsRestartAt.Time)
+				restartAt := rfsRestartAt.Time.UTC()
+				r.rfService.UpdateSentinelRestartedAt(rf, &restartAt)
 			}
 			return nil
 		}
