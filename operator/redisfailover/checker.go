@@ -2,6 +2,7 @@ package redisfailover
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,8 +79,10 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 
 		if revision != ssUR || (redisNeedsRestart && rfrRestartAt.After(creationTimestamp.Time)) {
 			//Delete pod and wait next round to check if the new one is synced
+			fmt.Println("Deleting pod:", pod, revision, ssUR, redisNeedsRestart, rfrRestartAt, creationTimestamp.Time)
 			err = r.rfHealer.DeletePod(pod, rf)
 			if err != nil {
+				fmt.Println("errooooooooor:", err)
 				return err
 			}
 			if rf.Bootstrapping() {
