@@ -43,6 +43,8 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 	}
 	// No perform updates when nodes are syncing, still not connected, etc.
 	for _, rp := range redises {
+		fmt.Printf("%v", redises)
+		fmt.Println("Checking redis with ip:", rp)
 		if rp != masterIP {
 			ready, err := r.rfChecker.CheckRedisSlavesReady(rp, rf)
 			if err != nil {
