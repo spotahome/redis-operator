@@ -882,17 +882,24 @@ func TestUpdate(t *testing.T) {
 					replicas = append(replicas, "slave3")
 				}
 				mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return(test.ssVersion, nil)
-				mrfc.On("GetRedisesSlavesPods", rf).Once().Return(replicas, nil)
+
+				willPodRestart := false
 
 				for _, pod := range test.pods {
 					mrfc.On("GetRedisRevisionHash", pod.pod.ObjectMeta.Name, rf).Once().Return(pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey], nil)
 					if pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey] != test.ssVersion {
 						mrfh.On("DeletePod", pod.pod.ObjectMeta.Name, rf).Once().Return(nil)
+						willPodRestart = true
 						if pod.master == false {
 							next = false
 							break
 						}
 					}
+				}
+				if willPodRestart && test.bootstrapping {
+					mrfc.On("GetRedisesSlavesPods", rf).Twice().Return(replicas, nil)
+				} else {
+					mrfc.On("GetRedisesSlavesPods", rf).Once().Return(replicas, nil)
 				}
 				fmt.Printf("%v - %v\n", test.name, next)
 				if next && !test.bootstrapping {
