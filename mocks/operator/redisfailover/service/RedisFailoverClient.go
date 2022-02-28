@@ -6,6 +6,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	time "time"
+
 	v1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 )
 
@@ -138,4 +140,14 @@ func (_m *RedisFailoverClient) EnsureSentinelService(rFailover *v1.RedisFailover
 	}
 
 	return r0
+}
+
+// UpdateRedisRestartedAt provides a mock function with given fields: rFailover, restartedAt
+func (_m *RedisFailoverClient) UpdateRedisRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) {
+	_m.Called(rFailover, restartedAt)
+}
+
+// UpdateSentinelRestartedAt provides a mock function with given fields: rFailover, restartedAt
+func (_m *RedisFailoverClient) UpdateSentinelRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) {
+	_m.Called(rFailover, restartedAt)
 }

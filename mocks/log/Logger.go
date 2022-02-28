@@ -3,6 +3,8 @@
 package mocks
 
 import (
+	io "io"
+
 	log "github.com/spotahome/redis-operator/log"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -134,6 +136,11 @@ func (_m *Logger) Set(level log.Level) error {
 	}
 
 	return r0
+}
+
+// SetOutput provides a mock function with given fields: _a0
+func (_m *Logger) SetOutput(_a0 io.Writer) {
+	_m.Called(_a0)
 }
 
 // Warn provides a mock function with given fields: _a0

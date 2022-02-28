@@ -28,6 +28,7 @@ func generateConfig() rfOperator.Config {
 }
 
 func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisFailover {
+	t := metav1.Now()
 	return &redisfailoverv1.RedisFailover{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -44,6 +45,10 @@ func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisF
 				Replicas: int32(3),
 			},
 			BootstrapNode: generateRFBootstrappingNode(bootstrapping),
+		},
+		Status: redisfailoverv1.RedisFailoverStatus{
+			RedisRestartedAt:    &t,
+			SentinelRestartedAt: nil,
 		},
 	}
 }

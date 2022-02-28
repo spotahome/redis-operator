@@ -3966,8 +3966,13 @@ spec:
               clusterStatus:
                 description: ClusterStatus indicates RedisFailover status as a whole
                 type: string
-              restartedAt:
-                description: RestartedAt indicates last time a Rollout was restarted
+              redisRestartedAt:
+                description: RedisRestartedAt indicates last time Redises were restarted
+                format: date-time
+                type: string
+              sentinelRestartedAt:
+                description: SentinelRestartedAt indicates last time Sentinels were
+                  restarted
                 format: date-time
                 type: string
             type: object

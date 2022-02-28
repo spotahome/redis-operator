@@ -184,8 +184,10 @@ type EmbeddedObjectMetadata struct {
 
 // RedisFailoverStatus is the status for a RedisFailover resource
 type RedisFailoverStatus struct {
-	// RestartedAt indicates last time a Rollout was restarted
-	RestartedAt *metav1.Time `json:"restartedAt,omitempty"`
+	// RedisRestartedAt indicates last time Redises were restarted
+	RedisRestartedAt *metav1.Time `json:"redisRestartedAt,omitempty"`
+	// SentinelRestartedAt indicates last time Sentinels were restarted
+	SentinelRestartedAt *metav1.Time `json:"sentinelRestartedAt,omitempty"`
 	// ClusterStatus indicates RedisFailover status as a whole
 	ClusterStatus string `json:"clusterStatus,omitempty"`
 }
