@@ -15,6 +15,8 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 
+	time "time"
+
 	v1 "k8s.io/api/core/v1"
 
 	v1beta1 "k8s.io/api/policy/v1beta1"
@@ -819,6 +821,11 @@ func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBud
 	return r0
 }
 
+// UpdateRedisRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *Services) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) {
+	_m.Called(namespace, name, restartedAt)
+}
+
 // UpdateRole provides a mock function with given fields: namespace, role
 func (_m *Services) UpdateRole(namespace string, role *rbacv1.Role) error {
 	ret := _m.Called(namespace, role)
@@ -845,6 +852,11 @@ func (_m *Services) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBind
 	}
 
 	return r0
+}
+
+// UpdateSentinelRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *Services) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) {
+	_m.Called(namespace, name, restartedAt)
 }
 
 // UpdateService provides a mock function with given fields: namespace, service

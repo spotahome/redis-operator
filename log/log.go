@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"runtime"
 	"strings"
 
@@ -42,6 +43,7 @@ type Logger interface {
 	WithField(key string, value interface{}) Logger
 	WithFields(values map[string]interface{}) Logger
 	Set(level Level) error
+	SetOutput(io.Writer)
 }
 
 type logger struct {
@@ -140,6 +142,10 @@ func (l *logger) Set(level Level) error {
 	}
 	l.entry.Logger.Level = leLev
 	return nil
+}
+
+func (l *logger) SetOutput(w io.Writer) {
+	l.entry.Logger.SetOutput(w)
 }
 
 func (l logger) sourced() *logrus.Entry {
@@ -253,6 +259,11 @@ func WithField(key string, value interface{}) Logger {
 // Set will set the logger level
 func Set(level Level) error {
 	return baseLogger.Set(level)
+}
+
+// SetOutput will set the Logger output
+func SetOutput(w io.Writer) {
+	baseLogger.SetOutput(w)
 }
 
 // Panic logs panic message

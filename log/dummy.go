@@ -1,5 +1,7 @@
 package log
 
+import "io"
+
 // Dummy is a dummy logger
 var Dummy = DummyLogger{}
 
@@ -29,3 +31,4 @@ func (l DummyLogger) With(key string, value interface{}) Logger       { return l
 func (l DummyLogger) WithField(key string, value interface{}) Logger  { return l }
 func (l DummyLogger) WithFields(values map[string]interface{}) Logger { return l }
 func (l DummyLogger) Set(level Level) error                           { return nil }
+func (l DummyLogger) SetOutput(w io.Writer)                           {}

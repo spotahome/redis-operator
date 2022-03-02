@@ -9,6 +9,8 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 
+	time "time"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -40,6 +42,16 @@ func (_m *RedisFailover) ListRedisFailovers(ctx context.Context, namespace strin
 	}
 
 	return r0, r1
+}
+
+// UpdateRedisRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *RedisFailover) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) {
+	_m.Called(namespace, name, restartedAt)
+}
+
+// UpdateSentinelRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *RedisFailover) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) {
+	_m.Called(namespace, name, restartedAt)
 }
 
 // WatchRedisFailovers provides a mock function with given fields: ctx, namespace, opts

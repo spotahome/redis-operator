@@ -264,6 +264,14 @@ func TestCheckAndHeal(t *testing.T) {
 			mrfc := &mRFService.RedisFailoverCheck{}
 			mrfh := &mRFService.RedisFailoverHeal{}
 
+			now := metav1.Now()
+
+			mrfc.On("GetPodCreationTimestamp", master, rf).Maybe().Return(now, nil)
+			mrfc.On("GetPodCreationTimestamp", "0.0.0.1", rf).Maybe().Return(now, nil)
+			mrfc.On("GetPodCreationTimestamp", "0.0.0.2", rf).Maybe().Return(now, nil)
+			mrfc.On("GetPodCreationTimestamp", "0.0.0.3", rf).Maybe().Return(now, nil)
+			mrfc.On("GetPodCreationTimestamp", sentinel, rf).Maybe().Return(now, nil)
+
 			if test.redisCheckNumberOK {
 				mrfc.On("CheckRedisNumber", rf).Once().Return(nil)
 			} else {
@@ -285,7 +293,10 @@ func TestCheckAndHeal(t *testing.T) {
 				mrfc.On("CheckRedisSlavesReady", "0.0.0.2", rf).Once().Return(true, nil)
 				mrfc.On("CheckRedisSlavesReady", "0.0.0.3", rf).Once().Return(true, nil)
 				mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return("1", nil)
-				mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{}, nil)
+				mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{"0.0.0.1", "0.0.0.2", "0.0.0.3"}, nil)
+				mrfc.On("GetRedisRevisionHash", "0.0.0.1", rf).Once().Return("1", nil)
+				mrfc.On("GetRedisRevisionHash", "0.0.0.2", rf).Once().Return("1", nil)
+				mrfc.On("GetRedisRevisionHash", "0.0.0.3", rf).Once().Return("1", nil)
 
 				if test.redisSetMasterOnAllOK {
 					mrfh.On("SetExternalMasterOnAll", bootstrapMaster, bootstrapMasterPort, rf).Once().Return(nil)
@@ -331,9 +342,12 @@ func TestCheckAndHeal(t *testing.T) {
 					}
 					mrfc.On("GetRedisesIPs", rf).Twice().Return([]string{master}, nil)
 					mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return("1", nil)
-					mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{}, nil)
+					mrfc.On("GetRedisesSlavesPods", rf).Once().Return([]string{"0.0.0.1", "0.0.0.2", "0.0.0.3"}, nil)
 					mrfc.On("GetRedisesMasterPod", rf).Once().Return(master, nil)
 					mrfc.On("GetRedisRevisionHash", master, rf).Once().Return("1", nil)
+					mrfc.On("GetRedisRevisionHash", "0.0.0.1", rf).Once().Return("1", nil)
+					mrfc.On("GetRedisRevisionHash", "0.0.0.2", rf).Once().Return("1", nil)
+					mrfc.On("GetRedisRevisionHash", "0.0.0.3", rf).Once().Return("1", nil)
 					mrfh.On("SetRedisCustomConfig", master, rf).Once().Return(nil)
 				}
 			}
@@ -836,6 +850,12 @@ func TestUpdate(t *testing.T) {
 			mrfc := &mRFService.RedisFailoverCheck{}
 			mrfc.On("GetRedisesIPs", rf).Once().Return([]string{"0.0.0.0", "0.0.0.1", "1.1.1.1"}, nil)
 
+			now := metav1.Now()
+			for _, pod := range test.pods {
+				mrfc.On("GetPodCreationTimestamp", pod.pod.ObjectMeta.Name, rf).Maybe().Return(now, nil)
+			}
+			mrfs.On("UpdateRedisRestartedAt", rf, mock.AnythingOfType("*time.Time")).Maybe().Return()
+
 			next := true
 			if !test.bootstrapping {
 				master := "1.1.1.1"
@@ -862,17 +882,24 @@ func TestUpdate(t *testing.T) {
 					replicas = append(replicas, "slave3")
 				}
 				mrfc.On("GetStatefulSetUpdateRevision", rf).Once().Return(test.ssVersion, nil)
-				mrfc.On("GetRedisesSlavesPods", rf).Once().Return(replicas, nil)
+
+				willPodRestart := false
 
 				for _, pod := range test.pods {
 					mrfc.On("GetRedisRevisionHash", pod.pod.ObjectMeta.Name, rf).Once().Return(pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey], nil)
 					if pod.pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey] != test.ssVersion {
 						mrfh.On("DeletePod", pod.pod.ObjectMeta.Name, rf).Once().Return(nil)
+						willPodRestart = true
 						if pod.master == false {
 							next = false
 							break
 						}
 					}
+				}
+				if willPodRestart && test.bootstrapping {
+					mrfc.On("GetRedisesSlavesPods", rf).Twice().Return(replicas, nil)
+				} else {
+					mrfc.On("GetRedisesSlavesPods", rf).Once().Return(replicas, nil)
 				}
 				fmt.Printf("%v - %v\n", test.name, next)
 				if next && !test.bootstrapping {
