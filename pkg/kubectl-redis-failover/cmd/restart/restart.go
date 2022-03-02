@@ -50,7 +50,7 @@ func NewCmdRestartFailover(o *options.RedisFailoverOptions) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:          "restart REDISFAILOVER",
 		Short:        "Restart the redis pods of a RedisFailover",
-		Example:      "",
+		Example:      o.Example(restartExample),
 		SilenceUsage: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(args) != 1 {

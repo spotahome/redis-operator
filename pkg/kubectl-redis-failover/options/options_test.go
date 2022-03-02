@@ -74,7 +74,7 @@ func TestClientsets(t *testing.T) {
 	defer tf.Cleanup()
 	o := options.NewRedisFailoverOptions(iostreams)
 	o.RESTClientGetter = tf
-	o.RESTClientGetter.ToRawKubeConfigLoader().Namespace()
+	// _,_,_ = o.RESTClientGetter.ToRawKubeConfigLoader().Namespace()
 
 	var cmd = &cobra.Command{
 		Use:               "foo SOMETHING",

@@ -24,8 +24,8 @@ type RedisFailoverClient interface {
 	EnsureRedisReadinessConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureNotPresentRedisService(rFailover *redisfailoverv1.RedisFailover) error
-	UpdateRedisRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time)
-	UpdateSentinelRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time)
+	UpdateRedisRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) error
+	UpdateSentinelRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) error
 }
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
@@ -146,11 +146,11 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 }
 
 // UpdateRedisRestartedAt updates Status.redisRestartedAt
-func (r *RedisFailoverKubeClient) UpdateRedisRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) {
-	r.K8SService.UpdateRedisRestartedAt(rFailover.Namespace, rFailover.Name, restartedAt)
+func (r *RedisFailoverKubeClient) UpdateRedisRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) error {
+	return r.K8SService.UpdateRedisRestartedAt(rFailover.Namespace, rFailover.Name, restartedAt)
 }
 
 // UpdateSentinelRestartedAt updates Status.sentinelRestartedAt
-func (r *RedisFailoverKubeClient) UpdateSentinelRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) {
-	r.K8SService.UpdateSentinelRestartedAt(rFailover.Namespace, rFailover.Name, restartedAt)
+func (r *RedisFailoverKubeClient) UpdateSentinelRestartedAt(rFailover *redisfailoverv1.RedisFailover, restartedAt *time.Time) error {
+	return r.K8SService.UpdateSentinelRestartedAt(rFailover.Namespace, rFailover.Name, restartedAt)
 }

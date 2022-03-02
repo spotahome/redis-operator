@@ -143,11 +143,29 @@ func (_m *RedisFailoverClient) EnsureSentinelService(rFailover *v1.RedisFailover
 }
 
 // UpdateRedisRestartedAt provides a mock function with given fields: rFailover, restartedAt
-func (_m *RedisFailoverClient) UpdateRedisRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) {
-	_m.Called(rFailover, restartedAt)
+func (_m *RedisFailoverClient) UpdateRedisRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) error {
+	ret := _m.Called(rFailover, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, *time.Time) error); ok {
+		r0 = rf(rFailover, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UpdateSentinelRestartedAt provides a mock function with given fields: rFailover, restartedAt
-func (_m *RedisFailoverClient) UpdateSentinelRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) {
-	_m.Called(rFailover, restartedAt)
+func (_m *RedisFailoverClient) UpdateSentinelRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) error {
+	ret := _m.Called(rFailover, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, *time.Time) error); ok {
+		r0 = rf(rFailover, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }

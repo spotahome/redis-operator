@@ -63,7 +63,7 @@ func (o *RedisFailoverOptions) Example(example string) string {
 }
 
 func (o *RedisFailoverOptions) UsageErr(c *cobra.Command) error {
-	c.Usage()
+	_ = c.Usage()
 	c.SilenceErrors = true
 	return errors.New(c.UsageString())
 }
@@ -74,7 +74,10 @@ func (o *RedisFailoverOptions) PersistentPreRunE(c *cobra.Command, args []string
 	// emit to this are returned errors from command.RunE
 	c.SetOut(o.ErrOut)
 	c.SetErr(o.ErrOut)
-	o.Log.Set(log.Level(o.LogLevel))
+	err := o.Log.Set(log.Level(o.LogLevel))
+	if err != nil {
+		return err
+	}
 	if flag.Lookup("v") != nil {
 		// the '-v' flag is set by klog.Init(), which we only call in main.go
 		err := flag.Set("v", strconv.Itoa(o.KlogLevel))

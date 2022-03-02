@@ -45,13 +45,31 @@ func (_m *RedisFailover) ListRedisFailovers(ctx context.Context, namespace strin
 }
 
 // UpdateRedisRestartedAt provides a mock function with given fields: namespace, name, restartedAt
-func (_m *RedisFailover) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) {
-	_m.Called(namespace, name, restartedAt)
+func (_m *RedisFailover) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UpdateSentinelRestartedAt provides a mock function with given fields: namespace, name, restartedAt
-func (_m *RedisFailover) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) {
-	_m.Called(namespace, name, restartedAt)
+func (_m *RedisFailover) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // WatchRedisFailovers provides a mock function with given fields: ctx, namespace, opts

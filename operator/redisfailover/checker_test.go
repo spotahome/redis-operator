@@ -854,7 +854,7 @@ func TestUpdate(t *testing.T) {
 			for _, pod := range test.pods {
 				mrfc.On("GetPodCreationTimestamp", pod.pod.ObjectMeta.Name, rf).Maybe().Return(now, nil)
 			}
-			mrfs.On("UpdateRedisRestartedAt", rf, mock.AnythingOfType("*time.Time")).Maybe().Return()
+			mrfs.On("UpdateRedisRestartedAt", rf, mock.AnythingOfType("*time.Time")).Maybe().Return(nil)
 
 			next := true
 			if !test.bootstrapping {

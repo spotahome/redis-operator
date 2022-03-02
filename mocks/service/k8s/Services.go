@@ -822,8 +822,17 @@ func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBud
 }
 
 // UpdateRedisRestartedAt provides a mock function with given fields: namespace, name, restartedAt
-func (_m *Services) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) {
-	_m.Called(namespace, name, restartedAt)
+func (_m *Services) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UpdateRole provides a mock function with given fields: namespace, role
@@ -855,8 +864,17 @@ func (_m *Services) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBind
 }
 
 // UpdateSentinelRestartedAt provides a mock function with given fields: namespace, name, restartedAt
-func (_m *Services) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) {
-	_m.Called(namespace, name, restartedAt)
+func (_m *Services) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // UpdateService provides a mock function with given fields: namespace, service

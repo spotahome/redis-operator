@@ -93,7 +93,9 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 						rfrRestartAt = &t
 					}
 					restartedAt := rfrRestartAt.Time.UTC()
-					r.rfService.UpdateRedisRestartedAt(rf, &restartedAt)
+					if err := r.rfService.UpdateRedisRestartedAt(rf, &restartedAt); err != nil {
+						return err
+					}
 				}
 			}
 			return nil
@@ -128,7 +130,9 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 				rfrRestartAt = &t
 			}
 			restartAt := rfrRestartAt.Time.UTC()
-			r.rfService.UpdateRedisRestartedAt(rf, &restartAt)
+			if err := r.rfService.UpdateRedisRestartedAt(rf, &restartAt); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -153,7 +157,9 @@ func (r *RedisFailoverHandler) CheckAndRestartSentinels(rf *redisfailoverv1.Redi
 		statusSentinelRestartedAt := rf.Status.SentinelRestartedAt
 		if statusSentinelRestartedAt == nil || !statusSentinelRestartedAt.Equal(rfsRestartAt) {
 			restartAt := rfsRestartAt.Time.UTC()
-			r.rfService.UpdateSentinelRestartedAt(rf, &restartAt)
+			if err := r.rfService.UpdateSentinelRestartedAt(rf, &restartAt); err != nil {
+				return err
+			}
 		}
 	} else {
 		for _, sp := range sps {
@@ -174,7 +180,9 @@ func (r *RedisFailoverHandler) CheckAndRestartSentinels(rf *redisfailoverv1.Redi
 				}
 				if r.AllRestarted(rf, newsps, rfsRestartAt) {
 					restartAt := rfsRestartAt.Time.UTC()
-					r.rfService.UpdateSentinelRestartedAt(rf, &restartAt)
+					if err := r.rfService.UpdateSentinelRestartedAt(rf, &restartAt); err != nil {
+						return err
+					}
 				}
 				return nil
 			}
@@ -276,7 +284,12 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			}
 		}
 	}
-	r.CheckAndRestartSentinels(rf)
+
+	err = r.CheckAndRestartSentinels(rf)
+	if err != nil {
+		return err
+	}
+
 	return r.checkAndHealSentinels(rf, sentinels)
 }
 

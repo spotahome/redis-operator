@@ -20,8 +20,8 @@ type RedisFailover interface {
 	ListRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error)
 	// WatchRedisFailovers watches the redisfailovers on a cluster.
 	WatchRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (watch.Interface, error)
-	UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time)
-	UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time)
+	UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) error
+	UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) error
 }
 
 // RedisFailoverService is the RedisFailover service implementation using API calls to kubernetes.
@@ -63,7 +63,7 @@ func (r *RedisFailoverService) WatchRedisFailovers(ctx context.Context, namespac
 }
 
 // UpdateRedisRestartedAt updates redis restartedAt status
-func (r *RedisFailoverService) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) {
+func (r *RedisFailoverService) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) error {
 	ctx := context.TODO()
 	redisfailoverIf := r.k8sCli.DatabasesV1().RedisFailovers(namespace)
 	if restartedAt == nil {
@@ -71,11 +71,15 @@ func (r *RedisFailoverService) UpdateRedisRestartedAt(namespace string, name str
 		restartedAt = &t
 	}
 	patch := fmt.Sprintf(redisRestartedAtPatch, restartedAt.Format(time.RFC3339))
-	redisfailoverIf.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	_, err := redisfailoverIf.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateSentinelRestartedAt updates redis restartedAt status
-func (r *RedisFailoverService) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) {
+func (r *RedisFailoverService) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) error {
 	ctx := context.TODO()
 	redisfailoverIf := r.k8sCli.DatabasesV1().RedisFailovers(namespace)
 	if restartedAt == nil {
@@ -83,5 +87,9 @@ func (r *RedisFailoverService) UpdateSentinelRestartedAt(namespace string, name 
 		restartedAt = &t
 	}
 	patch := fmt.Sprintf(sentinelRestartedAtPatch, restartedAt.Format(time.RFC3339))
-	redisfailoverIf.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	_, err := redisfailoverIf.Patch(ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
