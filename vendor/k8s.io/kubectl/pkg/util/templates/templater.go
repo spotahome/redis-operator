@@ -225,10 +225,10 @@ func flagsUsages(f *flag.FlagSet) string {
 		if flag.Hidden {
 			return
 		}
-		format := "--%s=%s: %s%s\n"
+		format := "--%s=%s: %s\n"
 
 		if flag.Value.Type() == "string" {
-			format = "--%s='%s': %s%s\n"
+			format = "--%s='%s': %s\n"
 		}
 
 		if len(flag.Shorthand) > 0 {
@@ -237,12 +237,7 @@ func flagsUsages(f *flag.FlagSet) string {
 			format = "   %s   " + format
 		}
 
-		deprecated := ""
-		if flag.Deprecated != "" {
-			deprecated = fmt.Sprintf(" (DEPRECATED: %s)", flag.Deprecated)
-		}
-
-		fmt.Fprintf(x, format, flag.Shorthand, flag.Name, flag.DefValue, flag.Usage, deprecated)
+		fmt.Fprintf(x, format, flag.Shorthand, flag.Name, flag.DefValue, flag.Usage)
 	})
 
 	return x.String()

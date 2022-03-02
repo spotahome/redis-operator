@@ -205,7 +205,7 @@ func (d *DeferredDiscoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 	}
 
 	d.delegate = NewDiscoveryRESTMapper(groupResources)
-	return d.delegate, nil
+	return d.delegate, err
 }
 
 // Reset resets the internally cached Discovery information and will
@@ -335,4 +335,4 @@ func (d *DeferredDiscoveryRESTMapper) String() string {
 }
 
 // Make sure it satisfies the interface
-var _ meta.ResettableRESTMapper = &DeferredDiscoveryRESTMapper{}
+var _ meta.RESTMapper = &DeferredDiscoveryRESTMapper{}

@@ -18,25 +18,24 @@ limitations under the License.
 
 package v1
 
-// ProbeHandlerApplyConfiguration represents an declarative configuration of the ProbeHandler type for use
+// HandlerApplyConfiguration represents an declarative configuration of the Handler type for use
 // with apply.
-type ProbeHandlerApplyConfiguration struct {
+type HandlerApplyConfiguration struct {
 	Exec      *ExecActionApplyConfiguration      `json:"exec,omitempty"`
 	HTTPGet   *HTTPGetActionApplyConfiguration   `json:"httpGet,omitempty"`
 	TCPSocket *TCPSocketActionApplyConfiguration `json:"tcpSocket,omitempty"`
-	GRPC      *GRPCActionApplyConfiguration      `json:"grpc,omitempty"`
 }
 
-// ProbeHandlerApplyConfiguration constructs an declarative configuration of the ProbeHandler type for use with
+// HandlerApplyConfiguration constructs an declarative configuration of the Handler type for use with
 // apply.
-func ProbeHandler() *ProbeHandlerApplyConfiguration {
-	return &ProbeHandlerApplyConfiguration{}
+func Handler() *HandlerApplyConfiguration {
+	return &HandlerApplyConfiguration{}
 }
 
 // WithExec sets the Exec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Exec field is set to the value of the last call.
-func (b *ProbeHandlerApplyConfiguration) WithExec(value *ExecActionApplyConfiguration) *ProbeHandlerApplyConfiguration {
+func (b *HandlerApplyConfiguration) WithExec(value *ExecActionApplyConfiguration) *HandlerApplyConfiguration {
 	b.Exec = value
 	return b
 }
@@ -44,7 +43,7 @@ func (b *ProbeHandlerApplyConfiguration) WithExec(value *ExecActionApplyConfigur
 // WithHTTPGet sets the HTTPGet field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the HTTPGet field is set to the value of the last call.
-func (b *ProbeHandlerApplyConfiguration) WithHTTPGet(value *HTTPGetActionApplyConfiguration) *ProbeHandlerApplyConfiguration {
+func (b *HandlerApplyConfiguration) WithHTTPGet(value *HTTPGetActionApplyConfiguration) *HandlerApplyConfiguration {
 	b.HTTPGet = value
 	return b
 }
@@ -52,15 +51,7 @@ func (b *ProbeHandlerApplyConfiguration) WithHTTPGet(value *HTTPGetActionApplyCo
 // WithTCPSocket sets the TCPSocket field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TCPSocket field is set to the value of the last call.
-func (b *ProbeHandlerApplyConfiguration) WithTCPSocket(value *TCPSocketActionApplyConfiguration) *ProbeHandlerApplyConfiguration {
+func (b *HandlerApplyConfiguration) WithTCPSocket(value *TCPSocketActionApplyConfiguration) *HandlerApplyConfiguration {
 	b.TCPSocket = value
-	return b
-}
-
-// WithGRPC sets the GRPC field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the GRPC field is set to the value of the last call.
-func (b *ProbeHandlerApplyConfiguration) WithGRPC(value *GRPCActionApplyConfiguration) *ProbeHandlerApplyConfiguration {
-	b.GRPC = value
 	return b
 }
