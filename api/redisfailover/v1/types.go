@@ -188,8 +188,6 @@ type RedisFailoverStatus struct {
 	RedisRestartedAt *metav1.Time `json:"redisRestartedAt,omitempty"`
 	// SentinelRestartedAt indicates last time Sentinels were restarted
 	SentinelRestartedAt *metav1.Time `json:"sentinelRestartedAt,omitempty"`
-	// ClusterStatus indicates RedisFailover status as a whole
-	ClusterStatus string `json:"clusterStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
