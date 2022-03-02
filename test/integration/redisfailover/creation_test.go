@@ -34,7 +34,7 @@ import (
 
 const (
 	name           = "testing"
-	namespace      = "redis-operator"
+	namespace      = "rf-integration-tests"
 	redisSize      = int32(3)
 	sentinelSize   = int32(3)
 	authSecretPath = "redis-auth"
