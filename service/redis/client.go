@@ -14,6 +14,7 @@ import (
 // Client defines the functions neccesary to connect to redis and sentinel to get or set what we nned
 type Client interface {
 	GetNumberSentinelsInMemory(ip string) (int32, error)
+	GetReplOffsetInMemory(ip, password string) (int, error)
 	GetNumberSentinelSlavesInMemory(ip string) (int32, error)
 	ResetSentinel(ip string) error
 	GetSlaveOf(ip, password string) (string, error)
@@ -38,24 +39,28 @@ func New() Client {
 }
 
 const (
-	sentinelsNumberREString = "sentinels=([0-9]+)"
-	slaveNumberREString     = "slaves=([0-9]+)"
-	sentinelStatusREString  = "status=([a-z]+)"
-	redisMasterHostREString = "master_host:([0-9.]+)"
-	redisRoleMaster         = "role:master"
-	redisSyncing            = "master_sync_in_progress:1"
-	redisMasterSillPending  = "master_host:127.0.0.1"
-	redisLinkUp             = "master_link_status:up"
-	redisPort               = "6379"
-	sentinelPort            = "26379"
-	masterName              = "mymaster"
+	sentinelsNumberREString  = "sentinels=([0-9]+)"
+	slaveNumberREString      = "slaves=([0-9]+)"
+	sentinelStatusREString   = "status=([a-z]+)"
+	redisMasterHostREString  = "master_host:([0-9.]+)"
+	masterReplOffsetREString = "master_repl_offset:([0-9]+)"
+	slaveReplOffsetREString  = "slave_repl_offset:([0-9]+)"
+	redisRoleMaster          = "role:master"
+	redisSyncing             = "master_sync_in_progress:1"
+	redisMasterSillPending   = "master_host:127.0.0.1"
+	redisLinkUp              = "master_link_status:up"
+	redisPort                = "6379"
+	sentinelPort             = "26379"
+	masterName               = "mymaster"
 )
 
 var (
-	sentinelNumberRE  = regexp.MustCompile(sentinelsNumberREString)
-	sentinelStatusRE  = regexp.MustCompile(sentinelStatusREString)
-	slaveNumberRE     = regexp.MustCompile(slaveNumberREString)
-	redisMasterHostRE = regexp.MustCompile(redisMasterHostREString)
+	sentinelNumberRE   = regexp.MustCompile(sentinelsNumberREString)
+	sentinelStatusRE   = regexp.MustCompile(sentinelStatusREString)
+	slaveNumberRE      = regexp.MustCompile(slaveNumberREString)
+	redisMasterHostRE  = regexp.MustCompile(redisMasterHostREString)
+	masterReplOffsetRE = regexp.MustCompile(masterReplOffsetREString)
+	slaveReplOffsetRE  = regexp.MustCompile(slaveReplOffsetREString)
 )
 
 // GetNumberSentinelsInMemory return the number of sentinels that the requested sentinel has
@@ -139,6 +144,35 @@ func (c *client) ResetSentinel(ip string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *client) GetReplOffsetInMemory(ip, password string) (int, error) {
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, redisPort),
+		Password: password,
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+	info, err := rClient.Info("replication").Result()
+	if err != nil {
+		return 0, err
+	}
+	match := slaveReplOffsetRE.FindStringSubmatch(info)
+	if len(match) != 0 {
+		offfset, err := strconv.Atoi(match[1])
+		if err == nil {
+			return offfset, err
+		}
+	}
+	match = masterReplOffsetRE.FindStringSubmatch(info)
+	if len(match) != 0 {
+		offfset, err := strconv.Atoi(match[1])
+		if err == nil {
+			return offfset, err
+		}
+	}
+	return 0, nil
 }
 
 // GetSlaveOf returns the master of the given redis, or nil if it's master
