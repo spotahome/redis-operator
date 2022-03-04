@@ -76,21 +76,22 @@ func (r *RedisFailoverHealer) SetMaximumOffsetAsMaster(rf *redisfailoverv1.Redis
 		}
 		ipOffsetSlice = append(ipOffsetSlice, IPOffset{IP: pod.Status.PodIP, Offset: offset})
 	}
-	// Order the pods  by the oldest one
-	sort.Slice(ssp.Items, func(i, j int) bool {
-		return ssp.Items[i].CreationTimestamp.Before(&ssp.Items[j].CreationTimestamp)
+	sort.Slice(ipOffsetSlice, func(i, j int) bool {
+		return ipOffsetSlice[i].Offset > ipOffsetSlice[j].Offset
 	})
+	if ipOffsetSlice[0].Offset == 0 {
+		return errors.New("biggest repl offset is 0")
+	}
+
 	newMasterIP := ""
-	for _, pod := range ssp.Items {
+	for _, ipOffset := range ipOffsetSlice {
 		if newMasterIP == "" {
-			newMasterIP = pod.Status.PodIP
-			r.logger.Debugf("New master is %s with ip %s", pod.Name, newMasterIP)
+			newMasterIP = ipOffset.IP
 			if err := r.redisClient.MakeMaster(newMasterIP, password); err != nil {
 				return err
 			}
 		} else {
-			r.logger.Debugf("Making pod %s slave of %s", pod.Name, newMasterIP)
-			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, newMasterIP, password); err != nil {
+			if err := r.redisClient.MakeSlaveOf(ipOffset.IP, newMasterIP, password); err != nil {
 				return err
 			}
 		}
