@@ -11,13 +11,13 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
+	policyv1 "k8s.io/api/policy/v1"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 
 	v1 "k8s.io/api/core/v1"
-
-	v1beta1 "k8s.io/api/policy/v1beta1"
 
 	watch "k8s.io/apimachinery/pkg/watch"
 )
@@ -112,11 +112,11 @@ func (_m *Services) CreateOrUpdatePod(namespace string, pod *v1.Pod) error {
 }
 
 // CreateOrUpdatePodDisruptionBudget provides a mock function with given fields: namespace, podDisruptionBudget
-func (_m *Services) CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *v1beta1.PodDisruptionBudget) error {
+func (_m *Services) CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	ret := _m.Called(namespace, podDisruptionBudget)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *v1beta1.PodDisruptionBudget) error); ok {
+	if rf, ok := ret.Get(0).(func(string, *policyv1.PodDisruptionBudget) error); ok {
 		r0 = rf(namespace, podDisruptionBudget)
 	} else {
 		r0 = ret.Error(0)
@@ -196,11 +196,11 @@ func (_m *Services) CreatePod(namespace string, pod *v1.Pod) error {
 }
 
 // CreatePodDisruptionBudget provides a mock function with given fields: namespace, podDisruptionBudget
-func (_m *Services) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *v1beta1.PodDisruptionBudget) error {
+func (_m *Services) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	ret := _m.Called(namespace, podDisruptionBudget)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *v1beta1.PodDisruptionBudget) error); ok {
+	if rf, ok := ret.Get(0).(func(string, *policyv1.PodDisruptionBudget) error); ok {
 		r0 = rf(namespace, podDisruptionBudget)
 	} else {
 		r0 = ret.Error(0)
@@ -465,15 +465,15 @@ func (_m *Services) GetPod(namespace string, name string) (*v1.Pod, error) {
 }
 
 // GetPodDisruptionBudget provides a mock function with given fields: namespace, name
-func (_m *Services) GetPodDisruptionBudget(namespace string, name string) (*v1beta1.PodDisruptionBudget, error) {
+func (_m *Services) GetPodDisruptionBudget(namespace string, name string) (*policyv1.PodDisruptionBudget, error) {
 	ret := _m.Called(namespace, name)
 
-	var r0 *v1beta1.PodDisruptionBudget
-	if rf, ok := ret.Get(0).(func(string, string) *v1beta1.PodDisruptionBudget); ok {
+	var r0 *policyv1.PodDisruptionBudget
+	if rf, ok := ret.Get(0).(func(string, string) *policyv1.PodDisruptionBudget); ok {
 		r0 = rf(namespace, name)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*v1beta1.PodDisruptionBudget)
+			r0 = ret.Get(0).(*policyv1.PodDisruptionBudget)
 		}
 	}
 
@@ -806,11 +806,11 @@ func (_m *Services) UpdatePod(namespace string, pod *v1.Pod) error {
 }
 
 // UpdatePodDisruptionBudget provides a mock function with given fields: namespace, podDisruptionBudget
-func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *v1beta1.PodDisruptionBudget) error {
+func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	ret := _m.Called(namespace, podDisruptionBudget)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *v1beta1.PodDisruptionBudget) error); ok {
+	if rf, ok := ret.Get(0).(func(string, *policyv1.PodDisruptionBudget) error); ok {
 		r0 = rf(namespace, podDisruptionBudget)
 	} else {
 		r0 = ret.Error(0)
