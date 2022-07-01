@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"errors"
+	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
 
@@ -181,6 +182,7 @@ func TestCheckAllSlavesFromMasterGetSlaveOfError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("GetSlaveOf", "", "").Once().Return("", errors.New(""))
 
