@@ -74,9 +74,27 @@ func (r *RedisFailoverChecker) CheckSentinelNumber(rf *redisfailoverv1.RedisFail
 	return nil
 }
 
+func (r *RedisFailoverChecker) setMasterLabelIfNecessary(namespace string, pod corev1.Pod) error {
+	for labelKey, labelValue := range pod.ObjectMeta.Labels {
+		if labelKey == redisRoleLabelKey && labelValue == redisRoleLabelMaster {
+			return nil
+		}
+	}
+	return r.k8sService.UpdatePodLabels(namespace, pod.ObjectMeta.Name, generateRedisMasterRoleLabel())
+}
+
+func (r *RedisFailoverChecker) setSlaveLabelIfNecessary(namespace string, pod corev1.Pod) error {
+	for labelKey, labelValue := range pod.ObjectMeta.Labels {
+		if labelKey == redisRoleLabelKey && labelValue == redisRoleLabelSlave {
+			return nil
+		}
+	}
+	return r.k8sService.UpdatePodLabels(namespace, pod.ObjectMeta.Name, generateRedisSlaveRoleLabel())
+}
+
 // CheckAllSlavesFromMaster controlls that all slaves have the same master (the real one)
 func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1.RedisFailover) error {
-	rips, err := r.GetRedisesIPs(rf)
+	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
 	}
@@ -86,13 +104,25 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 		return err
 	}
 
-	for _, rip := range rips {
-		slave, err := r.redisClient.GetSlaveOf(rip, password)
+	for _, rp := range rps.Items {
+		if rp.Status.PodIP == master {
+			err = r.setMasterLabelIfNecessary(rf.Namespace, rp)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = r.setSlaveLabelIfNecessary(rf.Namespace, rp)
+			if err != nil {
+				return err
+			}
+		}
+
+		slave, err := r.redisClient.GetSlaveOf(rp.Status.PodIP, password)
 		if err != nil {
 			return err
 		}
 		if slave != "" && slave != master {
-			return fmt.Errorf("slave %s don't have the master %s, has %s", rip, master, slave)
+			return fmt.Errorf("slave %s don't have the master %s, has %s", rp.Status.PodIP, master, slave)
 		}
 	}
 	return nil
