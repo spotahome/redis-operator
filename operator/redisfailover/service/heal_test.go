@@ -126,7 +126,7 @@ func TestSetOldestAsMasterMultiplePods(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
 	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(nil)
@@ -169,7 +169,7 @@ func TestSetOldestAsMasterOrdering(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "1.1.1.1", "").Once().Return(nil)
 	mr.On("MakeSlaveOf", "0.0.0.0", "1.1.1.1", "").Once().Return(nil)
@@ -234,7 +234,7 @@ func TestSetMasterOnAllMakeSlaveOfError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
 	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(errors.New(""))
@@ -267,7 +267,7 @@ func TestSetMasterOnAll(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
 	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(nil)
