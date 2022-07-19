@@ -119,6 +119,7 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 
 		slave, err := r.redisClient.GetSlaveOf(rp.Status.PodIP, password)
 		if err != nil {
+			r.logger.Errorf("Get slave of master failed, maybe this node is not ready, pod ip: %s", rp.Status.PodIP)
 			return err
 		}
 		if slave != "" && slave != master {
@@ -183,7 +184,8 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 	for _, rip := range rips {
 		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
-			return "", err
+			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
+			continue
 		}
 		if master {
 			masters = append(masters, rip)
@@ -212,7 +214,8 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 	for _, rip := range rips {
 		master, err := r.redisClient.IsMaster(rip, password)
 		if err != nil {
-			return nMasters, err
+			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
+			continue
 		}
 		if master {
 			nMasters++

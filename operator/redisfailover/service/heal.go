@@ -106,22 +106,22 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 	newMasterIP := ""
 	for _, pod := range ssp.Items {
 		if newMasterIP == "" {
-			newMasterIP = pod.Status.PodIP
-			r.logger.Infof("New master is %s with ip %s", pod.Name, newMasterIP)
-			if err := r.redisClient.MakeMaster(newMasterIP, password); err != nil {
-				r.logger.Errorf("Make new master failed, master ip: %s, error: %v", newMasterIP, err)
-				return err
+			r.logger.Infof("New master is %s with ip %s", pod.Name, pod.Status.PodIP)
+			if err := r.redisClient.MakeMaster(pod.Status.PodIP, password); err != nil {
+				r.logger.Errorf("Make new master failed, master ip: %s, error: %v", pod.Status.PodIP, err)
+				continue
 			}
 
 			err = r.setMasterLabelIfNecessary(rf.Namespace, pod)
 			if err != nil {
 				return err
 			}
+
+			newMasterIP = pod.Status.PodIP
 		} else {
 			r.logger.Infof("Making pod %s slave of %s", pod.Name, newMasterIP)
 			if err := r.redisClient.MakeSlaveOf(pod.Status.PodIP, newMasterIP, password); err != nil {
 				r.logger.Errorf("Make slave failed, slave pod ip: %s, master ip: %s, error: %v", pod.Status.PodIP, newMasterIP, err)
-				return err
 			}
 
 			err = r.setSlaveLabelIfNecessary(rf.Namespace, pod)
