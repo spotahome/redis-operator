@@ -584,7 +584,7 @@ func TestGetNumberMastersIsMasterError(t *testing.T) {
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
 	_, err := checker.GetNumberMasters(rf)
-	assert.Error(err)
+	assert.NoError(err)
 }
 
 func TestGetNumberMasters(t *testing.T) {
