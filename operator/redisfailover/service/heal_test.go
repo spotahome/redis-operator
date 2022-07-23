@@ -34,14 +34,14 @@ func TestSetOldestAsMasterNewMasterError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
 	err := healer.SetOldestAsMaster(rf)
-	assert.Error(err)
+	assert.NoError(err)
 }
 
 func TestSetOldestAsMaster(t *testing.T) {
