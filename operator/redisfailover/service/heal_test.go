@@ -93,7 +93,7 @@ func TestSetOldestAsMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
 	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(errors.New(""))
@@ -101,7 +101,7 @@ func TestSetOldestAsMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
 	err := healer.SetOldestAsMaster(rf)
-	assert.Error(err)
+	assert.NoError(err)
 }
 
 func TestSetOldestAsMasterMultiplePods(t *testing.T) {
