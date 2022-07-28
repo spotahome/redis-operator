@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/spotahome/redis-operator/cmd/utils"
@@ -64,7 +65,8 @@ func (m *Main) Run() error {
 
 	// Serve metrics.
 	go func() {
-		log.Infof("Listening on %s for metrics exposure", m.flags.ListenAddr)
+		log.Infof("Listening on %s for metrics exposure on URL %s", m.flags.ListenAddr, m.flags.MetricsPath)
+		http.Handle(m.flags.MetricsPath, promhttp.Handler())
 		err := http.ListenAndServe(m.flags.ListenAddr, nil)
 		if err != nil {
 			log.Fatal(err)
