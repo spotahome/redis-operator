@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
@@ -29,8 +30,10 @@ type RedisFailoverCheck interface {
 	GetMinimumRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 	GetRedisesSlavesPods(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetRedisesMasterPod(rFailover *redisfailoverv1.RedisFailover) (string, error)
+	GetSentinelsPods(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetRedisRevisionHash(podName string, rFailover *redisfailoverv1.RedisFailover) (string, error)
+	GetPodCreationTimestamp(podName string, rFailover *redisfailoverv1.RedisFailover) (metav1.Time, error)
 	CheckRedisSlavesReady(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
 }
 
@@ -295,6 +298,20 @@ func (r *RedisFailoverChecker) GetRedisesMasterPod(rFailover *redisfailoverv1.Re
 	return "", errors.New("redis nodes known as master not found")
 }
 
+// GetSentinelsPods returns returns pods names of the Sentinel nodes
+func (r *RedisFailoverChecker) GetSentinelsPods(rf *redisfailoverv1.RedisFailover) ([]string, error) {
+	sentinels := []string{}
+	sps, err := r.k8sService.GetDeploymentPods(rf.Namespace, GetSentinelName(rf))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sp := range sps.Items {
+		sentinels = append(sentinels, sp.ObjectMeta.Name)
+	}
+	return sentinels, nil
+}
+
 // GetStatefulSetUpdateRevision returns current version for the statefulSet
 // If the label don't exists, we return an empty value and no error, so previous versions don't break
 func (r *RedisFailoverChecker) GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error) {
@@ -326,6 +343,22 @@ func (r *RedisFailoverChecker) GetRedisRevisionHash(podName string, rFailover *r
 	}
 
 	val := pod.ObjectMeta.Labels[appsv1.ControllerRevisionHashLabelKey]
+
+	return val, nil
+}
+
+// GetPodCreationTimestamp returns the pod creation timestamp
+func (r *RedisFailoverChecker) GetPodCreationTimestamp(podName string, rFailover *redisfailoverv1.RedisFailover) (metav1.Time, error) {
+	pod, err := r.k8sService.GetPod(rFailover.Namespace, podName)
+	if err != nil {
+		return metav1.Now(), err
+	}
+
+	if pod == nil {
+		return metav1.Now(), errors.New("pod not found")
+	}
+
+	val := pod.ObjectMeta.CreationTimestamp
 
 	return val, nil
 }

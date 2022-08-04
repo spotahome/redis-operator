@@ -6,6 +6,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	time "time"
+
 	v1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 )
 
@@ -133,6 +135,34 @@ func (_m *RedisFailoverClient) EnsureSentinelService(rFailover *v1.RedisFailover
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, map[string]string, []metav1.OwnerReference) error); ok {
 		r0 = rf(rFailover, labels, ownerRefs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateRedisRestartedAt provides a mock function with given fields: rFailover, restartedAt
+func (_m *RedisFailoverClient) UpdateRedisRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) error {
+	ret := _m.Called(rFailover, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, *time.Time) error); ok {
+		r0 = rf(rFailover, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateSentinelRestartedAt provides a mock function with given fields: rFailover, restartedAt
+func (_m *RedisFailoverClient) UpdateSentinelRestartedAt(rFailover *v1.RedisFailover, restartedAt *time.Time) error {
+	ret := _m.Called(rFailover, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, *time.Time) error); ok {
+		r0 = rf(rFailover, restartedAt)
 	} else {
 		r0 = ret.Error(0)
 	}

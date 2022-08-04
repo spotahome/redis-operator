@@ -15,6 +15,8 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 
+	time "time"
+
 	v1 "k8s.io/api/core/v1"
 
 	v1beta1 "k8s.io/api/policy/v1beta1"
@@ -819,6 +821,20 @@ func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBud
 	return r0
 }
 
+// UpdateRedisRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *Services) UpdateRedisRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateRole provides a mock function with given fields: namespace, role
 func (_m *Services) UpdateRole(namespace string, role *rbacv1.Role) error {
 	ret := _m.Called(namespace, role)
@@ -840,6 +856,20 @@ func (_m *Services) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBind
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, *rbacv1.RoleBinding) error); ok {
 		r0 = rf(namespace, binding)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateSentinelRestartedAt provides a mock function with given fields: namespace, name, restartedAt
+func (_m *Services) UpdateSentinelRestartedAt(namespace string, name string, restartedAt *time.Time) error {
+	ret := _m.Called(namespace, name, restartedAt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, *time.Time) error); ok {
+		r0 = rf(namespace, name, restartedAt)
 	} else {
 		r0 = ret.Error(0)
 	}

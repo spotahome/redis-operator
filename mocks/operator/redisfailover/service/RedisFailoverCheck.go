@@ -4,6 +4,7 @@ package mocks
 
 import (
 	mock "github.com/stretchr/testify/mock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	time "time"
 
@@ -190,6 +191,27 @@ func (_m *RedisFailoverCheck) GetNumberMasters(rFailover *v1.RedisFailover) (int
 	return r0, r1
 }
 
+// GetPodCreationTimestamp provides a mock function with given fields: podName, rFailover
+func (_m *RedisFailoverCheck) GetPodCreationTimestamp(podName string, rFailover *v1.RedisFailover) (metav1.Time, error) {
+	ret := _m.Called(podName, rFailover)
+
+	var r0 metav1.Time
+	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) metav1.Time); ok {
+		r0 = rf(podName, rFailover)
+	} else {
+		r0 = ret.Get(0).(metav1.Time)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, *v1.RedisFailover) error); ok {
+		r1 = rf(podName, rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetRedisRevisionHash provides a mock function with given fields: podName, rFailover
 func (_m *RedisFailoverCheck) GetRedisRevisionHash(podName string, rFailover *v1.RedisFailover) (string, error) {
 	ret := _m.Called(podName, rFailover)
@@ -280,6 +302,29 @@ func (_m *RedisFailoverCheck) GetRedisesSlavesPods(rFailover *v1.RedisFailover) 
 
 // GetSentinelsIPs provides a mock function with given fields: rFailover
 func (_m *RedisFailoverCheck) GetSentinelsIPs(rFailover *v1.RedisFailover) ([]string, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) []string); ok {
+		r0 = rf(rFailover)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSentinelsPods provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetSentinelsPods(rFailover *v1.RedisFailover) ([]string, error) {
 	ret := _m.Called(rFailover)
 
 	var r0 []string

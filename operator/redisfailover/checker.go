@@ -4,12 +4,28 @@ import (
 	"errors"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
 
 const (
 	timeToPrepare = 2 * time.Minute
 )
+
+// AllRestarted returns whether all pods' creationTimestamps are after a time
+func (r *RedisFailoverHandler) AllRestarted(rf *redisfailoverv1.RedisFailover, pods []string, restartAt *metav1.Time) bool {
+	if restartAt == nil {
+		return true
+	}
+	for _, p := range pods {
+		if ct, err := r.rfChecker.GetPodCreationTimestamp(p, rf); err != nil || restartAt.After(ct.Time) {
+			return false
+		}
+	}
+	return true
+}
 
 //UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
@@ -17,6 +33,8 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 	if err != nil {
 		return err
 	}
+
+	redisNeedsRestart := util.RedisNeedsRestart(rf)
 
 	masterIP := ""
 	if !rf.Bootstrapping() {
@@ -46,16 +64,39 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 	}
 
 	// Update stale pods with slave role
+	rfrRestartAt := rf.Spec.Redis.RestartAt
 	for _, pod := range redisesPods {
 		revision, err := r.rfChecker.GetRedisRevisionHash(pod, rf)
 		if err != nil {
 			return err
 		}
-		if revision != ssUR {
+
+		creationTimestamp, err := r.rfChecker.GetPodCreationTimestamp(pod, rf)
+		if err != nil {
+			return err
+		}
+
+		if revision != ssUR || (redisNeedsRestart && rfrRestartAt.After(creationTimestamp.Time)) {
 			//Delete pod and wait next round to check if the new one is synced
 			err = r.rfHealer.DeletePod(pod, rf)
 			if err != nil {
 				return err
+			}
+			if rf.Bootstrapping() {
+				newrps, err := r.rfChecker.GetRedisesSlavesPods(rf)
+				if err != nil {
+					return err
+				}
+				if r.AllRestarted(rf, newrps, rfrRestartAt) {
+					if rfrRestartAt == nil {
+						t := metav1.Now()
+						rfrRestartAt = &t
+					}
+					restartedAt := rfrRestartAt.Time.UTC()
+					if err := r.rfService.UpdateRedisRestartedAt(rf, &restartedAt); err != nil {
+						return err
+					}
+				}
 			}
 			return nil
 		}
@@ -72,15 +113,81 @@ func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailov
 		if err != nil {
 			return err
 		}
-		if masterRevision != ssUR {
+
+		masterCreationTimestamp, err := r.rfChecker.GetPodCreationTimestamp(master, rf)
+		if err != nil {
+			return err
+		}
+
+		rfrRestartAt := rf.Spec.Redis.RestartAt
+		if masterRevision != ssUR || (redisNeedsRestart && rfrRestartAt.After(masterCreationTimestamp.Time)) {
 			err = r.rfHealer.DeletePod(master, rf)
 			if err != nil {
+				return err
+			}
+			if rfrRestartAt == nil {
+				t := metav1.Now()
+				rfrRestartAt = &t
+			}
+			restartAt := rfrRestartAt.Time.UTC()
+			if err := r.rfService.UpdateRedisRestartedAt(rf, &restartAt); err != nil {
 				return err
 			}
 			return nil
 		}
 	}
 
+	return nil
+}
+
+// CheckAndRestartSentinels will check if sentinels a restart based on the pod creationTimestamp and RedisFailover's sentinel restartAt
+func (r *RedisFailoverHandler) CheckAndRestartSentinels(rf *redisfailoverv1.RedisFailover) error {
+	if !util.SentinelNeedsRestart(rf) {
+		return nil
+	}
+
+	sps, err := r.rfChecker.GetSentinelsPods(rf)
+	if err != nil {
+		return err
+	}
+
+	rfsRestartAt := rf.Spec.Sentinel.RestartAt
+
+	if r.AllRestarted(rf, sps, rfsRestartAt) {
+		statusSentinelRestartedAt := rf.Status.SentinelRestartedAt
+		if statusSentinelRestartedAt == nil || !statusSentinelRestartedAt.Equal(rfsRestartAt) {
+			restartAt := rfsRestartAt.Time.UTC()
+			if err := r.rfService.UpdateSentinelRestartedAt(rf, &restartAt); err != nil {
+				return err
+			}
+		}
+	} else {
+		for _, sp := range sps {
+			creationTimestamp, err := r.rfChecker.GetPodCreationTimestamp(sp, rf)
+			if err != nil {
+				return err
+			}
+
+			if creationTimestamp.After(rfsRestartAt.Time) || creationTimestamp.Equal(rfsRestartAt) {
+				continue
+			} else {
+				if err := r.rfHealer.DeletePod(sp, rf); err != nil {
+					return err
+				}
+				newsps, err := r.rfChecker.GetSentinelsPods(rf)
+				if err != nil {
+					return err
+				}
+				if r.AllRestarted(rf, newsps, rfsRestartAt) {
+					restartAt := rfsRestartAt.Time.UTC()
+					if err := r.rfService.UpdateSentinelRestartedAt(rf, &restartAt); err != nil {
+						return err
+					}
+				}
+				return nil
+			}
+		}
+	}
 	return nil
 }
 
@@ -177,6 +284,12 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			}
 		}
 	}
+
+	err = r.CheckAndRestartSentinels(rf)
+	if err != nil {
+		return err
+	}
+
 	return r.checkAndHealSentinels(rf, sentinels)
 }
 
