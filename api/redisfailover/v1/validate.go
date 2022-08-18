@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -22,7 +23,7 @@ func (r *RedisFailover) Validate() error {
 		}
 
 		if r.Spec.BootstrapNode.Port == "" {
-			r.Spec.BootstrapNode.Port = defaultRedisPort
+			r.Spec.BootstrapNode.Port = strconv.Itoa(defaultRedisPort)
 		}
 		initialRedisCustomConfig = bootstrappingRedisCustomConfig
 	}
@@ -43,6 +44,10 @@ func (r *RedisFailover) Validate() error {
 
 	if r.Spec.Sentinel.Replicas <= 0 {
 		r.Spec.Sentinel.Replicas = defaultSentinelNumber
+	}
+
+	if r.Spec.Redis.Port <= 0 {
+		r.Spec.Redis.Port = defaultRedisPort
 	}
 
 	if r.Spec.Redis.Exporter.Image == "" {

@@ -79,20 +79,20 @@ func (_m *Client) GetSentinelMonitor(ip string) (string, string, error) {
 	return r0, r1, r2
 }
 
-// GetSlaveOf provides a mock function with given fields: ip, password
-func (_m *Client) GetSlaveOf(ip string, password string) (string, error) {
-	ret := _m.Called(ip, password)
+// GetSlaveOf provides a mock function with given fields: ip, port, password
+func (_m *Client) GetSlaveOf(ip string, port string, password string) (string, error) {
+	ret := _m.Called(ip, port, password)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(ip, password)
+	if rf, ok := ret.Get(0).(func(string, string, string) string); ok {
+		r0 = rf(ip, port, password)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(ip, password)
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(ip, port, password)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -100,20 +100,20 @@ func (_m *Client) GetSlaveOf(ip string, password string) (string, error) {
 	return r0, r1
 }
 
-// IsMaster provides a mock function with given fields: ip, password
-func (_m *Client) IsMaster(ip string, password string) (bool, error) {
-	ret := _m.Called(ip, password)
+// IsMaster provides a mock function with given fields: ip, port, password
+func (_m *Client) IsMaster(ip string, port string, password string) (bool, error) {
+	ret := _m.Called(ip, port, password)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string) bool); ok {
-		r0 = rf(ip, password)
+	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
+		r0 = rf(ip, port, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(ip, password)
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(ip, port, password)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -121,13 +121,13 @@ func (_m *Client) IsMaster(ip string, password string) (bool, error) {
 	return r0, r1
 }
 
-// MakeMaster provides a mock function with given fields: ip, password
-func (_m *Client) MakeMaster(ip string, password string) error {
-	ret := _m.Called(ip, password)
+// MakeMaster provides a mock function with given fields: ip, port, password
+func (_m *Client) MakeMaster(ip string, port string, password string) error {
+	ret := _m.Called(ip, port, password)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(ip, password)
+	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
+		r0 = rf(ip, port, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -205,13 +205,13 @@ func (_m *Client) ResetSentinel(ip string) error {
 	return r0
 }
 
-// SetCustomRedisConfig provides a mock function with given fields: ip, configs, password
-func (_m *Client) SetCustomRedisConfig(ip string, configs []string, password string) error {
-	ret := _m.Called(ip, configs, password)
+// SetCustomRedisConfig provides a mock function with given fields: ip, port, configs, password
+func (_m *Client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
+	ret := _m.Called(ip, port, configs, password)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, []string, string) error); ok {
-		r0 = rf(ip, configs, password)
+	if rf, ok := ret.Get(0).(func(string, string, []string, string) error); ok {
+		r0 = rf(ip, port, configs, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -233,20 +233,20 @@ func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return r0
 }
 
-// SlaveIsReady provides a mock function with given fields: ip, password
-func (_m *Client) SlaveIsReady(ip string, password string) (bool, error) {
-	ret := _m.Called(ip, password)
+// SlaveIsReady provides a mock function with given fields: ip, port, password
+func (_m *Client) SlaveIsReady(ip string, port string, password string) (bool, error) {
+	ret := _m.Called(ip, port, password)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string) bool); ok {
-		r0 = rf(ip, password)
+	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
+		r0 = rf(ip, port, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(ip, password)
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(ip, port, password)
 	} else {
 		r1 = ret.Error(1)
 	}

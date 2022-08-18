@@ -33,7 +33,7 @@ func TestSetOldestAsMasterNewMasterError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(errors.New(""))
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -59,7 +59,7 @@ func TestSetOldestAsMaster(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -90,8 +90,8 @@ func TestSetOldestAsMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
-	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(errors.New(""))
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
+	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -122,8 +122,8 @@ func TestSetOldestAsMasterMultiplePods(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
-	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(nil)
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
+	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(nil)
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -164,8 +164,8 @@ func TestSetOldestAsMasterOrdering(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "1.1.1.1", "").Once().Return(nil)
-	mr.On("MakeSlaveOf", "0.0.0.0", "1.1.1.1", "").Once().Return(nil)
+	mr.On("MakeMaster", "1.1.1.1", "0", "").Once().Return(nil)
+	mr.On("MakeSlaveOfWithPort", "0.0.0.0", "1.1.1.1", "0", "").Once().Return(nil)
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -196,7 +196,7 @@ func TestSetMasterOnAllMakeMasterError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(errors.New(""))
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -227,8 +227,8 @@ func TestSetMasterOnAllMakeSlaveOfError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
-	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(errors.New(""))
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
+	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -259,8 +259,8 @@ func TestSetMasterOnAll(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("MakeMaster", "0.0.0.0", "").Once().Return(nil)
-	mr.On("MakeSlaveOf", "1.1.1.1", "0.0.0.0", "").Once().Return(nil)
+	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
+	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(nil)
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
@@ -363,12 +363,11 @@ func TestNewSentinelMonitor(t *testing.T) {
 			ms := &mK8SService.Services{}
 			mr := &mRedisService.Client{}
 			errorExpected := false
-
 			if test.errorOnMonitorRedis {
 				errorExpected = true
-				mr.On("MonitorRedis", "0.0.0.0", "1.1.1.1", "2", "").Once().Return(errors.New(""))
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "").Once().Return(errors.New(""))
 			} else {
-				mr.On("MonitorRedis", "0.0.0.0", "1.1.1.1", "2", "").Once().Return(nil)
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "").Once().Return(nil)
 			}
 
 			healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})

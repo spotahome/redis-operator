@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# NOTE: For testing you local change you could uncomment and override the following
+# images:
+# - name: quay.io/spotahome/redis-operator
+#   newName: your-repo/redis-operator
+#   newTag: your-tag
+
+resources:
+- "rolebinding.yaml"
+- "roles.yaml"
+- "operator.yaml"
+- "serviceaccount.yaml"
+
+namespace: redis-failover

@@ -1,0 +1,68 @@
+# The base ensures the following
+# - Redis has three replicas
+# - Sentinel has three replicas
+# - A label whitelist `redis.failover.io` to propogate additional info
+# - Redis is distributed evenly across AZs(Ref: topologySpreadConstraints)
+# - Sentinel is distributed evenly across AZs(Ref: topologySpreadConstraints)
+# - Redis and their Sentinels do not at any given time coexist(Ref: affinity.podAntiAffinity)
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+  labels:
+    redis.failover.io/tenant: base
+spec:
+  sentinel:
+    replicas: 3
+    exporter:
+      enabled: true
+    topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: sentinel
+        maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: sentinel
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: redis
+                    redis.failover.io/tenant: base
+            topologyKey: "kubernetes.io/hostname"
+  redis:
+    replicas: 3
+    exporter:
+      enabled: true
+    topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: redis
+        maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: redis
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: sentinel
+                    redis.failover.io/tenant: base
+            topologyKey: "kubernetes.io/hostname"
+    terminationGracePeriod: 100
+  labelWhitelist:
+  - ^redis.failover.io.*

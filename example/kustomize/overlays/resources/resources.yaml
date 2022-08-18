@@ -1,0 +1,13 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+spec:
+  redis:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 200m
+        memory: 500Mi

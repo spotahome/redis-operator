@@ -1,0 +1,8 @@
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis
+spec:
+  redis:
+    port: 12345
