@@ -16,17 +16,17 @@ type Client interface {
 	GetNumberSentinelsInMemory(ip string) (int32, error)
 	GetNumberSentinelSlavesInMemory(ip string) (int32, error)
 	ResetSentinel(ip string) error
-	GetSlaveOf(ip, password string) (string, error)
-	IsMaster(ip, password string) (bool, error)
+	GetSlaveOf(ip, port, password string) (string, error)
+	IsMaster(ip, port, password string) (bool, error)
 	MonitorRedis(ip, monitor, quorum, password string) error
 	MonitorRedisWithPort(ip, monitor, port, quorum, password string) error
-	MakeMaster(ip, password string) error
+	MakeMaster(ip, port, password string) error
 	MakeSlaveOf(ip, masterIP, password string) error
 	MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error
 	GetSentinelMonitor(ip string) (string, string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
-	SetCustomRedisConfig(ip string, configs []string, password string) error
-	SlaveIsReady(ip, password string) (bool, error)
+	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
+	SlaveIsReady(ip, port, password string) (bool, error)
 }
 
 type client struct {
@@ -142,9 +142,9 @@ func (c *client) ResetSentinel(ip string) error {
 }
 
 // GetSlaveOf returns the master of the given redis, or nil if it's master
-func (c *client) GetSlaveOf(ip, password string) (string, error) {
+func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort),
+		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
 		DB:       0,
 	}
@@ -161,9 +161,9 @@ func (c *client) GetSlaveOf(ip, password string) (string, error) {
 	return match[1], nil
 }
 
-func (c *client) IsMaster(ip, password string) (bool, error) {
+func (c *client) IsMaster(ip, port, password string) (bool, error) {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort),
+		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
 		DB:       0,
 	}
@@ -215,9 +215,9 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	return nil
 }
 
-func (c *client) MakeMaster(ip string, password string) error {
+func (c *client) MakeMaster(ip string, port string, password string) error {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort),
+		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
 		DB:       0,
 	}
@@ -235,7 +235,7 @@ func (c *client) MakeSlaveOf(ip, masterIP, password string) error {
 
 func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort), // this is IP and Port for the RedisFailover redis
+		Addr:     net.JoinHostPort(ip, masterPort), // this is IP and Port for the RedisFailover redis
 		Password: password,
 		DB:       0,
 	}
@@ -290,9 +290,9 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SetCustomRedisConfig(ip string, configs []string, password string) error {
+func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort),
+		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
 		DB:       0,
 	}
@@ -333,9 +333,9 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 	return s[0], strings.Join(s[1:], " "), nil
 }
 
-func (c *client) SlaveIsReady(ip, password string) (bool, error) {
+func (c *client) SlaveIsReady(ip, port, password string) (bool, error) {
 	options := &rediscli.Options{
-		Addr:     net.JoinHostPort(ip, redisPort),
+		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
 		DB:       0,
 	}
