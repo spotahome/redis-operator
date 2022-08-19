@@ -26,6 +26,7 @@ const (
 tcp-keepalive 60
 save 900 1
 save 300 10
+user pinger -@all +ping on >pingpass
 {{- range .Spec.Redis.CustomCommandRenames}}
 rename-command "{{.From}}" "{{.To}}"
 {{- end}}
@@ -320,7 +321,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 										Command: []string{
 											"sh",
 											"-c",
-											"redis-cli -h $(hostname) ping",
+											"redis-cli -h $(hostname) ping --user pinger --pass pingpass --no-auth-warning",
 										},
 									},
 								},
