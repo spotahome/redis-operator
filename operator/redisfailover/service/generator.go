@@ -278,6 +278,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 				Spec: corev1.PodSpec{
 					Affinity:                      getAffinity(rf.Spec.Redis.Affinity, labels),
 					Tolerations:                   rf.Spec.Redis.Tolerations,
+					TopologySpreadConstraints:     rf.Spec.Redis.TopologySpreadConstraints,
 					NodeSelector:                  rf.Spec.Redis.NodeSelector,
 					SecurityContext:               getSecurityContext(rf.Spec.Redis.SecurityContext),
 					HostNetwork:                   rf.Spec.Redis.HostNetwork,
@@ -414,15 +415,16 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Annotations: rf.Spec.Sentinel.PodAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					Affinity:           getAffinity(rf.Spec.Sentinel.Affinity, labels),
-					Tolerations:        rf.Spec.Sentinel.Tolerations,
-					NodeSelector:       rf.Spec.Sentinel.NodeSelector,
-					SecurityContext:    getSecurityContext(rf.Spec.Sentinel.SecurityContext),
-					HostNetwork:        rf.Spec.Sentinel.HostNetwork,
-					DNSPolicy:          getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
-					ImagePullSecrets:   rf.Spec.Sentinel.ImagePullSecrets,
-					PriorityClassName:  rf.Spec.Sentinel.PriorityClassName,
-					ServiceAccountName: rf.Spec.Sentinel.ServiceAccountName,
+					Affinity:                  getAffinity(rf.Spec.Sentinel.Affinity, labels),
+					Tolerations:               rf.Spec.Sentinel.Tolerations,
+					TopologySpreadConstraints: rf.Spec.Sentinel.TopologySpreadConstraints,
+					NodeSelector:              rf.Spec.Sentinel.NodeSelector,
+					SecurityContext:           getSecurityContext(rf.Spec.Sentinel.SecurityContext),
+					HostNetwork:               rf.Spec.Sentinel.HostNetwork,
+					DNSPolicy:                 getDnsPolicy(rf.Spec.Sentinel.DNSPolicy),
+					ImagePullSecrets:          rf.Spec.Sentinel.ImagePullSecrets,
+					PriorityClassName:         rf.Spec.Sentinel.PriorityClassName,
+					ServiceAccountName:        rf.Spec.Sentinel.ServiceAccountName,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "sentinel-config-copy",
