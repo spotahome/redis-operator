@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ports
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis-ports
+  namespace: ports
+spec:
+  redis:
+    exporter:
+      enabled: true
+    port: 12345
+    replicas: 3
+  sentinel:
+    exporter:
+      enabled: true
+    replicas: 3
