@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sc
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: sidecars
+  namespace: sc
+spec:
+  sentinel:
+    initcontainers:
+    - name: echo
+      image: busybox
+      command:
+      - "/bin/sh"
+      - "-c"
+      - "echo 'init container sentinel'"
+    replicas: 3
+    sidecars:
+    - name: busybox
+      image: busybox
+      command:
+      - "/bin/sh"
+      - "-c"
+      - "sleep infinity"
+  redis:
+    replicas: 3
+    initcontainers:
+    - name: echo
+      image: busybox
+      command:
+      - "/bin/sh"
+      - "-c"
+      - "echo 'init container redis'"
+    sidecars:
+    - name: busybox
+      image: busybox
+      command:
+      - "/bin/sh"
+      - "-c"
+      - "sleep infinity"
