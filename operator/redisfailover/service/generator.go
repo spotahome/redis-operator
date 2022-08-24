@@ -162,7 +162,7 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 func generateRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetRedisShutdownConfigMapName(rf)
 	namespace := rf.Namespace
-	rfName := strings.ToUpper(rf.Name)
+	rfName := strings.Replace(strings.ToUpper(rf.Name), "-", "_", -1)
 
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	shutdownContent := fmt.Sprintf(`master=$(redis-cli -h ${RFS_%[1]v_SERVICE_HOST} -p ${RFS_%[1]v_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
