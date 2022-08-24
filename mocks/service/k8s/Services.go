@@ -819,6 +819,20 @@ func (_m *Services) UpdatePodDisruptionBudget(namespace string, podDisruptionBud
 	return r0
 }
 
+// UpdatePodLabels provides a mock function with given fields: namespace, podName, labels
+func (_m *Services) UpdatePodLabels(namespace string, podName string, labels map[string]string) error {
+	ret := _m.Called(namespace, podName, labels)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, map[string]string) error); ok {
+		r0 = rf(namespace, podName, labels)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateRole provides a mock function with given fields: namespace, role
 func (_m *Services) UpdateRole(namespace string, role *rbacv1.Role) error {
 	ret := _m.Called(namespace, role)

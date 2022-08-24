@@ -250,6 +250,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	redisCommand := getRedisCommand(rf)
 	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
+	labels = util.MergeLabels(labels, generateRedisDefaultRoleLabel())
+
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 	terminationGracePeriodSeconds := getTerminationGracePeriodSeconds(rf)
