@@ -11,7 +11,7 @@ metadata:
   namespace: sc
 spec:
   sentinel:
-    initcontainers:
+    initContainers:
     - name: echo
       image: busybox
       command:
@@ -19,7 +19,7 @@ spec:
       - "-c"
       - "echo 'init container sentinel'"
     replicas: 3
-    sidecars:
+    extraContainers:
     - name: busybox
       image: busybox
       command:
@@ -28,14 +28,14 @@ spec:
       - "sleep infinity"
   redis:
     replicas: 3
-    initcontainers:
+    initContainers:
     - name: echo
       image: busybox
       command:
       - "/bin/sh"
       - "-c"
       - "echo 'init container redis'"
-    sidecars:
+    extraContainers:
     - name: busybox
       image: busybox
       command:

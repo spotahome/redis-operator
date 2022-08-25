@@ -374,8 +374,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, rf.Spec.Redis.InitContainers...)
 	}
 
-	if rf.Spec.Redis.Sidecars != nil {
-		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.Sidecars...)
+	if rf.Spec.Redis.ExtraContainers != nil {
+		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
 	}
 
 	if rf.Spec.Auth.SecretPath != "" {
@@ -543,8 +543,8 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 		sd.Spec.Template.Spec.InitContainers = append(sd.Spec.Template.Spec.InitContainers, rf.Spec.Sentinel.InitContainers...)
 	}
 
-	if rf.Spec.Sentinel.Sidecars != nil {
-		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, rf.Spec.Sentinel.Sidecars...)
+	if rf.Spec.Sentinel.ExtraContainers != nil {
+		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, rf.Spec.Sentinel.ExtraContainers...)
 	}
 
 	return sd
