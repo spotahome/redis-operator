@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/spotahome/kooper/v2/controller"
+	"github.com/spotahome/kooper/v2/controller/leaderelection"
 	kooperlog "github.com/spotahome/kooper/v2/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
@@ -21,11 +23,12 @@ import (
 const (
 	resync       = 30 * time.Second
 	operatorName = "redis-operator"
+	lockKey      = "redis-failover-lease"
 )
 
 // New will create an operator that is responsible of managing all the required stuff
 // to create redis failovers.
-func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, kooperMetricsRecorder metrics.Recorder, logger log.Logger) (controller.Controller, error) {
+func New(cfg Config, k8sService k8s.Services, k8sClient kubernetes.Interface, lockNamespace string, redisClient redis.Client, kooperMetricsRecorder metrics.Recorder, logger log.Logger) (controller.Controller, error) {
 	// Create internal services.
 	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger)
 	rfChecker := rfservice.NewRedisFailoverChecker(k8sService, redisClient, logger)
@@ -35,12 +38,20 @@ func New(cfg Config, k8sService k8s.Services, redisClient redis.Client, kooperMe
 	rfHandler := NewRedisFailoverHandler(cfg, rfService, rfChecker, rfHealer, k8sService, kooperMetricsRecorder, logger)
 	rfRetriever := NewRedisFailoverRetriever(k8sService)
 
+	kooperLogger := kooperlogger{Logger: logger.WithField("operator", "redisfailover")}
+	// Leader election service.
+	leSVC, err := leaderelection.NewDefault(lockKey, lockNamespace, k8sClient, kooperLogger)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create our controller.
 	return controller.New(&controller.Config{
 		Handler:         rfHandler,
 		Retriever:       rfRetriever,
+		LeaderElector:   leSVC,
 		MetricsRecorder: kooperMetricsRecorder,
-		Logger:          kooperlogger{Logger: logger.WithField("operator", "redisfailover")},
+		Logger:          kooperLogger,
 		Name:            "redisfailover",
 		ResyncInterval:  resync,
 	})
