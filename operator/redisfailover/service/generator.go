@@ -1,19 +1,17 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
-
-	"bytes"
+	"text/template"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"text/template"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
@@ -27,6 +25,7 @@ port {{.Spec.Redis.Port}}
 tcp-keepalive 60
 save 900 1
 save 300 10
+user pinger -@all +ping on >pingpass
 {{- range .Spec.Redis.CustomCommandRenames}}
 rename-command "{{.From}}" "{{.To}}"
 {{- end}}
@@ -178,7 +177,7 @@ func generateRedisShutdownConfigMap(rf *redisfailoverv1.RedisFailover, labels ma
 	name := GetRedisShutdownConfigMapName(rf)
 	port := rf.Spec.Redis.Port
 	namespace := rf.Namespace
-	rfName := strings.ToUpper(rf.Name)
+	rfName := strings.Replace(strings.ToUpper(rf.Name), "-", "_", -1)
 
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 	shutdownContent := fmt.Sprintf(`master=$(redis-cli -h ${RFS_%[1]v_SERVICE_HOST} -p ${RFS_%[1]v_SERVICE_PORT_SENTINEL} --csv SENTINEL get-master-addr-by-name mymaster | tr ',' ' ' | tr -d '\"' |cut -d' ' -f1)
@@ -205,6 +204,7 @@ eval $save_command`, rfName, port)
 		},
 	}
 }
+
 func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetRedisReadinessName(rf)
 	port := rf.Spec.Redis.Port
@@ -272,6 +272,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	redisCommand := getRedisCommand(rf)
 	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
+	labels = util.MergeLabels(labels, generateRedisDefaultRoleLabel())
+
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 	terminationGracePeriodSeconds := getTerminationGracePeriodSeconds(rf)
@@ -343,7 +345,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 										Command: []string{
 											"sh",
 											"-c",
-											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping", rf.Spec.Redis.Port),
+											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
 										},
 									},
 								},
@@ -557,15 +559,15 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	return sd
 }
 
-func generatePodDisruptionBudget(name string, namespace string, labels map[string]string, ownerRefs []metav1.OwnerReference, minAvailable intstr.IntOrString) *policyv1beta1.PodDisruptionBudget {
-	return &policyv1beta1.PodDisruptionBudget{
+func generatePodDisruptionBudget(name string, namespace string, labels map[string]string, ownerRefs []metav1.OwnerReference, minAvailable intstr.IntOrString) *policyv1.PodDisruptionBudget {
+	return &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       namespace,
 			Labels:          labels,
 			OwnerReferences: ownerRefs,
 		},
-		Spec: policyv1beta1.PodDisruptionBudgetSpec{
+		Spec: policyv1.PodDisruptionBudgetSpec{
 			MinAvailable: &minAvailable,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -627,7 +629,6 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 				},
 			},
 		})
-
 	}
 
 	if rf.Spec.Redis.Port != 6379 {

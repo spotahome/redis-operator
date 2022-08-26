@@ -152,7 +152,6 @@ func TestRedisFailover(t *testing.T) {
 	// check that all of them are connected to the same Redis node, and also that that node
 	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
-
 }
 
 func (c *clients) testCRCreation(t *testing.T) {
@@ -253,7 +252,6 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 }
 
 func (c *clients) testAuth(t *testing.T) {
-
 	assert := assert.New(t)
 
 	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})

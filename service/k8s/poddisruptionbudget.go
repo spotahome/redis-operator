@@ -3,7 +3,7 @@ package k8s
 import (
 	"context"
 
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -13,10 +13,10 @@ import (
 
 // PodDisruptionBudget the ServiceAccount service that knows how to interact with k8s to manage them
 type PodDisruptionBudget interface {
-	GetPodDisruptionBudget(namespace string, name string) (*policyv1beta1.PodDisruptionBudget, error)
-	CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error
-	UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error
-	CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error
+	GetPodDisruptionBudget(namespace string, name string) (*policyv1.PodDisruptionBudget, error)
+	CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error
+	UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error
+	CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error
 	DeletePodDisruptionBudget(namespace string, name string) error
 }
 
@@ -35,16 +35,16 @@ func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.L
 	}
 }
 
-func (p *PodDisruptionBudgetService) GetPodDisruptionBudget(namespace string, name string) (*policyv1beta1.PodDisruptionBudget, error) {
-	podDisruptionBudget, err := p.kubeClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+func (p *PodDisruptionBudgetService) GetPodDisruptionBudget(namespace string, name string) (*policyv1.PodDisruptionBudget, error) {
+	podDisruptionBudget, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return podDisruptionBudget, nil
 }
 
-func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error {
-	_, err := p.kubeClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Create(context.TODO(), podDisruptionBudget, metav1.CreateOptions{})
+func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
+	_, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Create(context.TODO(), podDisruptionBudget, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -52,8 +52,8 @@ func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string,
 	return nil
 }
 
-func (p *PodDisruptionBudgetService) UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error {
-	_, err := p.kubeClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Update(context.TODO(), podDisruptionBudget, metav1.UpdateOptions{})
+func (p *PodDisruptionBudgetService) UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
+	_, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Update(context.TODO(), podDisruptionBudget, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (p *PodDisruptionBudgetService) UpdatePodDisruptionBudget(namespace string,
 	return nil
 }
 
-func (p *PodDisruptionBudgetService) CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) error {
+func (p *PodDisruptionBudgetService) CreateOrUpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	storedPodDisruptionBudget, err := p.GetPodDisruptionBudget(namespace, podDisruptionBudget.Name)
 	if err != nil {
 		// If no resource we need to create.
@@ -80,5 +80,5 @@ func (p *PodDisruptionBudgetService) CreateOrUpdatePodDisruptionBudget(namespace
 }
 
 func (p *PodDisruptionBudgetService) DeletePodDisruptionBudget(namespace string, name string) error {
-	return p.kubeClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }

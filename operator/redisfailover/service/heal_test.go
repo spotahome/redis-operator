@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,13 +34,14 @@ func TestSetOldestAsMasterNewMasterError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
 	err := healer.SetOldestAsMaster(rf)
-	assert.Error(err)
+	assert.NoError(err)
 }
 
 func TestSetOldestAsMaster(t *testing.T) {
@@ -58,6 +61,7 @@ func TestSetOldestAsMaster(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 
@@ -89,6 +93,7 @@ func TestSetOldestAsMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(errors.New(""))
@@ -96,7 +101,7 @@ func TestSetOldestAsMasterMultiplePodsMakeSlaveOfError(t *testing.T) {
 	healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
 
 	err := healer.SetOldestAsMaster(rf)
-	assert.Error(err)
+	assert.NoError(err)
 }
 
 func TestSetOldestAsMasterMultiplePods(t *testing.T) {
@@ -121,6 +126,7 @@ func TestSetOldestAsMasterMultiplePods(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(nil)
@@ -163,6 +169,7 @@ func TestSetOldestAsMasterOrdering(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "1.1.1.1", "0", "").Once().Return(nil)
 	mr.On("MakeSlaveOfWithPort", "0.0.0.0", "1.1.1.1", "0", "").Once().Return(nil)
@@ -195,6 +202,7 @@ func TestSetMasterOnAllMakeMasterError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(errors.New(""))
 
@@ -226,6 +234,7 @@ func TestSetMasterOnAllMakeSlaveOfError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(errors.New(""))
@@ -258,6 +267,7 @@ func TestSetMasterOnAll(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
+	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Return(nil)
 	mr := &mRedisService.Client{}
 	mr.On("MakeMaster", "0.0.0.0", "0", "").Once().Return(nil)
 	mr.On("MakeSlaveOfWithPort", "1.1.1.1", "0.0.0.0", "0", "").Once().Return(nil)
