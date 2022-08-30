@@ -14,10 +14,13 @@ imageCredentials:
   username: someone
   password: somepassword
   email: someone@example.com
+  # Use exists secrets in namespace
+  existsSecrets:
+  - registrysecret
 
-updateStrategy: 
+updateStrategy:
   type: RollingUpdate
-  
+
 # A name in place of the chart name for `app:` labels.
 nameOverride: ""
 
