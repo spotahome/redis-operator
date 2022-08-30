@@ -29,6 +29,10 @@ jobs:
   integration-test:
     name: Integration test
     runs-on: ubuntu-latest
+    needs: [check, unit-test]
+    strategy:
+      matrix:
+        kubernetes: [1.22.12, 1.23.9, 1.24.3]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -36,9 +40,9 @@ jobs:
           go-version: 1.17
       - name: Install conntrack
         run: sudo apt-get install -y conntrack
-      - uses: medyagh/setup-minikube@v0.0.7
+      - uses: medyagh/setup-minikube@v0.0.8
         with:
-          kubernetes-version: 1.22.2
+          kubernetes-version: ${{ matrix.kubernetes }}
           driver: none
       - name: Add redisfailover CRD
         run: kubectl apply -f manifests/databases.spotahome.com_redisfailovers.yaml
