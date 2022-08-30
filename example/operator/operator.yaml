@@ -5,7 +5,7 @@ metadata:
     app: redisoperator
   name: redisoperator
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: redisoperator
@@ -18,18 +18,24 @@ spec:
     spec:
       serviceAccountName: redisoperator
       containers:
-        - image: quay.io/spotahome/redis-operator:v1.1.0
-          imagePullPolicy: IfNotPresent
-          name: app
-          securityContext:
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-          resources:
-            limits:
-              cpu: 100m
-              memory: 50Mi
-            requests:
-              cpu: 10m
-              memory: 50Mi
+      - image: quay.io/spotahome/redis-operator:v1.1.0
+        imagePullPolicy: IfNotPresent
+        name: app
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
       restartPolicy: Always

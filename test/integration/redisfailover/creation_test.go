@@ -76,21 +76,21 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Kubernetes clients.
-	stdclient, customclient, aeClientset, err := utils.CreateKubernetesClients(flags)
+	k8sClient, customClient, aeClientset, err := utils.CreateKubernetesClients(flags)
 	require.NoError(err)
 
 	// Create the redis clients
 	redisClient := redis.New()
 
 	clients := clients{
-		k8sClient:   stdclient,
-		rfClient:    customclient,
+		k8sClient:   k8sClient,
+		rfClient:    customClient,
 		aeClient:    aeClientset,
 		redisClient: redisClient,
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(stdclient, customclient, aeClientset, log.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
@@ -100,7 +100,7 @@ func TestRedisFailover(t *testing.T) {
 	time.Sleep(15 * time.Second)
 
 	// Create operator and run.
-	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
+	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, k8sClient, namespace, redisClient, metrics.Dummy, log.Dummy)
 	require.NoError(err)
 
 	go func() {
@@ -123,7 +123,7 @@ func TestRedisFailover(t *testing.T) {
 			"password": []byte(testPass),
 		},
 	}
-	_, err = stdclient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+	_, err = k8sClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 	require.NoError(err)
 
 	// Check that if we create a RedisFailover, it is certainly created and we can get it

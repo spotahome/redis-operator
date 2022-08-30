@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -74,19 +76,22 @@ func (m *Main) Run() error {
 	}()
 
 	// Kubernetes clients.
-	stdclient, customclient, aeClientset, err := utils.CreateKubernetesClients(m.flags)
+	k8sClient, customClient, aeClientset, err := utils.CreateKubernetesClients(m.flags)
 	if err != nil {
 		return err
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(stdclient, customclient, aeClientset, m.logger)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger)
 
 	// Create the redis clients
 	redisClient := redis.New()
 
+	// Get lease lock resource namespace
+	lockNamespace := getNamespace()
+
 	// Create operator and run.
-	redisfailoverOperator, err := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, redisClient, metricsRecorder, m.logger)
+	redisfailoverOperator, err := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, k8sClient, lockNamespace, redisClient, metricsRecorder, m.logger)
 	if err != nil {
 		return err
 	}
@@ -122,6 +127,26 @@ func (m *Main) stop(stopC chan struct{}) {
 	// stop everything and let them time to stop
 	close(stopC)
 	time.Sleep(gracePeriod)
+}
+
+func getNamespace() string {
+	// This way assumes you've set the POD_NAMESPACE environment
+	// variable using the downward API.  This check has to be done first
+	// for backwards compatibility with the way InClusterConfig was
+	// originally set up
+	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
+		return ns
+	}
+
+	// Fall back to the namespace associated with the service account
+	// token, if available
+	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
+			return ns
+		}
+	}
+
+	return "default"
 }
 
 // Run app.
