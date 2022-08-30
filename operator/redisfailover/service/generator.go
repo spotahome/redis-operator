@@ -329,7 +329,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
 									},
@@ -340,7 +340,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 								TimeoutSeconds:      5,
 								FailureThreshold:    6,
 								PeriodSeconds:       15,
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
 											"sh",
@@ -352,7 +352,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							},
 							Resources: rf.Spec.Redis.Resources,
 							Lifecycle: &corev1.Lifecycle{
-								PreStop: &corev1.Handler{
+								PreStop: &corev1.LifecycleHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{"/bin/sh", "/redis-shutdown/shutdown.sh"},
 									},
@@ -504,7 +504,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
 											"sh",
@@ -517,7 +517,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{
 											"sh",
