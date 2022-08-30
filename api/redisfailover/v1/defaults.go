@@ -6,7 +6,7 @@ const (
 	defaultSentinelExporterImage = "quay.io/oliver006/redis_exporter:v1.43.0"
 	defaultExporterImage         = "quay.io/oliver006/redis_exporter:v1.43.0"
 	defaultImage                 = "redis:6.2.6-alpine"
-	defaultRedisPort             = "6379"
+	defaultRedisPort             = 6379
 )
 
 var (
