@@ -47,7 +47,9 @@ type RedisSettings struct {
 	Command                       []string                          `json:"command,omitempty"`
 	ShutdownConfigMap             string                            `json:"shutdownConfigMap,omitempty"`
 	Storage                       RedisStorage                      `json:"storage,omitempty"`
+	InitContainers                []corev1.Container                `json:"initContainers,omitempty"`
 	Exporter                      RedisExporter                     `json:"exporter,omitempty"`
+	ExtraContainers               []corev1.Container                `json:"extraContainers,omitempty"`
 	Affinity                      *corev1.Affinity                  `json:"affinity,omitempty"`
 	SecurityContext               *corev1.PodSecurityContext        `json:"securityContext,omitempty"`
 	ContainerSecurityContext      *corev1.SecurityContext           `json:"containerSecurityContext,omitempty"`
@@ -81,7 +83,9 @@ type SentinelSettings struct {
 	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
 	PodAnnotations            map[string]string                 `json:"podAnnotations,omitempty"`
 	ServiceAnnotations        map[string]string                 `json:"serviceAnnotations,omitempty"`
+	InitContainers            []corev1.Container                `json:"initContainers,omitempty"`
 	Exporter                  SentinelExporter                  `json:"exporter,omitempty"`
+	ExtraContainers           []corev1.Container                `json:"extraContainers,omitempty"`
 	ConfigCopy                SentinelConfigCopy                `json:"configCopy,omitempty"`
 	HostNetwork               bool                              `json:"hostNetwork,omitempty"`
 	DNSPolicy                 corev1.DNSPolicy                  `json:"dnsPolicy,omitempty"`
