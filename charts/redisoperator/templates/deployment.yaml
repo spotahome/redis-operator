@@ -28,9 +28,14 @@ spec:
         {{- include "chart.selectorLabels" $data | nindent 8 }}
     spec:
       serviceAccountName: {{ template "chart.serviceAccountName" . }}
-      {{- if .Values.imageCredentials.create }}
-      imagePullSecrets: 
+      {{- if (and .Values.imageCredentials.create (not .Values.imageCredentials.existsSecrets)) }}
+      imagePullSecrets:
         - name: {{ $fullName }}-{{ $name }}
+      {{- else if (and .Values.imageCredentials.create .Values.imageCredentials.existsSecrets) }}
+      {{- range .Values.imageCredentials.existsSecrets }}
+      imagePullSecrets:
+        {{ printf "- name: %s" . }}
+      {{- end }}
       {{- end }}
       containers:
       - name: {{ .Chart.Name }}
@@ -70,4 +75,3 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
     {{- end }}
-

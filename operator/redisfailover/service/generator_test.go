@@ -1029,7 +1029,7 @@ func TestSentinelService(t *testing.T) {
 			generatedService := corev1.Service{}
 
 			ms := &mK8SService.Services{}
-			ms.On("CreateIfNotExistsService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
 				s := args.Get(1).(*corev1.Service)
 				generatedService = *s
 			}).Return(nil)
@@ -1277,7 +1277,7 @@ func TestRedisService(t *testing.T) {
 			generatedService := corev1.Service{}
 
 			ms := &mK8SService.Services{}
-			ms.On("CreateIfNotExistsService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
 				s := args.Get(1).(*corev1.Service)
 				generatedService = *s
 			}).Return(nil)

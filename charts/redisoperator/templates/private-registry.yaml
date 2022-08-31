@@ -1,4 +1,4 @@
-{{- if .Values.imageCredentials.create -}}
+{{- if (and .Values.imageCredentials.create (not .Values.imageCredentials.existsSecrets)) -}}
 {{- $fullName := include "chart.fullname" . -}}
 {{- $name := "registry" -}}
 {{- $data := dict "name" $name "Chart" .Chart "Release" .Release "Values" .Values -}}

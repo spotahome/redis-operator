@@ -76,21 +76,21 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Kubernetes clients.
-	stdclient, customclient, aeClientset, err := utils.CreateKubernetesClients(flags)
+	k8sClient, customClient, aeClientset, err := utils.CreateKubernetesClients(flags)
 	require.NoError(err)
 
 	// Create the redis clients
 	redisClient := redis.New()
 
 	clients := clients{
-		k8sClient:   stdclient,
-		rfClient:    customclient,
+		k8sClient:   k8sClient,
+		rfClient:    customClient,
 		aeClient:    aeClientset,
 		redisClient: redisClient,
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(stdclient, customclient, aeClientset, log.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
@@ -100,7 +100,7 @@ func TestRedisFailover(t *testing.T) {
 	time.Sleep(15 * time.Second)
 
 	// Create operator and run.
-	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, redisClient, metrics.Dummy, log.Dummy)
+	redisfailoverOperator, err := redisfailover.New(redisfailover.Config{}, k8sservice, k8sClient, namespace, redisClient, metrics.Dummy, log.Dummy)
 	require.NoError(err)
 
 	go func() {
@@ -123,7 +123,7 @@ func TestRedisFailover(t *testing.T) {
 			"password": []byte(testPass),
 		},
 	}
-	_, err = stdclient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+	_, err = k8sClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 	require.NoError(err)
 
 	// Check that if we create a RedisFailover, it is certainly created and we can get it
@@ -152,7 +152,6 @@ func TestRedisFailover(t *testing.T) {
 	// check that all of them are connected to the same Redis node, and also that that node
 	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
-
 }
 
 func (c *clients) testCRCreation(t *testing.T) {
@@ -216,7 +215,7 @@ func (c *clients) testRedisMaster(t *testing.T) {
 
 	for _, pod := range redisPodList.Items {
 		ip := pod.Status.PodIP
-		if ok, _ := c.redisClient.IsMaster(ip, testPass); ok {
+		if ok, _ := c.redisClient.IsMaster(ip, "6379", testPass); ok {
 			masters = append(masters, ip)
 		}
 	}
@@ -247,13 +246,12 @@ func (c *clients) testSentinelMonitoring(t *testing.T) {
 		assert.Equal(masters[0], masterIP, "all master ip monitoring should equal")
 	}
 
-	isMaster, err := c.redisClient.IsMaster(masters[0], testPass)
+	isMaster, err := c.redisClient.IsMaster(masters[0], "6379", testPass)
 	assert.NoError(err)
 	assert.True(isMaster, "Sentinel should monitor the Redis master")
 }
 
 func (c *clients) testAuth(t *testing.T) {
-
 	assert := assert.New(t)
 
 	redisCfg, err := c.k8sClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
