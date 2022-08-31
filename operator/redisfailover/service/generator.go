@@ -395,6 +395,14 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
 	}
 
+	if rf.Spec.Redis.InitContainers != nil {
+		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, rf.Spec.Redis.InitContainers...)
+	}
+
+	if rf.Spec.Redis.ExtraContainers != nil {
+		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
+	}
+
 	if rf.Spec.Auth.SecretPath != "" {
 		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
 			Name: "REDIS_PASSWORD",
@@ -556,6 +564,14 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 		exporter := createSentinelExporterContainer(rf)
 		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, exporter)
 	}
+	if rf.Spec.Sentinel.InitContainers != nil {
+		sd.Spec.Template.Spec.InitContainers = append(sd.Spec.Template.Spec.InitContainers, rf.Spec.Sentinel.InitContainers...)
+	}
+
+	if rf.Spec.Sentinel.ExtraContainers != nil {
+		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, rf.Spec.Sentinel.ExtraContainers...)
+	}
+
 	return sd
 }
 
