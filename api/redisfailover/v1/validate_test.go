@@ -104,6 +104,7 @@ func TestValidate(t *testing.T) {
 						Redis: RedisSettings{
 							Image:    defaultImage,
 							Replicas: defaultRedisNumber,
+							Port:     defaultRedisPort,
 							Exporter: RedisExporter{
 								Image: defaultExporterImage,
 							},

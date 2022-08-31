@@ -46,10 +46,26 @@ func generateSelectorLabels(component, name string) map[string]string {
 	}
 }
 
+func generateRedisDefaultRoleLabel() map[string]string {
+	return generateRedisSlaveRoleLabel()
+}
+
+func generateRedisMasterRoleLabel() map[string]string {
+	return map[string]string{
+		redisRoleLabelKey: redisRoleLabelMaster,
+	}
+}
+
+func generateRedisSlaveRoleLabel() map[string]string {
+	return map[string]string{
+		redisRoleLabelKey: redisRoleLabelSlave,
+	}
+}
+
 // EnsureSentinelService makes sure the sentinel service exists
 func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateSentinelService(rf, labels, ownerRefs)
-	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
+	return r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
 }
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
@@ -110,7 +126,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisReadinessConfigMap(rf *redisfailove
 // EnsureRedisService makes sure the redis statefulset exists
 func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateRedisService(rf, labels, ownerRefs)
-	return r.K8SService.CreateIfNotExistsService(rf.Namespace, svc)
+	return r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
 }
 
 // EnsureNotPresentRedisService makes sure the redis service is not present

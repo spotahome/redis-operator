@@ -3833,6 +3833,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  port:
+                    format: int32
+                    type: integer
                   priorityClassName:
                     type: string
                   replicas:

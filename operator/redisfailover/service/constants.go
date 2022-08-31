@@ -26,3 +26,9 @@ const (
 	appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
 )
+
+const (
+	redisRoleLabelKey    = "redisfailovers-role"
+	redisRoleLabelMaster = "master"
+	redisRoleLabelSlave  = "slave"
+)

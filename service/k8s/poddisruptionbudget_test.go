@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,11 +17,9 @@ import (
 	"github.com/spotahome/redis-operator/service/k8s"
 )
 
-var (
-	podDisruptionBudgetsGroup = schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "poddisruptionbudgets"}
-)
+var podDisruptionBudgetsGroup = schema.GroupVersionResource{Group: "policy", Version: "v1", Resource: "poddisruptionbudgets"}
 
-func newPodDisruptionBudgetUpdateAction(ns string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) kubetesting.UpdateActionImpl {
+func newPodDisruptionBudgetUpdateAction(ns string, podDisruptionBudget *policyv1.PodDisruptionBudget) kubetesting.UpdateActionImpl {
 	return kubetesting.NewUpdateAction(podDisruptionBudgetsGroup, ns, podDisruptionBudget)
 }
 
@@ -29,12 +27,12 @@ func newPodDisruptionBudgetGetAction(ns, name string) kubetesting.GetActionImpl 
 	return kubetesting.NewGetAction(podDisruptionBudgetsGroup, ns, name)
 }
 
-func newPodDisruptionBudgetCreateAction(ns string, podDisruptionBudget *policyv1beta1.PodDisruptionBudget) kubetesting.CreateActionImpl {
+func newPodDisruptionBudgetCreateAction(ns string, podDisruptionBudget *policyv1.PodDisruptionBudget) kubetesting.CreateActionImpl {
 	return kubetesting.NewCreateAction(podDisruptionBudgetsGroup, ns, podDisruptionBudget)
 }
 
 func TestPodDisruptionBudgetServiceGetCreateOrUpdate(t *testing.T) {
-	testPodDisruptionBudget := &policyv1beta1.PodDisruptionBudget{
+	testPodDisruptionBudget := &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "testpodDisruptionBudget1",
 			ResourceVersion: "10",
@@ -45,8 +43,8 @@ func TestPodDisruptionBudgetServiceGetCreateOrUpdate(t *testing.T) {
 
 	tests := []struct {
 		name                         string
-		podDisruptionBudget          *policyv1beta1.PodDisruptionBudget
-		getPodDisruptionBudgetResult *policyv1beta1.PodDisruptionBudget
+		podDisruptionBudget          *policyv1.PodDisruptionBudget
+		getPodDisruptionBudgetResult *policyv1.PodDisruptionBudget
 		errorOnGet                   error
 		errorOnCreation              error
 		expActions                   []kubetesting.Action

@@ -344,14 +344,14 @@ func TestCheckAndHeal(t *testing.T) {
 					if test.bootstrapping {
 						mrfc.On("CheckSentinelMonitor", sentinel, bootstrapMaster, bootstrapMasterPort).Once().Return(nil)
 					} else {
-						mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(nil)
+						mrfc.On("CheckSentinelMonitor", sentinel, master, "0").Once().Return(nil)
 					}
 				} else {
 					if test.bootstrapping {
 						mrfc.On("CheckSentinelMonitor", sentinel, bootstrapMaster, bootstrapMasterPort).Once().Return(errors.New(""))
 						mrfh.On("NewSentinelMonitorWithPort", sentinel, bootstrapMaster, bootstrapMasterPort, rf).Once().Return(nil)
 					} else {
-						mrfc.On("CheckSentinelMonitor", sentinel, master).Once().Return(errors.New(""))
+						mrfc.On("CheckSentinelMonitor", sentinel, master, "0").Once().Return(errors.New(""))
 						mrfh.On("NewSentinelMonitor", sentinel, master, rf).Once().Return(nil)
 					}
 				}
