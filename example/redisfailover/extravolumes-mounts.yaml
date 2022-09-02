@@ -1,0 +1,18 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    extraVolumes:
+    - name: foo_user
+      secret:
+        secretName: mysecret
+        optional: false
+    exraVolumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true

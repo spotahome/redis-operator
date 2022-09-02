@@ -781,6 +781,10 @@ func getRedisVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeMoun
 		},
 	}
 
+	if rf.Spec.Redis.ExtraVolumeMounts != nil {
+		volumeMounts = append(volumeMounts, rf.Spec.Redis.ExtraVolumeMounts...)
+	}
+
 	return volumeMounts
 }
 
@@ -828,6 +832,10 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 	dataVolume := getRedisDataVolume(rf)
 	if dataVolume != nil {
 		volumes = append(volumes, *dataVolume)
+	}
+
+	if rf.Spec.Redis.ExtraVolumes != nil {
+		volumes = append(volumes, rf.Spec.Redis.ExtraVolumes...)
 	}
 
 	return volumes
