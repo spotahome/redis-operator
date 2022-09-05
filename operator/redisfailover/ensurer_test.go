@@ -36,7 +36,7 @@ func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisF
 		Spec: redisfailoverv1.RedisFailoverSpec{
 			Redis: redisfailoverv1.RedisSettings{
 				Replicas: int32(3),
-				Exporter: redisfailoverv1.RedisExporter{
+				Exporter: redisfailoverv1.Exporter{
 					Enabled: enableExporter,
 				},
 			},

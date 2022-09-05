@@ -1127,7 +1127,7 @@ spec:
                     description: DNSPolicy defines how a pod's DNS will be configured.
                     type: string
                   exporter:
-                    description: RedisExporter defines the specification for the redis
+                    description: Exporter defines the specification for the redis/sentinel
                       exporter
                     properties:
                       args:
@@ -2550,157 +2550,54 @@ spec:
                               description: TCPSocket specifies an action involving
                                 a TCP port.
                               properties:
-                                host:
-                                  description: 'Optional: Host name to connect to,
-                                    defaults to the pod IP.'
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
                                   type: string
-                                port:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  description: Number or name of the port to access
-                                    on the container. Number must be in the range
-                                    1 to 65535. Name must be an IANA_SVC_NAME.
-                                  x-kubernetes-int-or-string: true
-                              required:
-                              - port
                               type: object
-                            terminationGracePeriodSeconds:
-                              description: Optional duration in seconds the pod needs
-                                to terminate gracefully upon probe failure. The grace
-                                period is the duration in seconds after the processes
-                                running in the pod are sent a termination signal and
-                                the time when the processes are forcibly halted with
-                                a kill signal. Set this value longer than the expected
-                                cleanup time for your process. If this value is nil,
-                                the pod's terminationGracePeriodSeconds will be used.
-                                Otherwise, this value overrides the value provided
-                                by the pod spec. Value must be non-negative integer.
-                                The value zero indicates stop immediately via the
-                                kill signal (no opportunity to shut down). This is
-                                a beta field and requires enabling ProbeTerminationGracePeriod
-                                feature gate. Minimum value is 1. spec.terminationGracePeriodSeconds
-                                is used if unset.
-                              format: int64
-                              type: integer
-                            timeoutSeconds:
-                              description: 'Number of seconds after which the probe
-                                times out. Defaults to 1 second. Minimum value is
-                                1. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
-                              format: int32
-                              type: integer
+                            volumeName:
+                              description: volumeName is the human-readable name of
+                                the StorageOS volume.  Volume names are only unique
+                                within a namespace.
+                              type: string
+                            volumeNamespace:
+                              description: volumeNamespace specifies the scope of
+                                the volume within StorageOS.  If no namespace is specified
+                                then the Pod's namespace will be used.  This allows
+                                the Kubernetes name scoping to be mirrored within
+                                StorageOS for tighter integration. Set VolumeName
+                                to any name to override the default behaviour. Set
+                                to "default" if you are not using namespaces within
+                                StorageOS. Namespaces that do not pre-exist within
+                                StorageOS will be created.
+                              type: string
                           type: object
-                        stdin:
-                          description: Whether this container should allocate a buffer
-                            for stdin in the container runtime. If this is not set,
-                            reads from stdin in the container will always result in
-                            EOF. Default is false.
-                          type: boolean
-                        stdinOnce:
-                          description: Whether the container runtime should close
-                            the stdin channel after it has been opened by a single
-                            attach. When stdin is true the stdin stream will remain
-                            open across multiple attach sessions. If stdinOnce is
-                            set to true, stdin is opened on container start, is empty
-                            until the first client attaches to stdin, and then remains
-                            open and accepts data until the client disconnects, at
-                            which time stdin is closed and remains closed until the
-                            container is restarted. If this flag is false, a container
-                            processes that reads from stdin will never receive an
-                            EOF. Default is false
-                          type: boolean
-                        terminationMessagePath:
-                          description: 'Optional: Path at which the file to which
-                            the container''s termination message will be written is
-                            mounted into the container''s filesystem. Message written
-                            is intended to be brief final status, such as an assertion
-                            failure message. Will be truncated by the node if greater
-                            than 4096 bytes. The total message length across all containers
-                            will be limited to 12kb. Defaults to /dev/termination-log.
-                            Cannot be updated.'
-                          type: string
-                        terminationMessagePolicy:
-                          description: Indicate how the termination message should
-                            be populated. File will use the contents of terminationMessagePath
-                            to populate the container status message on both success
-                            and failure. FallbackToLogsOnError will use the last chunk
-                            of container log output if the termination message file
-                            is empty and the container exited with an error. The log
-                            output is limited to 2048 bytes or 80 lines, whichever
-                            is smaller. Defaults to File. Cannot be updated.
-                          type: string
-                        tty:
-                          description: Whether this container should allocate a TTY
-                            for itself, also requires 'stdin' to be true. Default
-                            is false.
-                          type: boolean
-                        volumeDevices:
-                          description: volumeDevices is the list of block devices
-                            to be used by the container.
-                          items:
-                            description: volumeDevice describes a mapping of a raw
-                              block device within a container.
-                            properties:
-                              devicePath:
-                                description: devicePath is the path inside of the
-                                  container that the device will be mapped to.
-                                type: string
-                              name:
-                                description: name must match the name of a persistentVolumeClaim
-                                  in the pod
-                                type: string
-                            required:
-                            - devicePath
-                            - name
-                            type: object
-                          type: array
-                        volumeMounts:
-                          description: Pod volumes to mount into the container's filesystem.
-                            Cannot be updated.
-                          items:
-                            description: VolumeMount describes a mounting of a Volume
-                              within a container.
-                            properties:
-                              mountPath:
-                                description: Path within the container at which the
-                                  volume should be mounted.  Must not contain ':'.
-                                type: string
-                              mountPropagation:
-                                description: mountPropagation determines how mounts
-                                  are propagated from the host to container and the
-                                  other way around. When not set, MountPropagationNone
-                                  is used. This field is beta in 1.10.
-                                type: string
-                              name:
-                                description: This must match the Name of a Volume.
-                                type: string
-                              readOnly:
-                                description: Mounted read-only if true, read-write
-                                  otherwise (false or unspecified). Defaults to false.
-                                type: boolean
-                              subPath:
-                                description: Path within the volume from which the
-                                  container's volume should be mounted. Defaults to
-                                  "" (volume's root).
-                                type: string
-                              subPathExpr:
-                                description: Expanded path within the volume from
-                                  which the container's volume should be mounted.
-                                  Behaves similarly to SubPath but environment variable
-                                  references $(VAR_NAME) are expanded using the container's
-                                  environment. Defaults to "" (volume's root). SubPathExpr
-                                  and SubPath are mutually exclusive.
-                                type: string
-                            required:
-                            - mountPath
-                            - name
-                            type: object
-                          type: array
-                        workingDir:
-                          description: Container's working directory. If not specified,
-                            the container runtime's default will be used, which might
-                            be configured in the container image. Cannot be updated.
-                          type: string
+                        vsphereVolume:
+                          description: vsphereVolume represents a vSphere volume attached
+                            and mounted on kubelets host machine
+                          properties:
+                            fsType:
+                              description: fsType is filesystem type to mount. Must
+                                be a filesystem type supported by the host operating
+                                system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred
+                                to be "ext4" if unspecified.
+                              type: string
+                            storagePolicyID:
+                              description: storagePolicyID is the storage Policy Based
+                                Management (SPBM) profile ID associated with the StoragePolicyName.
+                              type: string
+                            storagePolicyName:
+                              description: storagePolicyName is the storage Policy
+                                Based Management (SPBM) profile name.
+                              type: string
+                            volumePath:
+                              description: volumePath is the path that identifies
+                                vSphere volume vmdk
+                              type: string
+                          required:
+                          - volumePath
+                          type: object
                       required:
                       - name
                       type: object
@@ -7552,8 +7449,8 @@ spec:
                     description: DNSPolicy defines how a pod's DNS will be configured.
                     type: string
                   exporter:
-                    description: SentinelExporter defines the specification for the
-                      sentinel exporter
+                    description: Exporter defines the specification for the redis/sentinel
+                      exporter
                     properties:
                       args:
                         items:

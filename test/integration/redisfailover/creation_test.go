@@ -164,7 +164,7 @@ func (c *clients) testCRCreation(t *testing.T) {
 		Spec: redisfailoverv1.RedisFailoverSpec{
 			Redis: redisfailoverv1.RedisSettings{
 				Replicas: redisSize,
-				Exporter: redisfailoverv1.RedisExporter{
+				Exporter: redisfailoverv1.Exporter{
 					Enabled: true,
 				},
 			},
