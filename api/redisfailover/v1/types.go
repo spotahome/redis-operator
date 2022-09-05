@@ -48,7 +48,7 @@ type RedisSettings struct {
 	ShutdownConfigMap             string                            `json:"shutdownConfigMap,omitempty"`
 	Storage                       RedisStorage                      `json:"storage,omitempty"`
 	InitContainers                []corev1.Container                `json:"initContainers,omitempty"`
-	Exporter                      RedisExporter                     `json:"exporter,omitempty"`
+	Exporter                      Exporter                          `json:"exporter,omitempty"`
 	ExtraContainers               []corev1.Container                `json:"extraContainers,omitempty"`
 	Affinity                      *corev1.Affinity                  `json:"affinity,omitempty"`
 	SecurityContext               *corev1.PodSecurityContext        `json:"securityContext,omitempty"`
@@ -84,7 +84,7 @@ type SentinelSettings struct {
 	PodAnnotations            map[string]string                 `json:"podAnnotations,omitempty"`
 	ServiceAnnotations        map[string]string                 `json:"serviceAnnotations,omitempty"`
 	InitContainers            []corev1.Container                `json:"initContainers,omitempty"`
-	Exporter                  SentinelExporter                  `json:"exporter,omitempty"`
+	Exporter                  Exporter                          `json:"exporter,omitempty"`
 	ExtraContainers           []corev1.Container                `json:"extraContainers,omitempty"`
 	ConfigCopy                SentinelConfigCopy                `json:"configCopy,omitempty"`
 	HostNetwork               bool                              `json:"hostNetwork,omitempty"`
@@ -105,19 +105,8 @@ type BootstrapSettings struct {
 	AllowSentinels bool   `json:"allowSentinels,omitempty"`
 }
 
-// RedisExporter defines the specification for the redis exporter
-type RedisExporter struct {
-	Enabled                  bool                         `json:"enabled,omitempty"`
-	Image                    string                       `json:"image,omitempty"`
-	ImagePullPolicy          corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`
-	ContainerSecurityContext *corev1.SecurityContext      `json:"containerSecurityContext,omitempty"`
-	Args                     []string                     `json:"args,omitempty"`
-	Env                      []corev1.EnvVar              `json:"env,omitempty"`
-	Resources                *corev1.ResourceRequirements `json:"resources,omitempty"`
-}
-
-// SentinelExporter defines the specification for the sentinel exporter
-type SentinelExporter struct {
+// Exporter defines the specification for the redis/sentinel exporter
+type Exporter struct {
 	Enabled                  bool                         `json:"enabled,omitempty"`
 	Image                    string                       `json:"image,omitempty"`
 	ImagePullPolicy          corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`

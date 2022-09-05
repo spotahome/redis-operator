@@ -105,7 +105,7 @@ func TestValidate(t *testing.T) {
 							Image:    defaultImage,
 							Replicas: defaultRedisNumber,
 							Port:     defaultRedisPort,
-							Exporter: RedisExporter{
+							Exporter: Exporter{
 								Image: defaultExporterImage,
 							},
 							CustomConfig: expectedRedisCustomConfig,
@@ -114,7 +114,7 @@ func TestValidate(t *testing.T) {
 							Image:        defaultImage,
 							Replicas:     defaultSentinelNumber,
 							CustomConfig: expectedSentinelCustomConfig,
-							Exporter: SentinelExporter{
+							Exporter: Exporter{
 								Image: defaultSentinelExporterImage,
 							},
 						},
