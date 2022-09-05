@@ -695,10 +695,6 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 		Resources: resources,
 	}
 
-	if rf.Spec.Sentinel.Exporter.Env != nil {
-		container.Env = append(container.Env, rf.Spec.Sentinel.Exporter.Env...)
-	}
-
 	return container
 }
 
