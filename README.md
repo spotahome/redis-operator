@@ -163,6 +163,37 @@ app.kubernetes.io/part-of
 redisfailovers.databases.spotahome.com/name
 ```
 
+
+### ExtraVolumes and ExtraVolumeMounts
+
+If the user choose to have extra volumes creates and mounted, he could use the `extraVolumes` and `extraVolumeMounts`, in `spec.redis` of the CRD. This allows users to mount the extra configurations, or secrets to be used. A typical use case for this might be
+- Secrets that sidecars might use to backup of RDBs
+- Extra users and their secrets and acls that could used the initContainers to create multiple users
+- Extra Configurations that could merge on top the existing configurations
+
+```
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    extraVolumes:
+    - name: foo_user
+      secret:
+        secretName: mysecret
+        optional: false
+    exraVolumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true
+```
+
+
+
 ## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.

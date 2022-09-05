@@ -670,7 +670,21 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 		ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.Exporter.ImagePullPolicy),
 		SecurityContext: getContainerSecurityContext(rf.Spec.Sentinel.Exporter.ContainerSecurityContext),
 		Args:            rf.Spec.Sentinel.Exporter.Args,
-		Env:             rf.Spec.Sentinel.Exporter.Env,
+		Env: append(rf.Spec.Sentinel.Exporter.Env, corev1.EnvVar{
+			Name: "REDIS_ALIAS",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		}, corev1.EnvVar{
+			Name:  "REDIS_EXPORTER_WEB_LISTEN_ADDRESS",
+			Value: fmt.Sprintf("0.0.0.0:%[1]v", sentinelExporterPort),
+		}, corev1.EnvVar{
+			Name:  "REDIS_ADDR",
+			Value: "redis://localhost:26379",
+		},
+		),
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "metrics",
@@ -680,6 +694,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 		},
 		Resources: resources,
 	}
+
 	return container
 }
 
@@ -781,6 +796,10 @@ func getRedisVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeMoun
 		},
 	}
 
+	if rf.Spec.Redis.ExtraVolumeMounts != nil {
+		volumeMounts = append(volumeMounts, rf.Spec.Redis.ExtraVolumeMounts...)
+	}
+
 	return volumeMounts
 }
 
@@ -828,6 +847,10 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 	dataVolume := getRedisDataVolume(rf)
 	if dataVolume != nil {
 		volumes = append(volumes, *dataVolume)
+	}
+
+	if rf.Spec.Redis.ExtraVolumes != nil {
+		volumes = append(volumes, rf.Spec.Redis.ExtraVolumes...)
 	}
 
 	return volumes
