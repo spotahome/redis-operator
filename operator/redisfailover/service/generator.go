@@ -670,7 +670,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 		ImagePullPolicy: pullPolicy(rf.Spec.Sentinel.Exporter.ImagePullPolicy),
 		SecurityContext: getContainerSecurityContext(rf.Spec.Sentinel.Exporter.ContainerSecurityContext),
 		Args:            rf.Spec.Sentinel.Exporter.Args,
-		Env: append(rf.Spec.Redis.Exporter.Env, corev1.EnvVar{
+		Env: append(rf.Spec.Sentinel.Exporter.Env, corev1.EnvVar{
 			Name: "REDIS_ALIAS",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -678,7 +678,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 				},
 			},
 		}, corev1.EnvVar{
-			Name:  "REDIS_EXPORTER_WEB_LIST_ADDRESS",
+			Name:  "REDIS_EXPORTER_WEB_LISTEN_ADDRESS",
 			Value: fmt.Sprintf("0.0.0.0:%[1]v", sentinelExporterPort),
 		}, corev1.EnvVar{
 			Name:  "REDIS_ADDR",
@@ -696,7 +696,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 	}
 
 	if rf.Spec.Sentinel.Exporter.Env != nil {
-		container.Env = append(container.Env, rf.Spec.Redis.Exporter.Env...)
+		container.Env = append(container.Env, rf.Spec.Sentinel.Exporter.Env...)
 	}
 
 	return container
