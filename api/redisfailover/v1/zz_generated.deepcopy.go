@@ -270,7 +270,21 @@ func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 		copy(*out, *in)
 	}
 	in.Storage.DeepCopyInto(&out.Storage)
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.Exporter.DeepCopyInto(&out.Exporter)
+	if in.ExtraContainers != nil {
+		in, out := &in.ExtraContainers, &out.ExtraContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
 		*out = new(corev1.Affinity)
@@ -298,6 +312,13 @@ func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.TopologySpreadConstraints != nil {
+		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
+		*out = make([]corev1.TopologySpreadConstraint, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = make(map[string]string, len(*in))
@@ -317,6 +338,20 @@ func (in *RedisSettings) DeepCopyInto(out *RedisSettings) {
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
+		}
+	}
+	if in.ExtraVolumes != nil {
+		in, out := &in.ExtraVolumes, &out.ExtraVolumes
+		*out = make([]corev1.Volume, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.ExtraVolumeMounts != nil {
+		in, out := &in.ExtraVolumeMounts, &out.ExtraVolumeMounts
+		*out = make([]corev1.VolumeMount, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return
@@ -458,6 +493,13 @@ func (in *SentinelSettings) DeepCopyInto(out *SentinelSettings) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.TopologySpreadConstraints != nil {
+		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
+		*out = make([]corev1.TopologySpreadConstraint, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = make(map[string]string, len(*in))
@@ -479,7 +521,21 @@ func (in *SentinelSettings) DeepCopyInto(out *SentinelSettings) {
 			(*out)[key] = val
 		}
 	}
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.Exporter.DeepCopyInto(&out.Exporter)
+	if in.ExtraContainers != nil {
+		in, out := &in.ExtraContainers, &out.ExtraContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.ConfigCopy.DeepCopyInto(&out.ConfigCopy)
 	return
 }
