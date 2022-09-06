@@ -21,6 +21,15 @@ metadata:
 spec:
   sentinel:
     replicas: 3
+    extraVolumes:
+    - name: foo
+      secret:
+        secretName: foo
+        optional: false
+    extraVolumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true
   redis:
     replicas: 3
     extraVolumes:

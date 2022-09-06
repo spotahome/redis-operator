@@ -430,6 +430,9 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
 
+	volumeMounts := getSentinelVolumeMounts(rf)
+	volumes := getSentinelVolumes(rf, configMapName)
+
 	sd := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -504,13 +507,8 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "sentinel-config-writable",
-									MountPath: "/redis",
-								},
-							},
-							Command: sentinelCommand,
+							VolumeMounts: volumeMounts,
+							Command:      sentinelCommand,
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
@@ -540,24 +538,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							Resources: rf.Spec.Sentinel.Resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "sentinel-config",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMapName,
-									},
-								},
-							},
-						},
-						{
-							Name: "sentinel-config-writable",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},
@@ -803,6 +784,21 @@ func getRedisVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeMoun
 	return volumeMounts
 }
 
+func getSentinelVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "sentinel-config-writable",
+			MountPath: "/redis",
+		},
+	}
+
+	if rf.Spec.Sentinel.ExtraVolumeMounts != nil {
+		volumeMounts = append(volumeMounts, rf.Spec.Redis.ExtraVolumeMounts...)
+	}
+
+	return volumeMounts
+}
+
 func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 	configMapName := GetRedisName(rf)
 	shutdownConfigMapName := GetRedisShutdownConfigMapName(rf)
@@ -851,6 +847,33 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 
 	if rf.Spec.Redis.ExtraVolumes != nil {
 		volumes = append(volumes, rf.Spec.Redis.ExtraVolumes...)
+	}
+
+	return volumes
+}
+
+func getSentinelVolumes(rf *redisfailoverv1.RedisFailover, configMapName string) []corev1.Volume {
+	volumes := []corev1.Volume{
+		{
+			Name: "sentinel-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMapName,
+					},
+				},
+			},
+		},
+		{
+			Name: "sentinel-config-writable",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
+	if rf.Spec.Sentinel.ExtraVolumes != nil {
+		volumes = append(volumes, rf.Spec.Sentinel.ExtraVolumes...)
 	}
 
 	return volumes

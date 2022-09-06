@@ -93,6 +93,8 @@ type SentinelSettings struct {
 	DNSPolicy                 corev1.DNSPolicy                  `json:"dnsPolicy,omitempty"`
 	PriorityClassName         string                            `json:"priorityClassName,omitempty"`
 	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
+	ExtraVolumes              []corev1.Volume                   `json:"extraVolumes,omitempty"`
+	ExtraVolumeMounts         []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
 }
 
 // AuthSettings contains settings about auth
