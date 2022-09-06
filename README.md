@@ -170,23 +170,44 @@ If the user choose to have extra volumes creates and mounted, he could use the `
 - Secrets that sidecars might use to backup of RDBs
 - Extra users and their secrets and acls that could used the initContainers to create multiple users
 - Extra Configurations that could merge on top the existing configurations
+- To pass failover scripts for addition for additional operations
 
 ```
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: foo
+  namespace: exm
+type: Opaque
+stringData:
+  password: MWYyZDFlMmU2N2Rm
+---
 apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
 metadata:
-  name: redisfailover
+  name: foo
+  namespace: exm
 spec:
   sentinel:
     replicas: 3
+    extraVolumes:
+    - name: foo
+      secret:
+        secretName: foo
+        optional: false
+    extraVolumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true
   redis:
     replicas: 3
     extraVolumes:
-    - name: foo_user
+    - name: foo
       secret:
-        secretName: mysecret
+        secretName: foo
         optional: false
-    exraVolumeMounts:
+    extraVolumeMounts:
     - name: foo
       mountPath: "/etc/foo"
       readOnly: true
