@@ -152,7 +152,7 @@ This behavior is configurable, creating a configmap and indicating to use it. An
 
 By default Kubernetes will run containers as the user specified in the Dockerfile (or the root user if not specified), this is not always desirable.
 If you need the containers to run as a specific user (or provide any other PodSecurityContext options) then you can specify a custom `securityContext` in the
-`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
+`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. You can visit kubernetes documentation for detailed docs about [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
 
 ### Custom containerSecurityContext at container level
 
