@@ -431,7 +431,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	labels = util.MergeLabels(labels, selectorLabels)
 
 	volumeMounts := getSentinelVolumeMounts(rf)
-	volumes := getSentinelVolumes(rf)
+	volumes := getSentinelVolumes(rf, configMapName)
 
 	sd := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -852,7 +852,7 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 	return volumes
 }
 
-func getSentinelVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
+func getSentinelVolumes(rf *redisfailoverv1.RedisFailover, configMapName string) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name: "sentinel-config",
