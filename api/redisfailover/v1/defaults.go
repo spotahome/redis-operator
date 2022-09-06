@@ -7,6 +7,7 @@ const (
 	defaultExporterImage         = "quay.io/oliver006/redis_exporter:v1.43.0"
 	defaultImage                 = "redis:6.2.6-alpine"
 	defaultRedisPort             = 6379
+	defaultRedisOpsAdmin         = "redisops-admin"
 )
 
 var (

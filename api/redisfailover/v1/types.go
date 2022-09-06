@@ -99,7 +99,8 @@ type SentinelSettings struct {
 
 // AuthSettings contains settings about auth
 type AuthSettings struct {
-	SecretPath string `json:"secretPath,omitempty"`
+	RedisOpsAdmin string `json:"redisOpsAdmin,omitempty"`
+	SecretPath    string `json:"secretPath,omitempty"`
 }
 
 // BootstrapSettings contains settings about a potential bootstrap node
