@@ -704,10 +704,6 @@ func getAffinity(affinity *corev1.Affinity, labels map[string]string) *corev1.Af
 }
 
 func getSecurityContext(secctx *corev1.PodSecurityContext) *corev1.PodSecurityContext {
-	if secctx != nil {
-		return secctx
-	}
-
 	defaultUserAndGroup := int64(1000)
 	runAsNonRoot := true
 
