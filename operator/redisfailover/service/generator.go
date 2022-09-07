@@ -715,7 +715,9 @@ func getSecurityContext(secctx *corev1.PodSecurityContext) *corev1.PodSecurityCo
 	}
 
 	if secctx != nil {
-		mergo.Merge(&psc, secctx, mergo.WithOverride)
+		if err := mergo.Merge(&psc, secctx, mergo.WithOverride); err != nil {
+			return &psc
+		}
 	}
 
 	return &psc
