@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/imdario/mergo"
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
@@ -710,12 +711,18 @@ func getSecurityContext(secctx *corev1.PodSecurityContext) *corev1.PodSecurityCo
 	defaultUserAndGroup := int64(1000)
 	runAsNonRoot := true
 
-	return &corev1.PodSecurityContext{
+	psc := corev1.PodSecurityContext{
 		RunAsUser:    &defaultUserAndGroup,
 		RunAsGroup:   &defaultUserAndGroup,
 		RunAsNonRoot: &runAsNonRoot,
 		FSGroup:      &defaultUserAndGroup,
 	}
+
+	if secctx != nil {
+		mergo.Merge(&psc, secctx)
+	}
+
+	return &psc
 }
 
 func getContainerSecurityContext(secctx *corev1.SecurityContext) *corev1.SecurityContext {
