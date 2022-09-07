@@ -24,7 +24,7 @@ type RedisFailover struct {
 type RedisFailoverSpec struct {
 	Redis          RedisSettings      `json:"redis,omitempty"`
 	Sentinel       SentinelSettings   `json:"sentinel,omitempty"`
-	Auth           AuthSettings       `json:"auth,omitempty"`
+	Auth           AuthUsers          `json:"auth,omitempty"`
 	LabelWhitelist []string           `json:"labelWhitelist,omitempty"`
 	BootstrapNode  *BootstrapSettings `json:"bootstrapNode,omitempty"`
 }
@@ -97,10 +97,16 @@ type SentinelSettings struct {
 	ExtraVolumeMounts         []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
 }
 
-// AuthSettings contains settings about auth
+// Contains the admin and users listing
+type AuthUsers struct {
+	Admin AuthSettings   `json:"admin,omitempty"`
+	Users []AuthSettings `json:"users,omitempty"`
+}
+
+// AuthSettings for users
 type AuthSettings struct {
-	RedisOpsAdmin string `json:"redisOpsAdmin,omitempty"`
-	SecretPath    string `json:"secretPath,omitempty"`
+	Name       string `json:"name,omitempty"`
+	SecretPath string `json:"secretPath,omitempty"`
 }
 
 // BootstrapSettings contains settings about a potential bootstrap node

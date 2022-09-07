@@ -52,10 +52,26 @@ spec:
             description: RedisFailoverSpec represents a Redis failover spec
             properties:
               auth:
-                description: AuthSettings contains settings about auth
+                description: Contains the admin and users listing
                 properties:
-                  secretPath:
-                    type: string
+                  admin:
+                    description: AuthSettings for users
+                    properties:
+                      name:
+                        type: string
+                      secretPath:
+                        type: string
+                    type: object
+                  users:
+                    items:
+                      description: AuthSettings for users
+                      properties:
+                        name:
+                          type: string
+                        secretPath:
+                          type: string
+                      type: object
+                    type: array
                 type: object
               bootstrapNode:
                 description: BootstrapSettings contains settings about a potential
