@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-operator
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis-operator
+          ports:
+            - name: metrics
+              containerPort: 9710
+              protocol: TCP
