@@ -5,8 +5,8 @@
 # Name of the image repository to pull the container image from.
 image:
   repository: quay.io/spotahome/redis-operator
-  pullPolicy: Always
-  tag: v1.1.1
+  pullPolicy: IfNotPresent
+  tag: v1.2.0
 
 imageCredentials:
   create: false
