@@ -397,11 +397,12 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.InitContainers != nil {
-		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, rf.Spec.Redis.InitContainers...)
+		initContainers := getInitContainersWithRedisEnv(rf)
+		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, initContainers...)
 	}
 
 	if rf.Spec.Redis.ExtraContainers != nil {
-		extraContainers := extraContainersWithRedisEnv(rf)
+		extraContainers := getExtraContainersWithRedisEnv(rf)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, extraContainers...)
 	}
 
@@ -931,15 +932,28 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 	return 30
 }
 
-func extraContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
-	var extraContainers []corev1.Container
-	for _, ec := range rf.Spec.Redis.ExtraContainers {
-		env := getRedisEnv(rf)
-		ec.Env = append(ec.Env, env...)
-		extraContainers = append(extraContainers, ec)
-	}
+func getExtraContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	env := getRedisEnv(rf)
+	extraContainers := getContainersWithRedisEnv(rf.Spec.Redis.ExtraContainers, env)
 
 	return extraContainers
+}
+
+func getInitContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	env := getRedisEnv(rf)
+	initContainers := getContainersWithRedisEnv(rf.Spec.Redis.InitContainers, env)
+
+	return initContainers
+}
+
+func getContainersWithRedisEnv(cs []corev1.Container, e []corev1.EnvVar) []corev1.Container {
+	var containers []corev1.Container
+	for _, c := range cs {
+		c.Env = append(c.Env, e...)
+		containers = append(containers, c)
+	}
+
+	return containers
 }
 
 func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
