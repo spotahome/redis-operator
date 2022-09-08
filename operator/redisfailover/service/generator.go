@@ -401,7 +401,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.ExtraContainers != nil {
-		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
+		extraContainers := extraContainersWithRedisEnv(rf)
+		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, extraContainers...)
 	}
 
 	if rf.Spec.Auth.SecretPath != "" {
@@ -616,26 +617,8 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Resources: resources,
 	}
 
-	if rf.Spec.Auth.SecretPath != "" {
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.SecretPath,
-					},
-					Key: "password",
-				},
-			},
-		})
-	}
-
-	if rf.Spec.Redis.Port != 6379 {
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name:  "REDIS_ADDR",
-			Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
-		})
-	}
+	redisEnv := getRedisEnv(rf)
+	container.Env = append(container.Env, redisEnv...)
 
 	return container
 }
@@ -948,15 +931,15 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 	return 30
 }
 
-func populateRedisEnvOnExtraContainers(rf *redisfailoverv1.RedisFailover) []corev1.Container {
-	if len(rf.Spec.Redis.ExtraContainers) > 0 {
-		for _, ec := range rf.Spec.Redis.ExtraContainers {
-			env := getRedisEnv(rf)
-			ec.Env = append(ec.Env, env...)
-		}
+func extraContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	var extraContainers []corev1.Container
+	for _, ec := range rf.Spec.Redis.ExtraContainers {
+		env := getRedisEnv(rf)
+		ec.Env = append(ec.Env, env...)
+		extraContainers = append(extraContainers, ec)
 	}
 
-	return
+	return extraContainers
 }
 
 func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
