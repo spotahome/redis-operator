@@ -947,3 +947,48 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 	}
 	return 30
 }
+
+func populateRedisEnvOnExtraContainers(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	if len(rf.Spec.Redis.ExtraContainers) > 0 {
+		for _, ec := range rf.Spec.Redis.ExtraContainers {
+			env := getRedisEnv(rf)
+			ec.Env = append(ec.Env, env...)
+		}
+	}
+
+	return
+}
+
+func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_USERNAME",
+		Value: "default",
+	})
+
+	if rf.Spec.Auth.SecretPath != "" {
+		env = append(env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
+	}
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_ADDR",
+		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+	})
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_PORT",
+		Value: fmt.Sprintf("%[1]v", rf.Spec.Redis.Port),
+	})
+
+	return env
+}
