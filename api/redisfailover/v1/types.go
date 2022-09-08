@@ -99,8 +99,10 @@ type SentinelSettings struct {
 
 // Contains the admin and users listing
 type AuthUsers struct {
-	Admin AuthSettings   `json:"admin,omitempty"`
-	Users []AuthSettings `json:"users,omitempty"`
+	// secretPath will be deprecated, please move to the admin AuthSettings
+	SecretPath string         `json:"secretPath,omitempty"` //TODO: Deprecate this keeping for legacy's sake
+	Admin      AuthSettings   `json:"admin,omitempty"`
+	Users      []AuthSettings `json:"users,omitempty"`
 }
 
 // AuthSettings for users

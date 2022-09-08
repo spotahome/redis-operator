@@ -622,7 +622,12 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Resources: resources,
 	}
 
-	if rf.Spec.Auth.Admin.SecretPath != "" {
+	container.Env = append(container.Env, corev1.EnvVar{
+		Name:  "REDIS_PORT",
+		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+	})
+
+	if rf.Spec.Auth.SecretPath != "" {
 		container.Env = append(container.Env, corev1.EnvVar{
 			Name: "REDIS_PASSWORD",
 			ValueFrom: &corev1.EnvVarSource{
@@ -634,6 +639,23 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 				},
 			},
 		})
+	} else {
+		if len(rf.Spec.Auth.Admin.Passwords) != 0 {
+			switch {
+			case rf.Spec.Auth.Admin.Passwords[0].Value != "":
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name: "REDIS_PASSWORD",
+					Value: rf.Spec.Auth.Admin.Passwords[0].Value
+				}
+			case rf.Spec.Auth.Admin.Passwords[0].ValueFrom != nil:
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name: "REDIS_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: rf.Spec.Auth.Admin.Passwords[0].ValueFrom,
+					},
+				})
+			}
+		}
 	}
 
 	if rf.Spec.Redis.Port != 6379 {
