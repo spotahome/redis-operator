@@ -105,8 +105,14 @@ type AuthUsers struct {
 
 // AuthSettings for users
 type AuthSettings struct {
-	Name       string `json:"name,omitempty"`
-	SecretPath string `json:"secretPath,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	Passwords []PasswordValue `json:"passwords,omitempty"`
+	ACL       string          `json:"acl,omitempty"`
+}
+
+type PasswordValue struct {
+	Value     string                    `json:"value,omitempty"`
+	ValueFrom *corev1.SecretKeySelector `json:"valueFrom,omitempty"`
 }
 
 // BootstrapSettings contains settings about a potential bootstrap node
