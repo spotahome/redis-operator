@@ -62,8 +62,8 @@ func (r *RedisFailover) Validate() error {
 		r.Spec.Sentinel.CustomConfig = defaultSentinelCustomConfig
 	}
 
-	if r.Spec.Auth.Admin.Name == "" {
-		r.Spec.Auth.Admin.Name = defaultRedisOpsAdmin
+	if r.Spec.AuthV2.Admin.Name == "" {
+		r.Spec.AuthV2.Admin.Name = defaultRedisOpsAdmin
 	}
 
 	return nil
