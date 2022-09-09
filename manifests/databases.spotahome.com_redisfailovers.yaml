@@ -52,10 +52,16 @@ spec:
             description: RedisFailoverSpec represents a Redis failover spec
             properties:
               auth:
-                description: Contains the admin and users listing
+                description: AuthSettings contains settings about auth
+                properties:
+                  secretPath:
+                    type: string
+                type: object
+              authv2:
+                description: AuthV2Settings cotainers settings about authv2
                 properties:
                   admin:
-                    description: AuthSettings for users
+                    description: User for users
                     properties:
                       acl:
                         type: string
@@ -63,6 +69,7 @@ spec:
                         type: string
                       passwords:
                         items:
+                          description: Password contains Value or ValueFrom
                           properties:
                             value:
                               type: string
@@ -90,7 +97,7 @@ spec:
                     type: object
                   users:
                     items:
-                      description: AuthSettings for users
+                      description: User for users
                       properties:
                         acl:
                           type: string
@@ -98,6 +105,7 @@ spec:
                           type: string
                         passwords:
                           items:
+                            description: Password contains Value or ValueFrom
                             properties:
                               value:
                                 type: string

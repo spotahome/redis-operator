@@ -142,7 +142,8 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
-	admin := rf.Spec.Auth.Admin.Name
+	// TODO: Use this later after testing
+	// admin := rf.Spec.AuthV2.Admin.Name
 
 	tmpl, err := template.New("redis").Parse(redisConfigTemplate)
 	if err != nil {
@@ -156,14 +157,19 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 
 	redisConfigFileContent := tplOutput.String()
 
-	if password != "" {
-		if admin == "default" {
-			redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
-		} else {
-			redisConfigFileContent = fmt.Sprintf("\n%s\nuser %s on ~* -@all +@admin >%s\n", redisConfigFileContent, admin, password)
-			redisConfigFileContent = fmt.Sprintf("\n%s\nmasteruser %s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, admin, password, password)
-		}
+	// TODO: Use this later after testing
+	// if password != "" {
+	// 	if admin == "default" {
+	// 		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
+	// 	} else {
+	// 		redisConfigFileContent = fmt.Sprintf("\n%s\nuser %s on ~* -@all +@admin >%s\n", redisConfigFileContent, admin, password)
+	// 		redisConfigFileContent = fmt.Sprintf("\n%s\nmasteruser %s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, admin, password, password)
+	// 	}
 
+	// }
+
+	if password != "" {
+		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
 	}
 
 	return &corev1.ConfigMap{
@@ -410,18 +416,10 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
 	}
 
-	if rf.Spec.Auth.Admin.SecretPath != "" {
-		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.Admin.SecretPath,
-					},
-					Key: "password",
-				},
-			},
-		})
+	passwordEnv := getPasswordEnv(rf)
+
+	if passwordEnv != (corev1.EnvVar{}) {
+		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, passwordEnv)
 	}
 
 	return ss
@@ -627,35 +625,9 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
 	})
 
-	if rf.Spec.Auth.SecretPath != "" {
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.Admin.SecretPath,
-					},
-					Key: "password",
-				},
-			},
-		})
-	} else {
-		if len(rf.Spec.Auth.Admin.Passwords) != 0 {
-			switch {
-			case rf.Spec.Auth.Admin.Passwords[0].Value != "":
-				container.Env = append(container.Env, corev1.EnvVar{
-					Name: "REDIS_PASSWORD",
-					Value: rf.Spec.Auth.Admin.Passwords[0].Value
-				}
-			case rf.Spec.Auth.Admin.Passwords[0].ValueFrom != nil:
-				container.Env = append(container.Env, corev1.EnvVar{
-					Name: "REDIS_PASSWORD",
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: rf.Spec.Auth.Admin.Passwords[0].ValueFrom,
-					},
-				})
-			}
-		}
+	passwordEnv := getPasswordEnv(rf)
+	if passwordEnv != (corev1.EnvVar{}) {
+		container.Env = append(container.Env, passwordEnv)
 	}
 
 	if rf.Spec.Redis.Port != 6379 {
@@ -977,5 +949,40 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 }
 
 func isAdminDefault(rf *redisfailoverv1.RedisFailover) bool {
-	return rf.Spec.Auth.Admin.Name == "default"
+	return rf.Spec.AuthV2.Admin.Name == "default"
+}
+
+func getPasswordEnv(rf *redisfailoverv1.RedisFailover) corev1.EnvVar {
+	var passwordEnv corev1.EnvVar
+	if rf.Spec.Auth.SecretPath != "" {
+		passwordEnv = corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		}
+	} else {
+		if len(rf.Spec.AuthV2.Admin.Passwords) != 0 {
+			switch {
+			case rf.Spec.AuthV2.Admin.Passwords[0].Value != "":
+				passwordEnv = corev1.EnvVar{
+					Name:  "REDIS_PASSWORD",
+					Value: rf.Spec.AuthV2.Admin.Passwords[0].Value,
+				}
+			case rf.Spec.AuthV2.Admin.Passwords[0].ValueFrom != nil:
+				passwordEnv = corev1.EnvVar{
+					Name: "REDIS_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: rf.Spec.AuthV2.Admin.Passwords[0].ValueFrom,
+					},
+				}
+			}
+		}
+	}
+	return passwordEnv
 }

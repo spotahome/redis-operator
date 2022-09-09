@@ -24,7 +24,8 @@ type RedisFailover struct {
 type RedisFailoverSpec struct {
 	Redis          RedisSettings      `json:"redis,omitempty"`
 	Sentinel       SentinelSettings   `json:"sentinel,omitempty"`
-	Auth           AuthUsers          `json:"auth,omitempty"`
+	Auth           AuthSettings       `json:"auth,omitempty"`
+	AuthV2         AuthV2Settings     `json:"authv2,omitempty"`
 	LabelWhitelist []string           `json:"labelWhitelist,omitempty"`
 	BootstrapNode  *BootstrapSettings `json:"bootstrapNode,omitempty"`
 }
@@ -97,22 +98,26 @@ type SentinelSettings struct {
 	ExtraVolumeMounts         []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
 }
 
-// Contains the admin and users listing
-type AuthUsers struct {
-	// secretPath will be deprecated, please move to the admin AuthSettings
-	SecretPath string         `json:"secretPath,omitempty"` //TODO: Deprecate this keeping for legacy's sake
-	Admin      AuthSettings   `json:"admin,omitempty"`
-	Users      []AuthSettings `json:"users,omitempty"`
-}
-
-// AuthSettings for users
+// AuthSettings contains settings about auth
 type AuthSettings struct {
-	Name      string          `json:"name,omitempty"`
-	Passwords []PasswordValue `json:"passwords,omitempty"`
-	ACL       string          `json:"acl,omitempty"`
+	SecretPath string `json:"secretPath,omitempty"`
 }
 
-type PasswordValue struct {
+// AuthV2Settings cotainers settings about authv2
+type AuthV2Settings struct {
+	Admin User   `json:"admin,omitempty"`
+	Users []User `json:"users,omitempty"`
+}
+
+// User for users
+type User struct {
+	Name      string     `json:"name,omitempty"`
+	Passwords []Password `json:"passwords,omitempty"`
+	ACL       string     `json:"acl,omitempty"`
+}
+
+//Password contains Value or ValueFrom
+type Password struct {
 	Value     string                    `json:"value,omitempty"`
 	ValueFrom *corev1.SecretKeySelector `json:"valueFrom,omitempty"`
 }

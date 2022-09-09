@@ -57,6 +57,84 @@ spec:
                   secretPath:
                     type: string
                 type: object
+              authv2:
+                description: AuthV2Settings cotainers settings about authv2
+                properties:
+                  admin:
+                    description: User for users
+                    properties:
+                      acl:
+                        type: string
+                      name:
+                        type: string
+                      passwords:
+                        items:
+                          description: Password contains Value or ValueFrom
+                          properties:
+                            value:
+                              type: string
+                            valueFrom:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                          type: object
+                        type: array
+                    type: object
+                  users:
+                    items:
+                      description: User for users
+                      properties:
+                        acl:
+                          type: string
+                        name:
+                          type: string
+                        passwords:
+                          items:
+                            description: Password contains Value or ValueFrom
+                            properties:
+                              value:
+                                type: string
+                              valueFrom:
+                                description: SecretKeySelector selects a key of a
+                                  Secret.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must
+                                      be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret or its
+                                      key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                            type: object
+                          type: array
+                      type: object
+                    type: array
+                type: object
               bootstrapNode:
                 description: BootstrapSettings contains settings about a potential
                   bootstrap node

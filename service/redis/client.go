@@ -18,24 +18,24 @@ type Client interface {
 	GetNumberSentinelSlavesInMemory(ip string) (int32, error)
 	ResetSentinel(ip string) error
 	GetSlaveOf(ip, port, password string) (string, error)
-	GetSlaveOfWithAdmin(ip, port, admin, password string) (string, error)
+	// GetSlaveOfWithAdmin(ip, port, admin, password string) (string, error)
 	IsMaster(ip, port, password string) (bool, error)
-	IsMasterWithAdmin(ip, port, admin, password string) (bool, error)
+	// IsMasterWithAdmin(ip, port, admin, password string) (bool, error)
 	MonitorRedis(ip, monitor, quorum, password string) error
-	MonitorRedisWithAdmin(ip, monitor, quorum, admin, password string) error
+	// MonitorRedisWithAdmin(ip, monitor, quorum, admin, password string) error
 	MonitorRedisWithPort(ip, monitor, port, quorum, password string) error
-	MonitorRedisWithPortWithAdmin(ip, monitor, port, quorum, admin, password string) error
+	// MonitorRedisWithPortWithAdmin(ip, monitor, port, quorum, admin, password string) error
 	MakeMaster(ip, port, password string) error
-	MakeMasterWithAdmin(ip, port, admin, password string) error
+	// MakeMasterWithAdmin(ip, port, admin, password string) error
 	MakeSlaveOf(ip, masterIP, password string) error
 	MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error
-	MakeSlaveOfWithPortWithAdmin(ip, masterIP, masterPort, admin, password string) error
+	// MakeSlaveOfWithPortWithAdmin(ip, masterIP, masterPort, admin, password string) error
 	GetSentinelMonitor(ip string) (string, string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
-	SetCustomRedisConfigWithAdmin(ip string, port string, configs []string, admin, password string) error
+	// SetCustomRedisConfigWithAdmin(ip string, port string, configs []string, admin, password string) error
 	SlaveIsReady(ip, port, password string) (bool, error)
-	SlaveIsReadyWithAdmin(ip, port, admin, password string) (bool, error)
+	// SlaveIsReadyWithAdmin(ip, port, admin, password string) (bool, error)
 }
 
 type client struct {
