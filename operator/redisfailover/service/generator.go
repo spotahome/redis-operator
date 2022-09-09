@@ -126,6 +126,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 	}
 
 	sentinelConfigFileContent := tplOutput.String()
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -615,11 +616,6 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Resources: resources,
 	}
 
-	container.Env = append(container.Env, corev1.EnvVar{
-		Name:  "REDIS_PORT",
-		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
-	})
-
 	passwordEnv := getPasswordEnv(rf)
 	if passwordEnv != (corev1.EnvVar{}) {
 		container.Env = append(container.Env, passwordEnv)
@@ -943,9 +939,9 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 	return 30
 }
 
-func isAdminDefault(rf *redisfailoverv1.RedisFailover) bool {
-	return rf.Spec.AuthV2.Admin.Name == "default"
-}
+// func isAdminDefault(rf *redisfailoverv1.RedisFailover) bool {
+// 	return rf.Spec.AuthV2.Admin.Name == "default"
+// }
 
 func getPasswordEnv(rf *redisfailoverv1.RedisFailover) corev1.EnvVar {
 	var passwordEnv corev1.EnvVar
