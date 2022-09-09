@@ -958,6 +958,17 @@ func getContainersWithRedisEnv(cs []corev1.Container, e []corev1.EnvVar) []corev
 
 func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
 	var env []corev1.EnvVar
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_ADDR",
+		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+	})
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_PORT",
+		Value: fmt.Sprintf("%[1]v", rf.Spec.Redis.Port),
+	})
+
 	env = append(env, corev1.EnvVar{
 		Name:  "REDIS_USERNAME",
 		Value: "default",
@@ -976,16 +987,6 @@ func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
 			},
 		})
 	}
-
-	env = append(env, corev1.EnvVar{
-		Name:  "REDIS_ADDR",
-		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
-	})
-
-	env = append(env, corev1.EnvVar{
-		Name:  "REDIS_PORT",
-		Value: fmt.Sprintf("%[1]v", rf.Spec.Redis.Port),
-	})
 
 	return env
 }
