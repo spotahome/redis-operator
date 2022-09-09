@@ -268,7 +268,7 @@ func (c *clients) testAuth(t *testing.T) {
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Value, redisAddr)
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[2].Name, "REDIS_PORT")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[2].Value, "6379")
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[3].Name, "REDIS_USERNAME")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[3].Name, "REDIS_USER")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[3].Value, "default")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].Name, "REDIS_PASSWORD")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].ValueFrom.SecretKeyRef.Key, "password")

@@ -970,7 +970,7 @@ func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
 	})
 
 	env = append(env, corev1.EnvVar{
-		Name:  "REDIS_USERNAME",
+		Name:  "REDIS_USER",
 		Value: "default",
 	})
 
