@@ -261,7 +261,6 @@ func (c *clients) testAuth(t *testing.T) {
 	assert.Contains(redisCfg.Data["redis.conf"], "masterauth "+testPass)
 
 	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
-	redis_addr := fmt.Sprintf("redis://localhost:%[1]v")
 	assert.NoError(err)
 
 	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
