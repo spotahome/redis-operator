@@ -62,8 +62,10 @@ func (r *RedisFailover) Validate() error {
 		r.Spec.Sentinel.CustomConfig = defaultSentinelCustomConfig
 	}
 
+	// IF no user is set, then the Admin user is "default"
+	// default user will have no ACL set will work the same way
 	if r.Spec.AuthV2.Admin.Name == "" {
-		r.Spec.AuthV2.Admin.Name = defaultRedisOpsAdmin
+		r.Spec.AuthV2.Admin.Name = defaultAdminUser
 	}
 
 	return nil

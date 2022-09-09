@@ -61,10 +61,8 @@ spec:
                 description: AuthV2Settings cotainers settings about authv2
                 properties:
                   admin:
-                    description: User for users
+                    description: AdminUser for admin user
                     properties:
-                      acl:
-                        type: string
                       name:
                         type: string
                       passwords:

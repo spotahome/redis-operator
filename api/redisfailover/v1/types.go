@@ -105,8 +105,14 @@ type AuthSettings struct {
 
 // AuthV2Settings cotainers settings about authv2
 type AuthV2Settings struct {
-	Admin User   `json:"admin,omitempty"`
-	Users []User `json:"users,omitempty"`
+	Admin AdminUser `json:"admin,omitempty"`
+	Users []User    `json:"users,omitempty"`
+}
+
+// AdminUser for admin user
+type AdminUser struct {
+	Name      string     `json:"name,omitempty"`
+	Passwords []Password `json:"passwords,omitempty"`
 }
 
 // User for users

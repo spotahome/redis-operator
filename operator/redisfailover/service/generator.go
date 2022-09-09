@@ -142,8 +142,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
-	// TODO: Use this later after testing
-	// admin := rf.Spec.AuthV2.Admin.Name
+	admin := rf.Spec.AuthV2.Admin.Name
 
 	tmpl, err := template.New("redis").Parse(redisConfigTemplate)
 	if err != nil {
@@ -158,18 +157,14 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	redisConfigFileContent := tplOutput.String()
 
 	// TODO: Use this later after testing
-	// if password != "" {
-	// 	if admin == "default" {
-	// 		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
-	// 	} else {
-	// 		redisConfigFileContent = fmt.Sprintf("\n%s\nuser %s on ~* -@all +@admin >%s\n", redisConfigFileContent, admin, password)
-	// 		redisConfigFileContent = fmt.Sprintf("\n%s\nmasteruser %s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, admin, password, password)
-	// 	}
-
-	// }
-
 	if password != "" {
-		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
+		if admin == "default" {
+			redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, password, password)
+		} else {
+			redisConfigFileContent = fmt.Sprintf("\n%s\nuser %s on %s >%s\n", redisConfigFileContent, admin, redisfailoverv1.AdminACL, password)
+			redisConfigFileContent = fmt.Sprintf("\n%s\nmasteruser %s\nmasterauth %s\nrequirepass %s\n", redisConfigFileContent, admin, password, password)
+		}
+
 	}
 
 	return &corev1.ConfigMap{
