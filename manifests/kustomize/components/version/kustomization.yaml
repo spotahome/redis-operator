@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+labels:
+  - pairs:
+      app.kubernetes.io/version: 1.2.0
+
+images:
+  - name: quay.io/spotahome/redis-operator
+    newTag: v1.2.0

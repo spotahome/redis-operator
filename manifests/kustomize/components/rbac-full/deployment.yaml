@@ -1,0 +1,8 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-operator
+spec:
+  template:
+    spec:
+      serviceAccountName: redis-operator

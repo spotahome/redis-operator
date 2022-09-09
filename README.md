@@ -7,12 +7,16 @@ Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
 ## Requirements
 
-Redis Operator is meant to be run on Kubernetes 1.19+.
+Kubernetes version: 1.21 or higher
+Redis version: 6 or higher
+
+Redis operator is being tested against kubernetes 1.22 1.23 1.24 and redis 6
 All dependencies have been vendored, so there's no need to any additional download.
 
-## Operator deployment on kubernetes
+## Operator deployment on Kubernetes
 
-In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed. It can be done with [deployment](example/operator) or with the provided [Helm chart](charts/redisoperator).
+In order to create Redis failovers inside a Kubernetes cluster, the operator has to be deployed.
+It can be done with plain old [deployment](example/operator), using [Kustomize](manifests/kustomize) or with the provided [Helm chart](charts/redisoperator).
 
 ### Using the Helm chart
 
@@ -29,7 +33,8 @@ helm install redis-operator redis-operator/redis-operator
 Helm chart only manage the creation of CRD in the first install. In order to update the CRD you will need to apply directly.
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml
+REDIS_OPERATOR_VERSION=v1.2.0
+kubectl replace -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/manifests/databases.spotahome.com_redisfailovers.yaml
 ```
 
 ```
@@ -40,11 +45,51 @@ helm upgrade redis-operator redis-operator/redis-operator
 To create the operator, you can directly create it with kubectl:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml
-kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
+REDIS_OPERATOR_VERSION=v1.2.0
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/manifests/databases.spotahome.com_redisfailovers.yaml
+kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/example/operator/all-redis-operator-resources.yaml
 ```
 
 This will create a deployment named `redisoperator`.
+
+### Using kustomize
+
+The kustomize setup included in this repo is highly customizable using [components](https://kubectl.docs.kubernetes.io/guides/config_management/components/),
+but it also comes with a few presets (in the form of overlays) supporting the most common use cases.
+
+To install the operator with default settings and every necessary resource (including RBAC, service account, default resource limits, etc), install the `default` overlay:
+
+```shell
+kustomize build github.com/spotahome/redis-operator/manifests/kustomize/overlays/default
+```
+
+If you would like to customize RBAC or the service account used, you can install the `minimal` overlay.
+
+Finally, you can install the `full` overlay if you want everything this operator has to offer, including Prometheus ServiceMonitor resources.
+
+It's always a good practice to pin the version of the operator in your configuration to make sure you are not surprised by changes on the latest development branch:
+
+```shell
+kustomize build github.com/spotahome/redis-operator/manifests/kustomize/overlays/default?ref=v1.2.0
+```
+
+You can easily create your own config by creating a `kustomization.yaml` file
+(for example to apply custom resource limits, to add custom labels or to customize the namespace):
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: redis-operator
+
+commonLabels:
+    foo: bar
+
+resources:
+  - github.com/spotahome/redis-operator/manifests/kustomize/overlays/full
+```
+
+Take a look at the manifests inside [manifests/kustomize](manifests/kustomize) for more details.
 
 ## Usage
 
@@ -53,7 +98,8 @@ Once the operator is deployed inside a Kubernetes cluster, a new API will be acc
 In order to deploy a new redis-failover a [specification](example/redisfailover/basic.yaml) has to be created:
 
 ```
-kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/basic.yaml
+REDIS_OPERATOR_VERSION=v1.2.0
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/example/redisfailover/basic.yaml
 ```
 
 This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
@@ -109,7 +155,7 @@ This behavior is configurable, creating a configmap and indicating to use it. An
 
 By default Kubernetes will run containers as the user specified in the Dockerfile (or the root user if not specified), this is not always desirable.
 If you need the containers to run as a specific user (or provide any other PodSecurityContext options) then you can specify a custom `securityContext` in the
-`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. Keys available under securityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podsecuritycontext-v1-core)
+`redisfailover` object. See the [SecurityContext example file](example/redisfailover/security-context.yaml) for an example. You can visit kubernetes documentation for detailed docs about [security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
 
 ### Custom containerSecurityContext at container level
 
