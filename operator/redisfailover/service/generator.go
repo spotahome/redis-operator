@@ -793,7 +793,7 @@ func getSentinelVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeM
 	}
 
 	if rf.Spec.Sentinel.ExtraVolumeMounts != nil {
-		volumeMounts = append(volumeMounts, rf.Spec.Redis.ExtraVolumeMounts...)
+		volumeMounts = append(volumeMounts, rf.Spec.Sentinel.ExtraVolumeMounts...)
 	}
 
 	return volumeMounts
@@ -840,13 +840,13 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 		},
 	}
 
+	if rf.Spec.Redis.ExtraVolumes != nil {
+		volumes = append(volumes, rf.Spec.Redis.ExtraVolumes...)
+	}
+
 	dataVolume := getRedisDataVolume(rf)
 	if dataVolume != nil {
 		volumes = append(volumes, *dataVolume)
-	}
-
-	if rf.Spec.Redis.ExtraVolumes != nil {
-		volumes = append(volumes, rf.Spec.Redis.ExtraVolumes...)
 	}
 
 	return volumes

@@ -1484,3 +1484,155 @@ func TestSentinelImagePullPolicy(t *testing.T) {
 		assert.Equal(string(test.expectedConfigPolicy), string(configPolicy))
 	}
 }
+
+func TestRedisExtraVolumeMounts(t *testing.T) {
+
+	mode := int32(755)
+	tests := []struct {
+		name                 string
+		expectedVolumes      []corev1.Volume
+		expectedVolumeMounts []corev1.VolumeMount
+	}{
+		{
+			name: "EmptyDir",
+			expectedVolumes: []corev1.Volume{
+				{
+					Name: "foo",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			expectedVolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "foo",
+					MountPath: "/mnt/foo",
+				},
+			},
+		},
+		{
+			name: "ConfigMap",
+			expectedVolumes: []corev1.Volume{
+				{
+					Name: "bar",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "bar-cm",
+							},
+							DefaultMode: &mode,
+						},
+					},
+				},
+			},
+			expectedVolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "bar",
+					MountPath: "/mnt/scripts",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var extraVolume corev1.Volume
+		var extraVolumeMount corev1.VolumeMount
+
+		rf := generateRF()
+		rf.Spec.Redis.ExtraVolumes = test.expectedVolumes
+		rf.Spec.Redis.ExtraVolumeMounts = test.expectedVolumeMounts
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			extraVolume = s.Spec.Template.Spec.Volumes[3]
+			extraVolumeMount = s.Spec.Template.Spec.Containers[0].VolumeMounts[4]
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedVolumes[0], extraVolume)
+		assert.Equal(test.expectedVolumeMounts[0], extraVolumeMount)
+	}
+}
+
+func TestSentinelExtraVolumeMounts(t *testing.T) {
+
+	mode := int32(755)
+	tests := []struct {
+		name                 string
+		expectedVolumes      []corev1.Volume
+		expectedVolumeMounts []corev1.VolumeMount
+	}{
+		{
+			name: "EmptyDir",
+			expectedVolumes: []corev1.Volume{
+				{
+					Name: "foo",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			expectedVolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "foo",
+					MountPath: "/mnt/foo",
+				},
+			},
+		},
+		{
+			name: "ConfigMap",
+			expectedVolumes: []corev1.Volume{
+				{
+					Name: "bar",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "bar-cm",
+							},
+							DefaultMode: &mode,
+						},
+					},
+				},
+			},
+			expectedVolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "bar",
+					MountPath: "/mnt/scripts",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var extraVolume corev1.Volume
+		var extraVolumeMount corev1.VolumeMount
+
+		rf := generateRF()
+		rf.Spec.Sentinel.ExtraVolumes = test.expectedVolumes
+		rf.Spec.Sentinel.ExtraVolumeMounts = test.expectedVolumeMounts
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			extraVolume = d.Spec.Template.Spec.Volumes[2]
+			extraVolumeMount = d.Spec.Template.Spec.Containers[0].VolumeMounts[1]
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedVolumes[0], extraVolume)
+		assert.Equal(test.expectedVolumeMounts[0], extraVolumeMount)
+	}
+}
