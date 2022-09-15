@@ -39,6 +39,7 @@ const (
 	sentinelSize   = int32(3)
 	authSecretPath = "redis-auth"
 	testPass       = "test-pass"
+	redisAddr      = "redis://localhost:6379"
 )
 
 type clients struct {
@@ -263,7 +264,13 @@ func (c *clients) testAuth(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Name, "REDIS_PASSWORD")
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.Key, "password")
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Name, "REDIS_ADDR")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Value, redisAddr)
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[2].Name, "REDIS_PORT")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[2].Value, "6379")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[3].Name, "REDIS_USER")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[3].Value, "default")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].Name, "REDIS_PASSWORD")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].ValueFrom.SecretKeyRef.Key, "password")
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
 }

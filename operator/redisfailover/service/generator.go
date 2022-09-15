@@ -397,11 +397,13 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.InitContainers != nil {
-		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, rf.Spec.Redis.InitContainers...)
+		initContainers := getInitContainersWithRedisEnv(rf)
+		ss.Spec.Template.Spec.InitContainers = append(ss.Spec.Template.Spec.InitContainers, initContainers...)
 	}
 
 	if rf.Spec.Redis.ExtraContainers != nil {
-		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
+		extraContainers := getExtraContainersWithRedisEnv(rf)
+		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, extraContainers...)
 	}
 
 	if rf.Spec.Auth.SecretPath != "" {
@@ -616,26 +618,8 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Resources: resources,
 	}
 
-	if rf.Spec.Auth.SecretPath != "" {
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.SecretPath,
-					},
-					Key: "password",
-				},
-			},
-		})
-	}
-
-	if rf.Spec.Redis.Port != 6379 {
-		container.Env = append(container.Env, corev1.EnvVar{
-			Name:  "REDIS_ADDR",
-			Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
-		})
-	}
+	redisEnv := getRedisEnv(rf)
+	container.Env = append(container.Env, redisEnv...)
 
 	return container
 }
@@ -946,4 +930,63 @@ func getTerminationGracePeriodSeconds(rf *redisfailoverv1.RedisFailover) int64 {
 		return rf.Spec.Redis.TerminationGracePeriodSeconds
 	}
 	return 30
+}
+
+func getExtraContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	env := getRedisEnv(rf)
+	extraContainers := getContainersWithRedisEnv(rf.Spec.Redis.ExtraContainers, env)
+
+	return extraContainers
+}
+
+func getInitContainersWithRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.Container {
+	env := getRedisEnv(rf)
+	initContainers := getContainersWithRedisEnv(rf.Spec.Redis.InitContainers, env)
+
+	return initContainers
+}
+
+func getContainersWithRedisEnv(cs []corev1.Container, e []corev1.EnvVar) []corev1.Container {
+	var containers []corev1.Container
+	for _, c := range cs {
+		c.Env = append(c.Env, e...)
+		containers = append(containers, c)
+	}
+
+	return containers
+}
+
+func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
+	var env []corev1.EnvVar
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_ADDR",
+		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+	})
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_PORT",
+		Value: fmt.Sprintf("%[1]v", rf.Spec.Redis.Port),
+	})
+
+	env = append(env, corev1.EnvVar{
+		Name:  "REDIS_USER",
+		Value: "default",
+	})
+
+	if rf.Spec.Auth.SecretPath != "" {
+		env = append(env, corev1.EnvVar{
+			Name: "REDIS_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: rf.Spec.Auth.SecretPath,
+					},
+					Key: "password",
+				},
+			},
+		})
+	}
+
+	return env
 }

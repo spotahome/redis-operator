@@ -4,12 +4,23 @@ kind: Namespace
 metadata:
   name: sc
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-auth
+  namespace: sc
+type: Opaque
+stringData:
+  password: pass
+---
 apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
 metadata:
   name: sidecars
   namespace: sc
 spec:
+  auth:
+    secretPath: redis-auth
   sentinel:
     initContainers:
     - name: echo
