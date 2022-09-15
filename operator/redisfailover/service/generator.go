@@ -140,7 +140,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 	}
 }
 
-func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
+func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string, authV2Spec string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 
@@ -159,6 +159,9 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	if password != "" {
 		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
 	}
+
+	// add authV2 user creation spec
+	redisConfigFileContent = fmt.Sprintf("%s%s", redisConfigFileContent, authV2Spec)
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

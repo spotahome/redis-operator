@@ -1,0 +1,39 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+  redis:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
+  authV2:
+    users:
+    - name: test
+      passwords:
+        - "test"
+      acl: ""
+    - name: test2
+      passwords:
+        - "test2"
+      acl: ""
+    - name: test3
+      passwords:
+        - "test3"
+      acl: ""
+    - name: admin
+      passwords:
+        - "admintest"
+      acl: ""

@@ -100,7 +100,12 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.Redis
 		return err
 	}
 
-	cm := generateRedisConfigMap(rf, labels, ownerRefs, password)
+	authV2Spec, err := util.GetAuthV2SpecAsRedisConf(r.K8SService, rf)
+	if err != nil {
+		return err
+	}
+
+	cm := generateRedisConfigMap(rf, labels, ownerRefs, password, authV2Spec)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 
