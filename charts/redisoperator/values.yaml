@@ -6,7 +6,7 @@
 image:
   repository: quay.io/spotahome/redis-operator
   pullPolicy: IfNotPresent
-  tag: v1.2.0
+  tag: v1.2.1
 
 imageCredentials:
   create: false
