@@ -109,6 +109,9 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.Redis
 			return err
 		}
 		userCreationConfig, err = redisauthv2.GetAuthV2SpecAsRedisConf(users)
+		if err != nil {
+			return err
+		}
 	}
 
 	cm := generateRedisConfigMap(rf, labels, ownerRefs, password, userCreationConfig)
