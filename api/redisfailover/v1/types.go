@@ -115,7 +115,7 @@ type User struct {
 	SecretKey  string   `json:"secretKey,omitempty"`  // key in the secret data which contains user spec.
 	SecretName string   `json:"secretName,omitempty"` // name of the secret that contains user spec.
 	Name       string   `json:"name,omitempty"`       // Name of redisuser
-	Passwords  []string `json:"passwords,omitempty"`  // Passwords []string of redis user
+	Passwords  []string `json:"passwords,omitempty"`  // Passwords []string of redis user passwords
 	ACL        string   `json:"acl,omitempty"`        // ACL to be applied to the user
 }
 
