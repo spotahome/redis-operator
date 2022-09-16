@@ -20,20 +20,42 @@ spec:
         cpu: 400m
         memory: 500Mi
   authV2:
+    enabled: true
     users:
     - name: test
       passwords:
         - "test"
       acl: ""
-    - name: test2
-      passwords:
-        - "test2"
-      acl: ""
+    - secretKey: userspec
+      secretName: test2
     - name: test3
       passwords:
         - "test3"
       acl: ""
+      secretKey: userspec
+      secretName: test2
     - name: admin
       passwords:
         - "admintest"
       acl: ""
+
+---
+apiVersion: v1
+data:
+  # { "name":"testoverride3", "password":["testoverride3"], "acl":"" }
+  userspec: |-
+    eyAibmFtZSI6InRlc3RvdmVycmlkZTMiLCAicGFzc3dvcmQiOlsidGVzdG92ZXJyaWRlMyJdLCAiYWNsIjoiIiB9Cg==
+kind: Secret
+metadata:
+  name: test3
+type: Opaque
+---
+apiVersion: v1
+data:
+  # { "name":"testoverride2", "password":["testoverride2"], "acl":"" }
+  userspec: |-
+    eyAibmFtZSI6InRlc3RvdmVycmlkZTIiLCAicGFzc3dvcmQiOlsidGVzdG92ZXJyaWRlMiJdLCAiYWNsIjoiIiB9Cg==
+kind: Secret
+metadata:
+  name: test2
+type: Opaque

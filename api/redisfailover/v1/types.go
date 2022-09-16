@@ -105,9 +105,8 @@ type AuthSettings struct {
 
 // AuthV2 contains spec for provisioning of default and custom users with ACL support
 type AuthV2Settings struct {
-	Admin       User   `json:"admin,omitempty"`
-	DefaultUser User   `json:"defaultUser,omitempty"`
-	Users       []User `json:"users,omitempty"`
+	Enabled bool   `json:"enabled,omitempty"`
+	Users   []User `json:"users,omitempty"`
 }
 
 // `User` represents a redis user; spec includes secretKey, secretName, name, password(s) and ACL
