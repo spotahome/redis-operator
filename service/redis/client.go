@@ -331,6 +331,9 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 	if len(s) < 2 {
 		return "", "", fmt.Errorf("configuration '%s' malformed", config)
 	}
+	if len(s) == 2 && s[1] == `""` {
+		return s[0], "", nil
+	}
 	return s[0], strings.Join(s[1:], " "), nil
 }
 
