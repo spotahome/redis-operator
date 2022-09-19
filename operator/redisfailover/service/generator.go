@@ -140,7 +140,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 	}
 }
 
-func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
+func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, masterUsername string, masterAuth /* password */ string, authV2UserCreationSpec string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 
@@ -155,10 +155,17 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	}
 
 	redisConfigFileContent := tplOutput.String()
-
-	if password != "" {
-		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
+	// https://github.com/redis/redis/blob/6.0.0/redis.conf#L375
+	if masterAuth != "" {
+		masterUserSpec := ""
+		if masterUsername != "" {
+			masterUserSpec = fmt.Sprintf("masteruser %s", masterUsername)
+		}
+		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\n%s\nrequirepass %s", redisConfigFileContent, masterAuth, masterUserSpec, masterAuth)
 	}
+
+	// add authV2 user creation spec
+	redisConfigFileContent = fmt.Sprintf("%s%s", redisConfigFileContent, authV2UserCreationSpec)
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

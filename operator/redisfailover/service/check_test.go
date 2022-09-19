@@ -186,7 +186,7 @@ func TestCheckAllSlavesFromMasterGetSlaveOfError(t *testing.T) {
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetSlaveOf", "", "0", "").Once().Return("", errors.New(""))
+	mr.On("GetSlaveOf", "", "0", "default", "").Once().Return("", errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -214,7 +214,7 @@ func TestCheckAllSlavesFromMasterDifferentMaster(t *testing.T) {
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetSlaveOf", "0.0.0.0", "0", "").Once().Return("1.1.1.1", nil)
+	mr.On("GetSlaveOf", "0.0.0.0", "0", "default", "").Once().Return("1.1.1.1", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -242,7 +242,7 @@ func TestCheckAllSlavesFromMaster(t *testing.T) {
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	ms.On("UpdatePodLabels", namespace, mock.AnythingOfType("string"), mock.Anything).Once().Return(nil)
 	mr := &mRedisService.Client{}
-	mr.On("GetSlaveOf", "0.0.0.0", "0", "").Once().Return("1.1.1.1", nil)
+	mr.On("GetSlaveOf", "0.0.0.0", "0", "default", "").Once().Return("1.1.1.1", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -468,7 +468,7 @@ func TestGetMasterIPIsMasterError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(false, errors.New(""))
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(false, errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -501,8 +501,8 @@ func TestGetMasterIPMultipleMastersError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(true, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(true, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(true, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(true, nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -535,8 +535,8 @@ func TestGetMasterIP(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(true, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(false, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(true, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(false, nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -579,7 +579,7 @@ func TestGetNumberMastersIsMasterError(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(true, errors.New(""))
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(true, errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -612,8 +612,8 @@ func TestGetNumberMasters(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(true, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(false, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(true, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(false, nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -647,8 +647,8 @@ func TestGetNumberMastersTwo(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Once().Return(true, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(true, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Once().Return(true, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(true, nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 
@@ -752,8 +752,8 @@ func TestGetRedisPodsNames(t *testing.T) {
 	ms := &mK8SService.Services{}
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
 	mr := &mRedisService.Client{}
-	mr.On("IsMaster", "0.0.0.0", "0", "").Twice().Return(false, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(true, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Twice().Return(false, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(true, nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
 	master, err := checker.GetRedisesMasterPod(rf)
@@ -763,8 +763,8 @@ func TestGetRedisPodsNames(t *testing.T) {
 	assert.Equal(master, "master")
 
 	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(pods, nil)
-	mr.On("IsMaster", "0.0.0.0", "0", "").Twice().Return(false, nil)
-	mr.On("IsMaster", "1.1.1.1", "0", "").Once().Return(true, nil)
+	mr.On("IsMaster", "0.0.0.0", "0", "default", "").Twice().Return(false, nil)
+	mr.On("IsMaster", "1.1.1.1", "0", "default", "").Once().Return(true, nil)
 
 	namePods, err := checker.GetRedisesSlavesPods(rf)
 

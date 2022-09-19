@@ -25,6 +25,7 @@ type RedisFailoverSpec struct {
 	Redis          RedisSettings      `json:"redis,omitempty"`
 	Sentinel       SentinelSettings   `json:"sentinel,omitempty"`
 	Auth           AuthSettings       `json:"auth,omitempty"`
+	AuthV2         AuthV2Settings     `json:"authV2,omitempty"`
 	LabelWhitelist []string           `json:"labelWhitelist,omitempty"`
 	BootstrapNode  *BootstrapSettings `json:"bootstrapNode,omitempty"`
 }
@@ -100,6 +101,22 @@ type SentinelSettings struct {
 // AuthSettings contains settings about auth
 type AuthSettings struct {
 	SecretPath string `json:"secretPath,omitempty"`
+}
+
+// AuthV2 contains spec for provisioning of default and custom users with ACL support
+type AuthV2Settings struct {
+	Enabled bool   `json:"enabled,omitempty"`
+	Users   []User `json:"users,omitempty"`
+}
+
+// `User` represents a redis user; spec includes secretKey, secretName, name, password(s) and ACL
+// Operator considers plaintext (name, password, ACL) combination as precedence over the user spec mentioned as secrets.
+type User struct {
+	SecretKey  string   `json:"secretKey,omitempty"`  // key in the secret data which contains user spec.
+	SecretName string   `json:"secretName,omitempty"` // name of the secret that contains user spec.
+	Name       string   `json:"name,omitempty"`       // Name of redisuser
+	Passwords  []string `json:"passwords,omitempty"`  // Passwords []string of redis user passwords
+	ACL        string   `json:"acl,omitempty"`        // ACL to be applied to the user
 }
 
 // BootstrapSettings contains settings about a potential bootstrap node
