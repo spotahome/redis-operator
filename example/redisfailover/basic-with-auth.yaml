@@ -26,7 +26,8 @@ spec:
       passwords:
         - "test"
       acl: ""
-    - secretKey: userspec
+    - name: test2
+      secretKey: userspec
       secretName: test2
     - name: test3
       passwords:
@@ -37,6 +38,10 @@ spec:
     - name: admin
       passwords:
         - "admintest"
+      acl: ""
+    - name: default
+      passwords:
+        - "default"
       acl: ""
 
 ---

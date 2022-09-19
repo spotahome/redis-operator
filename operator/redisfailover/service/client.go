@@ -89,7 +89,12 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 	if err := r.ensurePodDisruptionBudget(rf, redisName, redisRoleName, labels, ownerRefs); err != nil {
 		return err
 	}
-	ss := generateRedisStatefulSet(rf, labels, ownerRefs)
+	authProvider := redisauth.GetAuthProvider(rf, r.K8SService)
+	defaultPassword, err := authProvider.GetUserPassword(redisauth.DefaultUserName)
+	if err != nil {
+		return err
+	}
+	ss := generateRedisStatefulSet(rf, labels, ownerRefs, defaultPassword)
 	return r.K8SService.CreateOrUpdateStatefulSet(rf.Namespace, ss)
 }
 
@@ -98,7 +103,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.Redis
 
 	authProvider := redisauth.GetAuthProvider(rf, r.K8SService)
 
-	username, password, err := authProvider.GetAdminCredentials()
+	adminUsername, adminPassword, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return err
 	}
@@ -108,7 +113,12 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.Redis
 		return err
 	}
 
-	cm := generateRedisConfigMap(rf, labels, ownerRefs, username, password, userCreationConfig)
+	defaultPassword, err := authProvider.GetUserPassword(redisauth.DefaultUserName)
+	if err != nil {
+		return err
+	}
+
+	cm := generateRedisConfigMap(rf, labels, ownerRefs, adminUsername, adminPassword, defaultPassword, userCreationConfig)
 
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }

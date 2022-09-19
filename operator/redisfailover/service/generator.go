@@ -140,7 +140,7 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 	}
 }
 
-func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, masterUsername string, masterAuth /* password */ string, authV2UserCreationSpec string) *corev1.ConfigMap {
+func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, masterUsername string, masterPassword string, defaultPassword string, authV2UserCreationSpec string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 
@@ -156,13 +156,20 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 
 	redisConfigFileContent := tplOutput.String()
 	// https://github.com/redis/redis/blob/6.0.0/redis.conf#L375
-	if masterAuth != "" {
-		masterUserSpec := ""
+	masteruserSetting := ""
+	requirepassSetting := ""
+	nmasterauthSetting := ""
+	if masterPassword != "" {
+		nmasterauthSetting = fmt.Sprintf("masterauth %s", masterPassword)
 		if masterUsername != "" {
-			masterUserSpec = fmt.Sprintf("masteruser %s", masterUsername)
+			masteruserSetting = fmt.Sprintf("masteruser %s", masterUsername)
 		}
-		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\n%s\nrequirepass %s", redisConfigFileContent, masterAuth, masterUserSpec, masterAuth)
 	}
+	if defaultPassword != "" {
+		requirepassSetting = fmt.Sprintf("requirepass %s", defaultPassword)
+
+	}
+	redisConfigFileContent = fmt.Sprintf("%s\n%s\n%s\n%s", redisConfigFileContent, nmasterauthSetting, masteruserSetting, requirepassSetting)
 
 	// add authV2 user creation spec
 	redisConfigFileContent = fmt.Sprintf("%s%s", redisConfigFileContent, authV2UserCreationSpec)
@@ -272,7 +279,7 @@ esac`, port)
 	}
 }
 
-func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1.StatefulSet {
+func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, defaultPassword /* password of default user */ string) *appsv1.StatefulSet {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
 
@@ -353,7 +360,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 										Command: []string{
 											"sh",
 											"-c",
-											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
+											fmt.Sprintf("redis-cli -u redis://pinger:pingpass@$(hostname):%[1]v ping", rf.Spec.Redis.Port),
 										},
 									},
 								},
@@ -399,7 +406,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	}
 
 	if rf.Spec.Redis.Exporter.Enabled {
-		exporter := createRedisExporterContainer(rf)
+		exporter := createRedisExporterContainer(rf, defaultPassword)
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, exporter)
 	}
 
@@ -411,17 +418,10 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, rf.Spec.Redis.ExtraContainers...)
 	}
 
-	if rf.Spec.Auth.SecretPath != "" {
+	if defaultPassword != "" {
 		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.SecretPath,
-					},
-					Key: "password",
-				},
-			},
+			Name:  "REDIS_PASSWORD",
+			Value: defaultPassword,
 		})
 	}
 
@@ -593,7 +593,7 @@ var exporterDefaultResourceRequirements = corev1.ResourceRequirements{
 	},
 }
 
-func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Container {
+func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover, defaultPassword string) corev1.Container {
 	resources := exporterDefaultResourceRequirements
 	if rf.Spec.Redis.Exporter.Resources != nil {
 		resources = *rf.Spec.Redis.Exporter.Resources
@@ -623,17 +623,10 @@ func createRedisExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.Cont
 		Resources: resources,
 	}
 
-	if rf.Spec.Auth.SecretPath != "" {
+	if defaultPassword != "" {
 		container.Env = append(container.Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.SecretPath,
-					},
-					Key: "password",
-				},
-			},
+			Name:  "REDIS_PASSWORD",
+			Value: defaultPassword,
 		})
 	}
 

@@ -9,10 +9,15 @@ import (
 	"github.com/spotahome/redis-operator/service/k8s"
 )
 
+const (
+	DefaultUserName = "default"
+)
+
 type provider interface {
 	GetAdminCredentials() (string /* username */, string /* password */, error)
 	GetAuthSpecAsRedisCliCommands() (string, error)
 	GetAuthSpecAsRedisConf() (string, error)
+	GetUserPassword(string /* username */) (string /* password*/, error)
 }
 
 type providerV1 struct {
@@ -40,7 +45,7 @@ func GetAuthProvider(rf *redisfailoverv1.RedisFailover, k8sService k8s.Services)
 
 // AuthV1 impl
 func (p providerV1) GetAdminCredentials() (string /* username */, string /* password */, error) {
-	username := "default"
+	username := DefaultUserName // in authv1, default user is the admin user
 	password, err := k8s.GetRedisPassword(p.k8sService, p.rf)
 	return username, password, err
 }
@@ -52,6 +57,18 @@ func (p providerV1) GetAuthSpecAsRedisCliCommands() (string, error) {
 
 func (p providerV1) GetAuthSpecAsRedisConf() (string, error) {
 	log.Warnf("authv1 does not support `GetAuthSpecAsRedisConf`; resource %v in %v namespace has authv1 selected.", p.rf.Name, p.rf.Namespace)
+	return "", nil
+}
+
+func (p providerV1) GetUserPassword(username string) (string, error) {
+	if username == DefaultUserName {
+		_, password, err := p.GetAdminCredentials()
+		if nil != err {
+			return "", err
+		}
+		return password, err
+	}
+	log.Warnf("unable to fetch password of %v user; only default user is supported in authV1; resource %v in %v namespace has authv1 selected.", username, p.rf.Name, p.rf.Namespace)
 	return "", nil
 }
 
@@ -84,4 +101,16 @@ func (p providerV2) GetAuthSpecAsRedisConf() (string, error) {
 	}
 	userCreationConfig, err := redisauthv2.GetAuthSpecAsRedisConf(users)
 	return userCreationConfig, err
+}
+
+func (p providerV2) GetUserPassword(username string) (string, error) {
+	users, err := redisauthv2.InterceptUsers(p.rf.Spec.AuthV2.Users, p.rf.Namespace, p.k8sService)
+	if err != nil {
+		return "", err
+	}
+	password, err := authv2.GetUserPassword(username, users)
+	if nil != err {
+		return "", err
+	}
+	return password, nil
 }

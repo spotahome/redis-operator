@@ -150,7 +150,8 @@ func getUserSpecAs(redisCommandMode string, user *redisfailoverv1.User) (string,
 func GetUserPassword(username string, users []redisfailoverv1.User) (string, error) {
 	user := getUser(username, users)
 	if nil == user {
-		return "", fmt.Errorf("user %s not found.", username)
+		log.Warnf("unable to process \"GetUserPassword\": user %s not found.", username)
+		return "", nil
 	}
 	if len(user.Passwords) == 0 {
 		log.Warnf("no password configured for %s user")
