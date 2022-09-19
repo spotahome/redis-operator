@@ -44,7 +44,7 @@ CODEGEN_IMAGE := quay.io/slok/kube-code-generator:v1.22.0
 PORT := 9710
 
 # CMDs
-UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/` -v
+UNIT_TEST_CMD := go test `go list ./... | grep -v /vendor/ | grep -v auth/v2 ` -v
 GO_GENERATE_CMD := go generate `go list ./... | grep -v /vendor/`
 GO_INTEGRATION_TEST_CMD := go test `go list ./... | grep test/integration` -v -tags='integration'
 GET_DEPS_CMD := dep ensure
@@ -94,7 +94,6 @@ image: deps-development
 	-t $(SERVICE_NAME) \
 	-t $(REPOSITORY):latest \
 	-t $(REPOSITORY):$(COMMIT) \
-	-t $(REPOSITORY):$(BRANCH) \
 	-f $(APP_DIR)/Dockerfile \
 	.
 

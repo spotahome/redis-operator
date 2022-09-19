@@ -16,7 +16,7 @@ outputs:
 	bool (true if admin user is present; false otherwise )
 */
 func isAdminUserPresent(users []redisfailoverv1.User) bool {
-	if nil != getUser(adminUserName, users) {
+	if nil != getUser(AdminUserName, users) {
 		return true
 	}
 	return false

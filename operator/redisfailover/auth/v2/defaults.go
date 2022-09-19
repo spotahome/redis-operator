@@ -5,10 +5,10 @@ const (
 	redisRuntimeCommand        = "redisRuntimeCommand"
 	defaultUserPermissions     = "+@all" // backward compatibility.
 	defaultAdminPermissions    = "-@all +@admin"
-	defaultUserName            = "default"
+	DefaultUserName            = "default"
 	defaultDefaultUserPassword = "password"
 	defaultAdminUserPassword   = "password"
-	adminUserName              = "admin"
+	AdminUserName              = "admin"
 	defaultPermittedKeys       = "~*"
 	defaultPermittedChannels   = "&*"
 )

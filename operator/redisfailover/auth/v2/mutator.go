@@ -29,7 +29,7 @@ outputs:
 	error                  : if any error is encountered. nil otherwise
 */
 func loadUserConfigFromSecrets(user *redisfailoverv1.User, namespace string, k8sServices k8s.Services) error {
-	log.Infof("recieved request to load user spec from secrets for %s user", user.Name)
+	log.Debugf("recieved request to load user spec from secrets for user %v", user)
 	userSpecSecret, err := k8sServices.GetSecret(namespace, user.SecretName)
 	if nil != err {
 		return fmt.Errorf("Unable to process userspec of %v : %s", user.Name, err.Error())

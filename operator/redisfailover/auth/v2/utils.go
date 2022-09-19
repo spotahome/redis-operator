@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	"github.com/spotahome/redis-operator/log"
 )
 
 /*
@@ -98,7 +99,7 @@ outputs:
 func getAdminUserWithDefaultSpec() *redisfailoverv1.User {
 
 	return &redisfailoverv1.User{
-		Name:      adminUserName,
+		Name:      AdminUserName,
 		Passwords: []string{defaultAdminUserPassword},
 		ACL:       defaultAdminPermissions,
 	}
@@ -146,6 +147,18 @@ func getUserSpecAs(redisCommandMode string, user *redisfailoverv1.User) (string,
 	return fmt.Sprintf("%s %s on %s %s %s %s", commandPrefix, user.Name, permittedKeys, permittedChannels, passwordCmd, userACL), nil
 }
 
+func GetUserPassword(username string, users []redisfailoverv1.User) (string, error) {
+	user := getUser(username, users)
+	if nil == user {
+		return "", fmt.Errorf("user %s not found.", username)
+	}
+	if len(user.Passwords) == 0 {
+		log.Warnf("no password configured for %s user")
+		return "", nil
+	}
+	return user.Passwords[0], nil
+}
+
 /*
 Converts AuthV2 spec of a list of users into a string in a given format determined by "redisCommandMode" input
 Inputs:
@@ -189,7 +202,7 @@ Outputs:
 	string                        : Config converted to string in appropriate format
 	error                         : if error is encountered, nil otherwise
 */
-func GetAuthV2SpecAsRedisConf(users []redisfailoverv1.User) (string, error) {
+func GetAuthSpecAsRedisConf(users []redisfailoverv1.User) (string, error) {
 	return getUsersSpecAs(redisConfigCommand, users)
 }
 
@@ -204,6 +217,6 @@ Outputs:
 	string                        : Config converted to string in appropriate format
 	error                         : if error is encountered, nil otherwise
 */
-func GetAuthV2SpecAsRedisCliCommands(users []redisfailoverv1.User) (string, error) {
+func GetAuthSpecAsRedisCliCommands(users []redisfailoverv1.User) (string, error) {
 	return getUsersSpecAs(redisRuntimeCommand, users)
 }

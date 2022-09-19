@@ -3,7 +3,6 @@ package authv2
 
 import (
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
-	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/service/k8s"
 )
 
@@ -26,16 +25,14 @@ func InterceptUsers(crUsers /*cr = users from CR */ []redisfailoverv1.User, name
 	// make deep copy of users - *must* not update spec directly - which will lead to perpetual reconciliation cycle
 	users := make([]redisfailoverv1.User, len(crUsers))
 	copy(users, crUsers)
-	log.Infof("Users [before interception]: %s", users)
 	// ------- Admin User Mutators -------- //
 	// update admin user config
-	adminUser := getUser(adminUserName, users)
+	adminUser := getUser(AdminUserName, users)
 	if nil != adminUser {
 		updatePermissionsOfUser(adminUser, defaultAdminPermissions)
 	} else { // add admin user list of users
 		addUser(users, *getAdminUserWithDefaultSpec())
 	}
-	log.Infof("Users [post admin user mutation]: %s", users)
 	// -------- User spec mutators --------- //
 	for idx, user := range users {
 		if user.Name == "" && user.Passwords == nil {
@@ -45,6 +42,5 @@ func InterceptUsers(crUsers /*cr = users from CR */ []redisfailoverv1.User, name
 			}
 		}
 	}
-	log.Infof("Users [post secrets load mutation]: %s", users)
 	return users, nil
 }

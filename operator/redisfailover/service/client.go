@@ -6,7 +6,7 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
-	redisauthv2 "github.com/spotahome/redis-operator/operator/redisfailover/auth/v2"
+	redisauth "github.com/spotahome/redis-operator/operator/redisfailover/auth"
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	"github.com/spotahome/redis-operator/service/k8s"
 )
@@ -96,25 +96,20 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 // EnsureRedisConfigMap makes sure the Redis ConfigMap exists
 func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 
-	password, err := k8s.GetRedisPassword(r.K8SService, rf)
+	authProvider := redisauth.GetAuthProvider(rf, r.K8SService)
+
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return err
 	}
 
-	// AuthV2 updates
-	userCreationConfig := ""
-	if redisauthv2.IsEnabled(*rf) {
-		users, err := redisauthv2.InterceptUsers(rf.Spec.AuthV2.Users, rf.Namespace, r.K8SService)
-		if err != nil {
-			return err
-		}
-		userCreationConfig, err = redisauthv2.GetAuthV2SpecAsRedisConf(users)
-		if err != nil {
-			return err
-		}
+	userCreationConfig, err := authProvider.GetAuthSpecAsRedisConf()
+	if err != nil {
+		return err
 	}
 
-	cm := generateRedisConfigMap(rf, labels, ownerRefs, password, userCreationConfig)
+	cm := generateRedisConfigMap(rf, labels, ownerRefs, username, password, userCreationConfig)
+
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 

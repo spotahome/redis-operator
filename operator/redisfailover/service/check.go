@@ -11,6 +11,7 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
+	redisauth "github.com/spotahome/redis-operator/operator/redisfailover/auth"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
 )
@@ -100,7 +101,8 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 		return err
 	}
 
-	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	authProvider := redisauth.GetAuthProvider(rf, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return err
 	}
@@ -119,7 +121,7 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 			}
 		}
 
-		slave, err := r.redisClient.GetSlaveOf(rp.Status.PodIP, rport, password)
+		slave, err := r.redisClient.GetSlaveOf(rp.Status.PodIP, rport, username, password)
 		if err != nil {
 			r.logger.Errorf("Get slave of master failed, maybe this node is not ready, pod ip: %s", rp.Status.PodIP)
 			return err
@@ -177,7 +179,8 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 		return "", err
 	}
 
-	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	authProvider := redisauth.GetAuthProvider(rf, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return "", err
 	}
@@ -185,7 +188,7 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 	masters := []string{}
 	rport := getRedisPort(rf.Spec.Redis.Port)
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip, rport, password)
+		master, err := r.redisClient.IsMaster(rip, rport, username, password)
 		if err != nil {
 			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
 			continue
@@ -209,14 +212,15 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 		return nMasters, err
 	}
 
-	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	authProvider := redisauth.GetAuthProvider(rf, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return nMasters, err
 	}
 
 	rport := getRedisPort(rf.Spec.Redis.Port)
 	for _, rip := range rips {
-		master, err := r.redisClient.IsMaster(rip, rport, password)
+		master, err := r.redisClient.IsMaster(rip, rport, username, password)
 		if err != nil {
 			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
 			continue
@@ -287,7 +291,8 @@ func (r *RedisFailoverChecker) GetRedisesSlavesPods(rf *redisfailoverv1.RedisFai
 		return nil, err
 	}
 
-	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	authProvider := redisauth.GetAuthProvider(rf, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return redises, err
 	}
@@ -295,7 +300,7 @@ func (r *RedisFailoverChecker) GetRedisesSlavesPods(rf *redisfailoverv1.RedisFai
 	rport := getRedisPort(rf.Spec.Redis.Port)
 	for _, rp := range rps.Items {
 		if rp.Status.Phase == corev1.PodRunning && rp.DeletionTimestamp == nil { // Only work with running
-			master, err := r.redisClient.IsMaster(rp.Status.PodIP, rport, password)
+			master, err := r.redisClient.IsMaster(rp.Status.PodIP, rport, username, password)
 			if err != nil {
 				return []string{}, err
 			}
@@ -314,7 +319,8 @@ func (r *RedisFailoverChecker) GetRedisesMasterPod(rFailover *redisfailoverv1.Re
 		return "", err
 	}
 
-	password, err := k8s.GetRedisPassword(r.k8sService, rFailover)
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
 	if err != nil {
 		return "", err
 	}
@@ -322,7 +328,7 @@ func (r *RedisFailoverChecker) GetRedisesMasterPod(rFailover *redisfailoverv1.Re
 	rport := getRedisPort(rFailover.Spec.Redis.Port)
 	for _, rp := range rps.Items {
 		if rp.Status.Phase == corev1.PodRunning && rp.DeletionTimestamp == nil { // Only work with running
-			master, err := r.redisClient.IsMaster(rp.Status.PodIP, rport, password)
+			master, err := r.redisClient.IsMaster(rp.Status.PodIP, rport, username, password)
 			if err != nil {
 				return "", err
 			}
@@ -371,13 +377,17 @@ func (r *RedisFailoverChecker) GetRedisRevisionHash(podName string, rFailover *r
 
 // CheckRedisSlavesReady returns true if the slave is ready (sync, connected, etc)
 func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redisfailoverv1.RedisFailover) (bool, error) {
-	password, err := k8s.GetRedisPassword(r.k8sService, rFailover)
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	username, password, err := authProvider.GetAdminCredentials()
+	if err != nil {
+		return false, err
+	}
 	if err != nil {
 		return false, err
 	}
 
 	port := getRedisPort(rFailover.Spec.Redis.Port)
-	return r.redisClient.SlaveIsReady(ip, port, password)
+	return r.redisClient.SlaveIsReady(ip, port, username, password)
 }
 
 func getRedisPort(p int32) string {
