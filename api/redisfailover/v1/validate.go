@@ -27,8 +27,17 @@ func (r *RedisFailover) Validate() error {
 		}
 		initialRedisCustomConfig = bootstrappingRedisCustomConfig
 	}
-
-	r.Spec.Redis.CustomConfig = append(initialRedisCustomConfig, r.Spec.Redis.CustomConfig...)
+	redisCustomConfigExists := false
+	for customConfig := range r.Spec.Redis.CustomConfig {
+		for initialConfig := range initialRedisCustomConfig {
+			if customConfig == initialConfig {
+				redisCustomConfigExists = true
+			}
+		}
+	}
+	if !redisCustomConfigExists {
+		r.Spec.Redis.CustomConfig = append(initialRedisCustomConfig, r.Spec.Redis.CustomConfig...)
+	}
 
 	if r.Spec.Redis.Image == "" {
 		r.Spec.Redis.Image = defaultImage
