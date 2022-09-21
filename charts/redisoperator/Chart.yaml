@@ -12,3 +12,4 @@ keywords:
   - "cluster"
 sources:
   - https://github.com/spotahome/redis-operator
+kubeVersion: '>=1.21.0-0'
