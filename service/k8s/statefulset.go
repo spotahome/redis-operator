@@ -3,9 +3,10 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
