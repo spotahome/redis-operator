@@ -272,6 +272,7 @@ func (r *RedisFailoverHealer) DeletePod(podName string, rFailover *redisfailover
 	return r.k8sService.DeletePod(rFailover.Namespace, podName)
 }
 
+// deletes user with given name from redis instance
 func (r *RedisFailoverHealer) DeleteRedisUser(rFailover *redisfailoverv1.RedisFailover, ip string, port string, username string) error {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	adminUsername, adminPassword, _ := authProvider.GetAdminCredentials()
@@ -280,6 +281,7 @@ func (r *RedisFailoverHealer) DeleteRedisUser(rFailover *redisfailoverv1.RedisFa
 	return r.redisClient.DeleteUser(ip, port, adminUsername, adminPassword, username)
 }
 
+// applies user acl in redis instance. ACL will be constructed as per what is specified in `userSpec` field.
 func (r *RedisFailoverHealer) ApplyRedisACL(rFailover *redisfailoverv1.RedisFailover, userSpec redisfailoverv1.UserSpec, redisUserName string, masterIP string, port string) error {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	adminUsername, adminPassword, _ := authProvider.GetAdminCredentials()

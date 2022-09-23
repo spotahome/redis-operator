@@ -379,6 +379,7 @@ func (c *client) SlaveIsReady(ip, port, adminUsername string, adminPassword stri
 	return ok, nil
 }
 
+// returns list of users in for of []string, where each string is of the format provided by `acl list` redis command
 func (c *client) GetUsers(ip, port, adminUsername string, adminPassword string) ([]string, error) {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
@@ -399,6 +400,7 @@ func (c *client) GetUsers(ip, port, adminUsername string, adminPassword string) 
 	return usersAsString, nil
 }
 
+// Deletes given user from redis instance
 func (c *client) DeleteUser(ip, port, adminUsername string, adminPassword string, username string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
@@ -413,6 +415,8 @@ func (c *client) DeleteUser(ip, port, adminUsername string, adminPassword string
 	return err
 }
 
+// applies ACL to given user, equivalent to `ACL SETUSER redis command
+// `permissionSpaces` are keyspaces and channels
 func (c *client) ACLSetUser(ip, port, adminUsername string, adminPassword string, username string, permissionSpaces []string, passwords []string, permissions []string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
