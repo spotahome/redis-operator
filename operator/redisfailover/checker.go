@@ -273,6 +273,12 @@ func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
 }
 
+/*
+	Enforces (partially) spec given in CR - by applying the spec to redis via `acl setuser` command;
+
+- deletes unknown users
+- applies newly added permissions, passwords at runtime.
+*/
 func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1.RedisFailover) error {
 
 	masterIP, err := r.rfChecker.GetMasterIP(rFailover)
@@ -282,16 +288,17 @@ func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1
 		log.Debugf("redis users check not enabled for %v resource. should process users returned: %v", rFailover.Name, r.rfChecker.ShouldProcessRedisUsers(rFailover))
 		return nil
 	}
-
+	// fetch users from CR spec
 	desiredUsers, err := r.rfChecker.GetDesiredUsers(rFailover)
 	if nil != err {
 		return fmt.Errorf("unable to check redis user status - get desiredusers failed: %v", err.Error())
 	}
+	// fetch users from redis
 	redisUsers, err := r.rfChecker.GetRedisUsersAsString(rFailover)
 	if nil != err {
 		return fmt.Errorf("unable to check redis user status - get redis users failed: %v", err.Error())
 	}
-
+	// delete unknown users from redis
 	for _, redisUser := range redisUsers {
 		redisUserName := ""
 		re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
@@ -311,10 +318,10 @@ func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1
 			}
 		}
 	}
-
+	// update  permissions, passwords that were recently added in CR spec.
+	// Does not remove deleted passwords or permissions that were removed it CR; for now, a restart of instances must be done.
+	//		Need to ponder over rotation policies etc before we handle deletion usecases
 	for username, userSpec := range desiredUsers {
-		// match passwords
-
 		r.rfHealer.ApplyRedisACL(rFailover, userSpec, username, masterIP, port)
 	}
 

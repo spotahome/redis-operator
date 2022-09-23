@@ -105,7 +105,7 @@ func getDefaultPingerUserSpec() redisfailoverv1.UserSpec {
 }
 
 /*
-	Converts data of type redisfailoverv1.User to string that can be embedded into redis conf
+	Converts data of type redisfailoverv1.User to string that can be embedded into redis conf or run as redis CLI command
 
 Inputs:
 
@@ -182,17 +182,17 @@ Outputs:
 func getUsersSpecAs(redisCommandMode string /* "RedisConfigCommand" or "redisRuntimeCommand" */, users map[string]redisfailoverv1.UserSpec) (string, error) {
 
 	var userCreationCmd string
-	var usersToCreate string
+	var usersToProcess string
 	var err error
 
 	if users != nil {
 		for username, userSpec := range users {
 
-			usersToCreate, err = getUserSpecAs(redisCommandMode, username, userSpec)
+			usersToProcess, err = getUserSpecAs(redisCommandMode, username, userSpec)
 			if nil != err {
 				return "", fmt.Errorf("Unable to process userspec for %v : %v", username, err)
 			}
-			userCreationCmd = fmt.Sprintf("%s\n%s", userCreationCmd, usersToCreate)
+			userCreationCmd = fmt.Sprintf("%s\n%s", userCreationCmd, usersToProcess)
 		}
 	}
 	return userCreationCmd, nil
