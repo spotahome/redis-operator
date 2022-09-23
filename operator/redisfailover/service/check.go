@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -394,69 +393,43 @@ func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
 }
 
-func (r *RedisFailoverChecker) CheckAndHealRedisUsers(rFailover *redisfailoverv1.RedisFailover) error {
-	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
-	if authProvider.Version() == "V1" {
-		log.Debugf("skipping check and heal redis users for %v because auth provider is %v", rFailover.Name, authProvider.Version())
-		return nil
-	}
+/*
+	Returns users that are required to be present in redis as specified in CR
 
-	log.Infof("Check and heal redis users running...")
-	// Get Users from redis
-	adminUser, adminPassword, err := authProvider.GetAdminCredentials()
+inputs:
 
-	if err != nil {
-		return err
-	}
-	masterIP, err := r.GetMasterIP(rFailover)
-	if err != nil {
-		log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Errorf("unable to get redis users because master IP cannot be resolved.")
-		return nil //
-	}
-	port := getRedisPort(rFailover.Spec.Redis.Port)
-	if err != nil {
-		return err
-	}
+	*redisfailoverv1.RedisFailover (CR object ptr)
 
-	desiredUsers, err := authProvider.InterceptUsers(rFailover.Spec.AuthV2.Users, rFailover.Namespace, r.k8sService)
-	redisUsers, err := r.redisClient.GetUsers(masterIP, port, adminUser, adminPassword)
+outputs:
 
-	for _, redisUser := range redisUsers {
-		redisUserName := ""
-		re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
-		matches := re.FindStringSubmatch(redisUser)
-		if nil != matches {
-			redisUserName = string(matches[1])
-		}
-		_, userInSpec := desiredUsers[redisUserName]
-		_, userInDefaults := redisauth.DefaultUsers[redisUserName]
-		if !userInSpec && !userInDefaults {
-			log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Warnf("deleting unrecognised user %v from instance %v", redisUserName, masterIP)
-			r.redisClient.DeleteUser(masterIP, port, adminUser, adminPassword, redisUserName)
-		} else {
-			userSpec := desiredUsers[redisUserName]
-			passwords := authProvider.GetHashedPasswords(userSpec)
-			acls := authProvider.GetACLs(userSpec)
-			r.redisClient.ACLSetUser(masterIP, port, adminUser, adminPassword, redisUserName, redisauth.DefaultPermissionSpace, passwords, acls)
-		}
-	}
-
-	for username, userSpec := range desiredUsers {
-
-		passwords := authProvider.GetHashedPasswords(userSpec)
-		acls := authProvider.GetACLs(userSpec)
-		r.redisClient.ACLSetUser(masterIP, port, adminUser, adminPassword, username, redisauth.DefaultPermissionSpace, passwords, acls)
-	}
-
-	return nil
-}
-
+	[map]redisfailoverv1.UserSpec (a map of username -> userSpec )
+*/
 func (r *RedisFailoverChecker) GetDesiredUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error) {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	return authProvider.InterceptUsers(rFailover.Spec.AuthV2.Users, rFailover.Namespace, r.k8sService)
 
 }
 
+/*
+Returns redis users as seen in redis (master instance). format will be same as seen in `acl list`
+example output:
+```
+[
+
+	"user default on #37a8eec1ce19687d132fe29051dca629d164e2c4958ba141d5f4133a33f0688f ~* &* +@all",
+	"user admin on #bbd7182cd0ee95488f1a1e6f3fe0d8f94ed0d14e4db1dce713fe82a3231c523d ~* &* -@all +@admin +xlen +slowlog +llen +memory +cluster|info +get +pfcount +type +xinfo +hlen +zcard +client +eval +latency +info +strlen +ping +scan +select +scard""
+
+]
+```
+
+inputs:
+
+	*redisfailoverv1.RedisFailover (CR object ptr)
+
+output:
+
+	[]string (`acl list` output as string)
+*/
 func (r *RedisFailoverChecker) GetRedisUsersAsString(rFailover *redisfailoverv1.RedisFailover) ([]string, error) {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	adminUser, adminPassword, err := authProvider.GetAdminCredentials()
@@ -475,6 +448,17 @@ func (r *RedisFailoverChecker) GetRedisUsersAsString(rFailover *redisfailoverv1.
 	return r.redisClient.GetUsers(masterIP, port, adminUser, adminPassword)
 }
 
+/*
+	Should we run `check and heal` loop on redis users? No if legacy auth model is followed. Yes if `authV2` or something newer is used
+
+inputs:
+
+	*redisfailoverv1.RedisFailover (CR object ptr)
+
+output:
+
+	bool ( `true` if we should run check and heal reconcile loop )
+*/
 func (r *RedisFailoverChecker) ShouldProcessRedisUsers(rFailover *redisfailoverv1.RedisFailover) bool {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	log.Debugf("authprovider for resource: %v is %v", rFailover.Name, authProvider.Version())
