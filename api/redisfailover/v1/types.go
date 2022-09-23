@@ -105,18 +105,26 @@ type AuthSettings struct {
 
 // AuthV2 contains spec for provisioning of default and custom users with ACL support
 type AuthV2Settings struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	Users   []User `json:"users,omitempty"`
+	Enabled bool                `json:"enabled,omitempty"`
+	Users   map[string]UserSpec `json:"users,omitempty"`
 }
 
 // `User` represents a redis user; spec includes secretKey, secretName, name, password(s) and ACL
 // Operator considers plaintext (name, password, ACL) combination as precedence over the user spec mentioned as secrets.
-type User struct {
-	SecretKey  string   `json:"secretKey,omitempty"`  // key in the secret data which contains user spec.
-	SecretName string   `json:"secretName,omitempty"` // name of the secret that contains user spec.
-	Name       string   `json:"name,omitempty"`       // Name of redisuser
-	Passwords  []string `json:"passwords,omitempty"`  // Passwords []string of redis user passwords
-	ACL        string   `json:"acl,omitempty"`        // ACL to be applied to the user
+type UserSpec struct {
+	Passwords []Password `json:"passwords,omitempty"` // Password(s) of redis user
+	ACL       ACL        `json:"acl,omitempty"`       // ACL to be applied to the user
+}
+
+type Password struct {
+	Value       string                    `json:"value,omitempty"`       // given first priority
+	ValueFrom   *corev1.SecretKeySelector `json:"valueFrom,omitempty"`   // Loaded only when plaintext is empty
+	HashedValue string                    `json:"hashedValue,omitempty"` // for internal computation only
+}
+
+type ACL struct {
+	Value     string                    `json:"value,omitempty"`     // given first priority
+	ValueFrom *corev1.SecretKeySelector `json:"valueFrom,omitempty"` // loaded only when plaintext is empty
 }
 
 // BootstrapSettings contains settings about a potential bootstrap node
