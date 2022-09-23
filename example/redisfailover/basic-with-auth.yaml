@@ -1,7 +1,7 @@
 apiVersion: databases.spotahome.com/v1
 kind: RedisFailover
 metadata:
-  name: redisfailover
+  name: redisfailover-with-authv2
 spec:
   sentinel:
     replicas: 3
@@ -22,45 +22,31 @@ spec:
   authV2:
     enabled: true
     users:
-    - name: test
-      passwords:
-        - "test"
-      acl: ""
-    - name: test2
-      secretKey: userspec
-      secretName: test2
-    - name: test3
-      passwords:
-        - "test3"
-      acl: ""
-      secretKey: userspec
-      secretName: test2
-    - name: admin
-      passwords:
-        - "admintest"
-      acl: ""
-    - name: default
-      passwords:
-        - "default"
-      acl: ""
+      default:
+        passwords:
+        - value: default
+        acl:
+          value: "+@all"
+      test:
+        passwords:
+          - valueFrom:
+              name: test
+              key: password
+        acl: 
+          value: ""
+      admin:
+        passwords:
+          - value: "admintest"
+        acl: 
+          value: " +@all"
 
 ---
 apiVersion: v1
 data:
-  # { "name":"testoverride3", "password":["testoverride3"], "acl":"" }
-  userspec: |-
-    eyAibmFtZSI6InRlc3RvdmVycmlkZTMiLCAicGFzc3dvcmQiOlsidGVzdG92ZXJyaWRlMyJdLCAiYWNsIjoiIiB9Cg==
+  #testpassword
+  password: |-
+    dGVzdHBhc3N3b3Jk
 kind: Secret
 metadata:
-  name: test3
-type: Opaque
----
-apiVersion: v1
-data:
-  # { "name":"testoverride2", "password":["testoverride2"], "acl":"" }
-  userspec: |-
-    eyAibmFtZSI6InRlc3RvdmVycmlkZTIiLCAicGFzc3dvcmQiOlsidGVzdG92ZXJyaWRlMiJdLCAiYWNsIjoiIiB9Cg==
-kind: Secret
-metadata:
-  name: test2
+  name: test
 type: Opaque

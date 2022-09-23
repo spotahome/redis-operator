@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -34,6 +35,9 @@ type RedisFailoverCheck interface {
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetRedisRevisionHash(podName string, rFailover *redisfailoverv1.RedisFailover) (string, error)
 	CheckRedisSlavesReady(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
+	GetDesiredUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error)
+	GetRedisUsersAsString(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
+	ShouldProcessRedisUsers(rFailover *redisfailoverv1.RedisFailover) bool
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -190,7 +194,7 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 	for _, rip := range rips {
 		master, err := r.redisClient.IsMaster(rip, rport, username, password)
 		if err != nil {
-			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
+			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s ; error is: %s", rip, err.Error())
 			continue
 		}
 		if master {
@@ -222,7 +226,7 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 	for _, rip := range rips {
 		master, err := r.redisClient.IsMaster(rip, rport, username, password)
 		if err != nil {
-			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s", rip)
+			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s; error is: %v", rip, err.Error)
 			continue
 		}
 		if master {
@@ -382,14 +386,100 @@ func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redis
 	if err != nil {
 		return false, err
 	}
-	if err != nil {
-		return false, err
-	}
-
 	port := getRedisPort(rFailover.Spec.Redis.Port)
 	return r.redisClient.SlaveIsReady(ip, port, username, password)
 }
 
 func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
+}
+
+func (r *RedisFailoverChecker) CheckAndHealRedisUsers(rFailover *redisfailoverv1.RedisFailover) error {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	if authProvider.Version() == "V1" {
+		log.Debugf("skipping check and heal redis users for %v because auth provider is %v", rFailover.Name, authProvider.Version())
+		return nil
+	}
+
+	log.Infof("Check and heal redis users running...")
+	// Get Users from redis
+	adminUser, adminPassword, err := authProvider.GetAdminCredentials()
+
+	if err != nil {
+		return err
+	}
+	masterIP, err := r.GetMasterIP(rFailover)
+	if err != nil {
+		log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Errorf("unable to get redis users because master IP cannot be resolved.")
+		return nil //
+	}
+	port := getRedisPort(rFailover.Spec.Redis.Port)
+	if err != nil {
+		return err
+	}
+
+	desiredUsers, err := authProvider.InterceptUsers(rFailover.Spec.AuthV2.Users, rFailover.Namespace, r.k8sService)
+	redisUsers, err := r.redisClient.GetUsers(masterIP, port, adminUser, adminPassword)
+
+	for _, redisUser := range redisUsers {
+		redisUserName := ""
+		re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
+		matches := re.FindStringSubmatch(redisUser)
+		if nil != matches {
+			redisUserName = string(matches[1])
+		}
+		_, userInSpec := desiredUsers[redisUserName]
+		_, userInDefaults := redisauth.DefaultUsers[redisUserName]
+		if !userInSpec && !userInDefaults {
+			log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Warnf("deleting unrecognised user %v from instance %v", redisUserName, masterIP)
+			r.redisClient.DeleteUser(masterIP, port, adminUser, adminPassword, redisUserName)
+		} else {
+			userSpec := desiredUsers[redisUserName]
+			passwords := authProvider.GetHashedPasswords(userSpec)
+			acls := authProvider.GetACLs(userSpec)
+			r.redisClient.ACLSetUser(masterIP, port, adminUser, adminPassword, redisUserName, redisauth.DefaultPermissionSpace, passwords, acls)
+		}
+	}
+
+	for username, userSpec := range desiredUsers {
+
+		passwords := authProvider.GetHashedPasswords(userSpec)
+		acls := authProvider.GetACLs(userSpec)
+		r.redisClient.ACLSetUser(masterIP, port, adminUser, adminPassword, username, redisauth.DefaultPermissionSpace, passwords, acls)
+	}
+
+	return nil
+}
+
+func (r *RedisFailoverChecker) GetDesiredUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error) {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	return authProvider.InterceptUsers(rFailover.Spec.AuthV2.Users, rFailover.Namespace, r.k8sService)
+
+}
+
+func (r *RedisFailoverChecker) GetRedisUsersAsString(rFailover *redisfailoverv1.RedisFailover) ([]string, error) {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	adminUser, adminPassword, err := authProvider.GetAdminCredentials()
+	if nil != err {
+		return nil, err
+	}
+	masterIP, err := r.GetMasterIP(rFailover)
+	if err != nil {
+		log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Errorf("unable to get redis users because master IP cannot be resolved.")
+		return nil, err
+	}
+	port := getRedisPort(rFailover.Spec.Redis.Port)
+	if err != nil {
+		return nil, err
+	}
+	return r.redisClient.GetUsers(masterIP, port, adminUser, adminPassword)
+}
+
+func (r *RedisFailoverChecker) ShouldProcessRedisUsers(rFailover *redisfailoverv1.RedisFailover) bool {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	log.Debugf("authprovider for resource: %v is %v", rFailover.Name, authProvider.Version())
+	if "V1" == authProvider.Version() {
+		return false
+	}
+	return true
 }

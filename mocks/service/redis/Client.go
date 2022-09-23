@@ -9,6 +9,34 @@ type Client struct {
 	mock.Mock
 }
 
+// ACLSetUser provides a mock function with given fields: ip, port, adminUsername, adminPassword, username, permissionSpaces, passwords, permissions
+func (_m *Client) ACLSetUser(ip string, port string, adminUsername string, adminPassword string, username string, permissionSpaces []string, passwords []string, permissions []string) error {
+	ret := _m.Called(ip, port, adminUsername, adminPassword, username, permissionSpaces, passwords, permissions)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string, []string, []string, []string) error); ok {
+		r0 = rf(ip, port, adminUsername, adminPassword, username, permissionSpaces, passwords, permissions)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteUser provides a mock function with given fields: ip, port, adminUsername, adminPassword, username
+func (_m *Client) DeleteUser(ip string, port string, adminUsername string, adminPassword string, username string) error {
+	ret := _m.Called(ip, port, adminUsername, adminPassword, username)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
+		r0 = rf(ip, port, adminUsername, adminPassword, username)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetNumberSentinelSlavesInMemory provides a mock function with given fields: ip
 func (_m *Client) GetNumberSentinelSlavesInMemory(ip string) (int32, error) {
 	ret := _m.Called(ip)
@@ -79,20 +107,20 @@ func (_m *Client) GetSentinelMonitor(ip string) (string, string, error) {
 	return r0, r1, r2
 }
 
-// GetSlaveOf provides a mock function with given fields: ip, port, password
-func (_m *Client) GetSlaveOf(ip string, port string, password string) (string, error) {
-	ret := _m.Called(ip, port, password)
+// GetSlaveOf provides a mock function with given fields: ip, port, username, password
+func (_m *Client) GetSlaveOf(ip string, port string, username string, password string) (string, error) {
+	ret := _m.Called(ip, port, username, password)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(string, string, string) string); ok {
-		r0 = rf(ip, port, password)
+	if rf, ok := ret.Get(0).(func(string, string, string, string) string); ok {
+		r0 = rf(ip, port, username, password)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
-		r1 = rf(ip, port, password)
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(ip, port, username, password)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -100,20 +128,43 @@ func (_m *Client) GetSlaveOf(ip string, port string, password string) (string, e
 	return r0, r1
 }
 
-// IsMaster provides a mock function with given fields: ip, port, password
-func (_m *Client) IsMaster(ip string, port string, password string) (bool, error) {
-	ret := _m.Called(ip, port, password)
+// GetUsers provides a mock function with given fields: ip, port, username, password
+func (_m *Client) GetUsers(ip string, port string, username string, password string) ([]string, error) {
+	ret := _m.Called(ip, port, username, password)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(string, string, string, string) []string); ok {
+		r0 = rf(ip, port, username, password)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(ip, port, username, password)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IsMaster provides a mock function with given fields: ip, port, username, password
+func (_m *Client) IsMaster(ip string, port string, username string, password string) (bool, error) {
+	ret := _m.Called(ip, port, username, password)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
-		r0 = rf(ip, port, password)
+	if rf, ok := ret.Get(0).(func(string, string, string, string) bool); ok {
+		r0 = rf(ip, port, username, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
-		r1 = rf(ip, port, password)
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(ip, port, username, password)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -121,41 +172,13 @@ func (_m *Client) IsMaster(ip string, port string, password string) (bool, error
 	return r0, r1
 }
 
-// MakeMaster provides a mock function with given fields: ip, port, password
-func (_m *Client) MakeMaster(ip string, port string, password string) error {
-	ret := _m.Called(ip, port, password)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(ip, port, password)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MakeSlaveOf provides a mock function with given fields: ip, masterIP, password
-func (_m *Client) MakeSlaveOf(ip string, masterIP string, password string) error {
-	ret := _m.Called(ip, masterIP, password)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(ip, masterIP, password)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MakeSlaveOfWithPort provides a mock function with given fields: ip, masterIP, masterPort, password
-func (_m *Client) MakeSlaveOfWithPort(ip string, masterIP string, masterPort string, password string) error {
-	ret := _m.Called(ip, masterIP, masterPort, password)
+// MakeMaster provides a mock function with given fields: ip, port, username, password
+func (_m *Client) MakeMaster(ip string, port string, username string, password string) error {
+	ret := _m.Called(ip, port, username, password)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
-		r0 = rf(ip, masterIP, masterPort, password)
+		r0 = rf(ip, port, username, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -163,13 +186,13 @@ func (_m *Client) MakeSlaveOfWithPort(ip string, masterIP string, masterPort str
 	return r0
 }
 
-// MonitorRedis provides a mock function with given fields: ip, monitor, quorum, password
-func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, password string) error {
-	ret := _m.Called(ip, monitor, quorum, password)
+// MakeSlaveOf provides a mock function with given fields: ip, masterIP, username, password
+func (_m *Client) MakeSlaveOf(ip string, masterIP string, username string, password string) error {
+	ret := _m.Called(ip, masterIP, username, password)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
-		r0 = rf(ip, monitor, quorum, password)
+		r0 = rf(ip, masterIP, username, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -177,13 +200,41 @@ func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, passwor
 	return r0
 }
 
-// MonitorRedisWithPort provides a mock function with given fields: ip, monitor, port, quorum, password
-func (_m *Client) MonitorRedisWithPort(ip string, monitor string, port string, quorum string, password string) error {
-	ret := _m.Called(ip, monitor, port, quorum, password)
+// MakeSlaveOfWithPort provides a mock function with given fields: ip, masterIP, masterPort, username, password
+func (_m *Client) MakeSlaveOfWithPort(ip string, masterIP string, masterPort string, username string, password string) error {
+	ret := _m.Called(ip, masterIP, masterPort, username, password)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
-		r0 = rf(ip, monitor, port, quorum, password)
+		r0 = rf(ip, masterIP, masterPort, username, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MonitorRedis provides a mock function with given fields: ip, monitor, quorum, username, password
+func (_m *Client) MonitorRedis(ip string, monitor string, quorum string, username string, password string) error {
+	ret := _m.Called(ip, monitor, quorum, username, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
+		r0 = rf(ip, monitor, quorum, username, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MonitorRedisWithPort provides a mock function with given fields: ip, monitor, port, quorum, username, password
+func (_m *Client) MonitorRedisWithPort(ip string, monitor string, port string, quorum string, username string, password string) error {
+	ret := _m.Called(ip, monitor, port, quorum, username, password)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string) error); ok {
+		r0 = rf(ip, monitor, port, quorum, username, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -205,13 +256,13 @@ func (_m *Client) ResetSentinel(ip string) error {
 	return r0
 }
 
-// SetCustomRedisConfig provides a mock function with given fields: ip, port, configs, password
-func (_m *Client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
-	ret := _m.Called(ip, port, configs, password)
+// SetCustomRedisConfig provides a mock function with given fields: ip, port, configs, username, password
+func (_m *Client) SetCustomRedisConfig(ip string, port string, configs []string, username string, password string) error {
+	ret := _m.Called(ip, port, configs, username, password)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, []string, string) error); ok {
-		r0 = rf(ip, port, configs, password)
+	if rf, ok := ret.Get(0).(func(string, string, []string, string, string) error); ok {
+		r0 = rf(ip, port, configs, username, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -233,20 +284,20 @@ func (_m *Client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return r0
 }
 
-// SlaveIsReady provides a mock function with given fields: ip, port, password
-func (_m *Client) SlaveIsReady(ip string, port string, password string) (bool, error) {
-	ret := _m.Called(ip, port, password)
+// SlaveIsReady provides a mock function with given fields: ip, port, username, password
+func (_m *Client) SlaveIsReady(ip string, port string, username string, password string) (bool, error) {
+	ret := _m.Called(ip, port, username, password)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
-		r0 = rf(ip, port, password)
+	if rf, ok := ret.Get(0).(func(string, string, string, string) bool); ok {
+		r0 = rf(ip, port, username, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
-		r1 = rf(ip, port, password)
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(ip, port, username, password)
 	} else {
 		r1 = ret.Error(1)
 	}

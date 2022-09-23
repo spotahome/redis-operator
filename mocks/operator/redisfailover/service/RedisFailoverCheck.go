@@ -127,6 +127,29 @@ func (_m *RedisFailoverCheck) CheckSentinelSlavesNumberInMemory(sentinel string,
 	return r0
 }
 
+// GetDesiredUsers provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetDesiredUsers(rFailover *v1.RedisFailover) (map[string]v1.UserSpec, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 map[string]v1.UserSpec
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) map[string]v1.UserSpec); ok {
+		r0 = rf(rFailover)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]v1.UserSpec)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMasterIP provides a mock function with given fields: rFailover
 func (_m *RedisFailoverCheck) GetMasterIP(rFailover *v1.RedisFailover) (string, error) {
 	ret := _m.Called(rFailover)
@@ -204,6 +227,29 @@ func (_m *RedisFailoverCheck) GetRedisRevisionHash(podName string, rFailover *v1
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, *v1.RedisFailover) error); ok {
 		r1 = rf(podName, rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetRedisUsersAsString provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetRedisUsersAsString(rFailover *v1.RedisFailover) ([]string, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) []string); ok {
+		r0 = rf(rFailover)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -320,4 +366,18 @@ func (_m *RedisFailoverCheck) GetStatefulSetUpdateRevision(rFailover *v1.RedisFa
 	}
 
 	return r0, r1
+}
+
+// ShouldProcessRedisUsers provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) ShouldProcessRedisUsers(rFailover *v1.RedisFailover) bool {
+	ret := _m.Called(rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) bool); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
 }

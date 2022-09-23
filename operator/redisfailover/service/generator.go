@@ -25,7 +25,6 @@ port {{.Spec.Redis.Port}}
 tcp-keepalive 60
 save 900 1
 save 300 10
-user pinger -@all +ping on >pingpass
 {{- range .Spec.Redis.CustomCommandRenames}}
 rename-command "{{.From}}" "{{.To}}"
 {{- end}}
@@ -219,7 +218,7 @@ eval $save_command`, rfName, port)
 	}
 }
 
-func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+func generateRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, username string, password string) *corev1.ConfigMap {
 	name := GetRedisReadinessName(rf)
 	port := rf.Spec.Redis.Port
 	namespace := rf.Namespace
@@ -231,12 +230,16 @@ ROLE_SLAVE="role:slave"
 IN_SYNC="master_sync_in_progress:1"
 NO_MASTER="master_host:127.0.0.1"
 
-cmd="redis-cli -p %[1]v"
-if [ ! -z "${REDIS_PASSWORD}" ]; then
-	cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
-fi
+cmd="redis-cli -u redis://%v:%v@127.0.0.1:%v"
+
+
 
 cmd="${cmd} info replication"
+
+if $( ${cmd} 2>&1 | grep -q "NOAUTH\|WRONGPASS" ); then
+	echo "Password change detected, rollout of cluster may be required"
+	exit 0
+fi
 
 check_master(){
 		exit 0
@@ -254,6 +257,8 @@ check_slave(){
 }
 
 role=$(echo "${cmd} | grep $ROLE | tr -d \"\\r\" | tr -d \"\\n\"" | xargs -0 sh -c)
+
+
 case $role in
 		$ROLE_MASTER)
 				check_master
@@ -261,10 +266,11 @@ case $role in
 		$ROLE_SLAVE)
 				check_slave
 				;;
+		
 		*)
-				echo "unespected"
+				echo "unexpected result"
 				exit 1
-esac`, port)
+esac`, username, password, port)
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

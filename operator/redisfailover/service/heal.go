@@ -25,6 +25,8 @@ type RedisFailoverHeal interface {
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error
+	ApplyRedisACL(rFailover *redisfailoverv1.RedisFailover, userSpec redisfailoverv1.UserSpec, redisUserName string, masterIP string, port string) error
+	DeleteRedisUser(rFailover *redisfailoverv1.RedisFailover, ip string, port string, username string) error
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -268,4 +270,21 @@ func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv
 func (r *RedisFailoverHealer) DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error {
 	r.logger.Debugf("Deleting pods %s...", podName)
 	return r.k8sService.DeletePod(rFailover.Namespace, podName)
+}
+
+func (r *RedisFailoverHealer) DeleteRedisUser(rFailover *redisfailoverv1.RedisFailover, ip string, port string, username string) error {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	adminUsername, adminPassword, _ := authProvider.GetAdminCredentials()
+
+	r.logger.Debugf("Deleting redis user %s in %s instance", username, ip)
+	return r.redisClient.DeleteUser(ip, port, adminUsername, adminPassword, username)
+}
+
+func (r *RedisFailoverHealer) ApplyRedisACL(rFailover *redisfailoverv1.RedisFailover, userSpec redisfailoverv1.UserSpec, redisUserName string, masterIP string, port string) error {
+	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
+	adminUsername, adminPassword, _ := authProvider.GetAdminCredentials()
+	passwords := authProvider.GetHashedPasswords(userSpec)
+	acls := authProvider.GetACLs(userSpec)
+	r.logger.Debugf("Applying user acls for %s user in %s instance", redisUserName, masterIP)
+	return r.redisClient.ACLSetUser(masterIP, port, adminUsername, adminPassword, redisUserName, redisauth.DefaultPermissionSpace, passwords, acls)
 }

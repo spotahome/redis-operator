@@ -13,6 +13,20 @@ type RedisFailoverHeal struct {
 	mock.Mock
 }
 
+// ApplyRedisACL provides a mock function with given fields: rFailover, userSpec, redisUserName, masterIP, port
+func (_m *RedisFailoverHeal) ApplyRedisACL(rFailover *v1.RedisFailover, userSpec v1.UserSpec, redisUserName string, masterIP string, port string) error {
+	ret := _m.Called(rFailover, userSpec, redisUserName, masterIP, port)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, v1.UserSpec, string, string, string) error); ok {
+		r0 = rf(rFailover, userSpec, redisUserName, masterIP, port)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeletePod provides a mock function with given fields: podName, rFailover
 func (_m *RedisFailoverHeal) DeletePod(podName string, rFailover *v1.RedisFailover) error {
 	ret := _m.Called(podName, rFailover)
@@ -20,6 +34,20 @@ func (_m *RedisFailoverHeal) DeletePod(podName string, rFailover *v1.RedisFailov
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, *v1.RedisFailover) error); ok {
 		r0 = rf(podName, rFailover)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteRedisUser provides a mock function with given fields: rFailover, ip, port, username
+func (_m *RedisFailoverHeal) DeleteRedisUser(rFailover *v1.RedisFailover, ip string, port string, username string) error {
+	ret := _m.Called(rFailover, ip, port, username)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover, string, string, string) error); ok {
+		r0 = rf(rFailover, ip, port, username)
 	} else {
 		r0 = ret.Error(0)
 	}

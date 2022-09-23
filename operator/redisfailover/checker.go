@@ -2,17 +2,21 @@ package redisfailover
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	"github.com/spotahome/redis-operator/log"
+	redisauth "github.com/spotahome/redis-operator/operator/redisfailover/auth"
 )
 
 const (
 	timeToPrepare = 2 * time.Minute
 )
 
-//UpdateRedisesPods if the running version of pods are equal to the statefulset one
+// UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
 	if err != nil {
@@ -180,6 +184,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			}
 		}
 	}
+	r.checkAndHealRedisUsers(rf)
 	return r.checkAndHealSentinels(rf, sentinels)
 }
 
@@ -266,4 +271,52 @@ func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFa
 
 func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
+}
+
+func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1.RedisFailover) error {
+
+	masterIP, err := r.rfChecker.GetMasterIP(rFailover)
+	port := getRedisPort(rFailover.Spec.Redis.Port)
+
+	if !r.rfChecker.ShouldProcessRedisUsers(rFailover) {
+		log.Debugf("redis users check not enabled for %v resource. should process users returned: %v", rFailover.Name, r.rfChecker.ShouldProcessRedisUsers(rFailover))
+		return nil
+	}
+
+	desiredUsers, err := r.rfChecker.GetDesiredUsers(rFailover)
+	if nil != err {
+		return fmt.Errorf("unable to check redis user status - get desiredusers failed: %v", err.Error())
+	}
+	redisUsers, err := r.rfChecker.GetRedisUsersAsString(rFailover)
+	if nil != err {
+		return fmt.Errorf("unable to check redis user status - get redis users failed: %v", err.Error())
+	}
+
+	for _, redisUser := range redisUsers {
+		redisUserName := ""
+		re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
+		matches := re.FindStringSubmatch(redisUser)
+		if nil != matches {
+			redisUserName = string(matches[1])
+		}
+		_, userInSpec := desiredUsers[redisUserName]
+		_, userInDefaults := redisauth.DefaultUsers[redisUserName]
+
+		if !userInSpec && !userInDefaults {
+
+			log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Warnf("deleting unrecognised user %v from instance %v", redisUserName, masterIP)
+			err := r.rfHealer.DeleteRedisUser(rFailover, masterIP, port, redisUserName)
+			if nil != err {
+				return fmt.Errorf("unable to delete redundant user %v %v", userInSpec, err.Error())
+			}
+		}
+	}
+
+	for username, userSpec := range desiredUsers {
+		// match passwords
+
+		r.rfHealer.ApplyRedisACL(rFailover, userSpec, username, masterIP, port)
+	}
+
+	return nil
 }

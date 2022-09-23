@@ -15,11 +15,9 @@ outputs:
 
 	bool (true if admin user is present; false otherwise )
 */
-func isAdminUserPresent(users []redisfailoverv1.User) bool {
-	if nil != getUser(AdminUserName, users) {
-		return true
-	}
-	return false
+func isAdminUserPresent(users map[string]redisfailoverv1.UserSpec) bool {
+	_, ok := users[AdminUserName]
+	return ok
 }
 
 /*

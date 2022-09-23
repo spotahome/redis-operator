@@ -94,6 +94,8 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 	if err != nil {
 		return err
 	}
+
+	labels = util.MergeLabels(labels, authProvider.GetAuthModeLabels())
 	ss := generateRedisStatefulSet(rf, labels, ownerRefs, defaultPassword)
 	return r.K8SService.CreateOrUpdateStatefulSet(rf.Namespace, ss)
 }
@@ -138,7 +140,12 @@ func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailover
 
 // EnsureRedisReadinessConfigMap makes sure the redis configmap with shutdown script exists
 func (r *RedisFailoverKubeClient) EnsureRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	cm := generateRedisReadinessConfigMap(rf, labels, ownerRefs)
+
+	authProvider := redisauth.GetAuthProvider(rf, r.K8SService)
+
+	pingerUsername, pingerPassword, _ := authProvider.GetAdminCredentials()
+
+	cm := generateRedisReadinessConfigMap(rf, labels, ownerRefs, pingerUsername, pingerPassword)
 	return r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 }
 

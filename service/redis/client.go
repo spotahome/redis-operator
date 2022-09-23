@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	rediscli "github.com/go-redis/redis/v8"
+	"github.com/spotahome/redis-operator/log"
 )
 
 // Client defines the functions neccesary to connect to redis and sentinel to get or set what we nned
@@ -17,17 +18,21 @@ type Client interface {
 	GetNumberSentinelsInMemory(ip string) (int32, error)
 	GetNumberSentinelSlavesInMemory(ip string) (int32, error)
 	ResetSentinel(ip string) error
-	GetSlaveOf(ip, port, password string) (string, error)
-	IsMaster(ip, port, password string) (bool, error)
-	MonitorRedis(ip, monitor, quorum, password string) error
-	MonitorRedisWithPort(ip, monitor, port, quorum, password string) error
-	MakeMaster(ip, port, password string) error
-	MakeSlaveOf(ip, masterIP, password string) error
-	MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error
+	GetSlaveOf(ip, port, username string, password string) (string, error)
+	IsMaster(ip, port, username string, password string) (bool, error)
+	MonitorRedis(ip, monitor, quorum, username string, password string) error
+	MonitorRedisWithPort(ip, monitor, port, quorum, username string, password string) error
+	MakeMaster(ip, port, username string, password string) error
+	MakeSlaveOf(ip, masterIP, username string, password string) error
+	MakeSlaveOfWithPort(ip, masterIP, masterPort, username string, password string) error
 	GetSentinelMonitor(ip string) (string, string, error)
 	SetCustomSentinelConfig(ip string, configs []string) error
-	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
-	SlaveIsReady(ip, port, password string) (bool, error)
+	SetCustomRedisConfig(ip string, port string, configs []string, username string, password string) error
+	SlaveIsReady(ip, port, username string, password string) (bool, error)
+	// acl user management
+	GetUsers(ip /* IP Of Master Instance */ string, port /* Port Of Master Instance */ string, username /* Admin Username */ string, password /* Admin Password */ string) ([]string /* Redis client output (un processed) */, error)
+	DeleteUser(ip, port, adminUsername string, adminPassword string, username string) error
+	ACLSetUser(ip, port, adminUsername string, adminPassword string, username string, permissionSpaces []string, passwords []string, permissions []string) error
 }
 
 type client struct {
@@ -143,10 +148,11 @@ func (c *client) ResetSentinel(ip string) error {
 }
 
 // GetSlaveOf returns the master of the given redis, or nil if it's master
-func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
+func (c *client) GetSlaveOf(ip, port, adminUsername string, adminPassword string) (string, error) {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -162,10 +168,11 @@ func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
 	return match[1], nil
 }
 
-func (c *client) IsMaster(ip, port, password string) (bool, error) {
+func (c *client) IsMaster(ip, port, adminUsername string, adminPassword string) (bool, error) {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -177,11 +184,11 @@ func (c *client) IsMaster(ip, port, password string) (bool, error) {
 	return strings.Contains(info, redisRoleMaster), nil
 }
 
-func (c *client) MonitorRedis(ip, monitor, quorum, password string) error {
-	return c.MonitorRedisWithPort(ip, monitor, redisPort, quorum, password)
+func (c *client) MonitorRedis(ip, monitor, quorum, adminUsername string, adminPassword string) error {
+	return c.MonitorRedisWithPort(ip, monitor, redisPort, quorum, adminUsername, adminPassword)
 }
 
-func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string) error {
+func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, adminUsername string, adminPassword string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, sentinelPort),
 		Password: "",
@@ -201,10 +208,24 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	if err != nil {
 		return err
 	}
+	// set password
+	if adminPassword != "" {
 
-	if password != "" {
-		cmd = rediscli.NewBoolCmd(context.TODO(), "SENTINEL", "SET", masterName, "auth-pass", password)
+		cmd = rediscli.NewBoolCmd(context.TODO(), "SENTINEL", "SET", masterName, "auth-pass", adminPassword)
 		err := rClient.Process(context.TODO(), cmd)
+		if err != nil {
+			return err
+		}
+		_, err = cmd.Result()
+		if err != nil {
+			return err
+		}
+	}
+	// set user
+	if adminUsername != "" {
+
+		cmd = rediscli.NewBoolCmd(context.TODO(), "SENTINEL", "SET", masterName, "auth-user", adminUsername)
+		err = rClient.Process(context.TODO(), cmd)
 		if err != nil {
 			return err
 		}
@@ -216,10 +237,11 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	return nil
 }
 
-func (c *client) MakeMaster(ip string, port string, password string) error {
+func (c *client) MakeMaster(ip string, port string, adminUsername string, adminPassword string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -230,14 +252,15 @@ func (c *client) MakeMaster(ip string, port string, password string) error {
 	return nil
 }
 
-func (c *client) MakeSlaveOf(ip, masterIP, password string) error {
-	return c.MakeSlaveOfWithPort(ip, masterIP, redisPort, password)
+func (c *client) MakeSlaveOf(ip, masterIP, adminUsername string, adminPassword string) error {
+	return c.MakeSlaveOfWithPort(ip, masterIP, redisPort, adminUsername, adminPassword)
 }
 
-func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) error {
+func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, adminUsername string, adminPassword string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, masterPort), // this is IP and Port for the RedisFailover redis
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -291,10 +314,11 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
+func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, adminUsername string, adminPassword string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -334,10 +358,11 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 	return s[0], strings.Join(s[1:], " "), nil
 }
 
-func (c *client) SlaveIsReady(ip, port, password string) (bool, error) {
+func (c *client) SlaveIsReady(ip, port, adminUsername string, adminPassword string) (bool, error) {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
-		Password: password,
+		Username: adminUsername,
+		Password: adminPassword,
 		DB:       0,
 	}
 	rClient := rediscli.NewClient(options)
@@ -352,4 +377,63 @@ func (c *client) SlaveIsReady(ip, port, password string) (bool, error) {
 		strings.Contains(info, redisLinkUp)
 
 	return ok, nil
+}
+
+func (c *client) GetUsers(ip, port, adminUsername string, adminPassword string) ([]string, error) {
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, port),
+		Username: adminUsername,
+		Password: adminPassword,
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+	items, err := rClient.Do(context.TODO(), "acl", "list").Result()
+	if err != nil {
+		return nil, err
+	}
+	usersAsString := []string{}
+	for _, user := range items.([]interface{}) {
+		usersAsString = append(usersAsString, user.(string))
+	}
+	return usersAsString, nil
+}
+
+func (c *client) DeleteUser(ip, port, adminUsername string, adminPassword string, username string) error {
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, port),
+		Username: adminUsername,
+		Password: adminPassword,
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+	result, err := rClient.Do(context.TODO(), "acl", "deluser", username).Result()
+	log.Debugf("delete user %v resulted with: %v", username, result)
+	return err
+}
+
+func (c *client) ACLSetUser(ip, port, adminUsername string, adminPassword string, username string, permissionSpaces []string, passwords []string, permissions []string) error {
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, port),
+		Username: adminUsername,
+		Password: adminPassword,
+		DB:       0,
+	}
+	rClient := rediscli.NewClient(options)
+	defer rClient.Close()
+
+	cmdPrefix := []string{"acl", "setuser", username, "on"}
+	cmdList := append(append(append(cmdPrefix, permissionSpaces...), passwords...), permissions...)
+	var aclSetUserCmd []interface{} = make([]interface{}, len(cmdList))
+
+	for i, aclSetting := range cmdList {
+		aclSetUserCmd[i] = aclSetting
+	}
+	_, err := rClient.Do(context.Background(), aclSetUserCmd...).Result()
+	if nil != err {
+		log.Errorf("Error: %v", err)
+	}
+
+	return nil
 }

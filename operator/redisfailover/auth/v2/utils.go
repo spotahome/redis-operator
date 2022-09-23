@@ -1,68 +1,18 @@
 package authv2
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 )
 
-/*
-gets index of a user identified by the username, in a given list of users of type redisfailoverv1.User
+func GetHashedPassword(password string) string {
+	hash := sha256.New()
+	hash.Write([]byte(password))
 
-inputs:
-
-	username (string)
-	users ([]redisfailoverv1.User )
-
-outputs:
-
-	index of the identified user in the list; -1 if user is not found (int)
-*/
-func getIndexOfUser(username string, users []redisfailoverv1.User) int {
-	for idx, user := range users {
-		if user.Name == username {
-			return idx
-		}
-	}
-	return -1
-}
-
-/*
-gets user object (referenced) in a given list of users, identified by given username
-
-inputs:
-
-	username (string)
-	users ([]redisfailoverv1.User)
-
-outputs:
-
-	reference to the userobject in given slice, nil otherwise
-*/
-func getUser(username string, users []redisfailoverv1.User) *redisfailoverv1.User {
-	for _, user := range users {
-		if user.Name == username {
-			return &user
-		}
-	}
-	return nil
-}
-
-/*
-add user to a given list of users
-
-inputs:
-
-	user object (redisfailoverv1.User)
-	list of users ([]redisfailoverv1.User)
-
-outputs:
-
-	None
-*/
-func addUser(users []redisfailoverv1.User, user redisfailoverv1.User) {
-	users = append(users, user)
+	return fmt.Sprintf("%x", hash.Sum(nil))
 }
 
 /*
@@ -77,13 +27,9 @@ outputs:
 
 	bool - true if user is found, false otherwise
 */
-func hasUser(users []redisfailoverv1.User, username string) bool {
-	for _, user := range users {
-		if user.Name == username {
-			return true
-		}
-	}
-	return false
+func hasUser(users map[string]redisfailoverv1.UserSpec, username string) bool {
+	_, ok := users[username]
+	return ok
 }
 
 /*
@@ -96,12 +42,65 @@ outputs:
 
 	reference to user object with default settings of admin user
 */
-func getAdminUserWithDefaultSpec() *redisfailoverv1.User {
+func getDefaultAdminUserSpec() redisfailoverv1.UserSpec {
 
-	return &redisfailoverv1.User{
-		Name:      AdminUserName,
-		Passwords: []string{defaultAdminUserPassword},
-		ACL:       defaultAdminPermissions,
+	return redisfailoverv1.UserSpec{
+		Passwords: []redisfailoverv1.Password{
+			{
+				Value: DefaultAdminUserPassword,
+			},
+		},
+		ACL: redisfailoverv1.ACL{
+			Value: DefaultAdminPermissions,
+		},
+	}
+}
+
+/*
+returns user object of "default" user with default settings
+inputs:
+
+	none
+
+outputs:
+
+	reference to user object with default settings of admin user
+*/
+func getDefaultDefaultUserSpec() redisfailoverv1.UserSpec {
+
+	return redisfailoverv1.UserSpec{
+		Passwords: []redisfailoverv1.Password{
+			{
+				Value: DefaultDefaultUserPassword,
+			},
+		},
+		ACL: redisfailoverv1.ACL{
+			Value: DefaultUserPermissions,
+		},
+	}
+}
+
+/*
+returns user object of "default" user with default settings
+inputs:
+
+	none
+
+outputs:
+
+	reference to user object with default settings of admin user
+*/
+func getDefaultPingerUserSpec() redisfailoverv1.UserSpec {
+
+	return redisfailoverv1.UserSpec{
+		Passwords: []redisfailoverv1.Password{
+			{
+				Value: DefaultPingerUserPassword,
+			},
+		},
+		ACL: redisfailoverv1.ACL{
+			Value: PingerUserPermissions,
+		},
 	}
 }
 
@@ -118,46 +117,53 @@ Outputs:
 	string                      : Config converted to string in appropriate format
 	error                       : if any error is encountered , nil otherwise.
 */
-func getUserSpecAs(redisCommandMode string, user *redisfailoverv1.User) (string, error) {
+func getUserSpecAs(redisCommandMode string, username string, userSpec redisfailoverv1.UserSpec) (string, error) {
 
 	passwordCmd := ""
-	for _, password := range user.Passwords {
-		passwordCmd += fmt.Sprintf(">%s ", password)
+	for _, password := range userSpec.Passwords {
+		if password.HashedValue != "" {
+			passwordCmd += fmt.Sprintf("#%s ", password.HashedValue)
+		}
 	}
-
 	// process ACL
-	userACL := user.ACL
-	if userACL == "" {
-		userACL = defaultUserPermissions
-	}
+	userACL := userSpec.ACL
+
+	/* Should we really add default ACL for new users? if yes, we need to uncomment this.
+	if userACL.Value == "" {
+		userACL = redisfailoverv1.ACL{Value: defaultUserPermissions}
+	}*/
 
 	// placeholder for processing access control keys and channels in spec
-	permittedKeys := defaultPermittedKeys
-	permittedChannels := defaultPermittedChannels
+	permittedKeys := DefaultPermittedKeys
+	permittedChannels := DefaultPermittedChannels
 
+	// format command based on selected mode
 	commandPrefix := ""
-	if redisConfigCommand == redisCommandMode {
+	if RedisConfigCommand == redisCommandMode {
 		commandPrefix = "user"
-	} else if redisRuntimeCommand == redisCommandMode {
+	} else if RedisRuntimeCommand == redisCommandMode {
 		commandPrefix = "acl setuser"
 	} else {
-		return "", fmt.Errorf("redis command mode not recognised: %s ; accepted modes - %s and %s", redisCommandMode, redisConfigCommand, redisRuntimeCommand)
+		return "", fmt.Errorf("redis command mode not recognised: %s ; accepted modes - %s and %s", redisCommandMode, RedisConfigCommand, RedisRuntimeCommand)
 	}
+	// return string in the for of redis-compatible command
+	return fmt.Sprintf("%s %s on %s %s %s %s", commandPrefix, username, permittedKeys, permittedChannels, passwordCmd, userACL.Value), nil
 
-	return fmt.Sprintf("%s %s on %s %s %s %s", commandPrefix, user.Name, permittedKeys, permittedChannels, passwordCmd, userACL), nil
 }
 
-func GetUserPassword(username string, users []redisfailoverv1.User) (string, error) {
-	user := getUser(username, users)
-	if nil == user {
+// returns first of the list of passwords configured for the users.
+// returns empty string if no password is configured.
+func GetUserPassword(username string, users map[string]redisfailoverv1.UserSpec) (string, error) {
+	userSpec, ok := users[username]
+	if !ok {
 		log.Warnf("unable to process \"GetUserPassword\": user %s not found.", username)
 		return "", nil
 	}
-	if len(user.Passwords) == 0 {
-		log.Warnf("no password configured for %s user")
+	if len(userSpec.Passwords) == 0 {
+		log.Warnf("no password configured for %s user", username)
 		return "", nil
 	}
-	return user.Passwords[0], nil
+	return userSpec.Passwords[0].Value, nil
 }
 
 /*
@@ -173,18 +179,18 @@ Outputs:
 	string                        : Config converted to string in appropriate format
 	error                         : if any error is encountered, nil otherwise
 */
-func getUsersSpecAs(redisCommandMode string /* "redisConfigCommand" or "redisRuntimeCommand" */, users []redisfailoverv1.User) (string, error) {
+func getUsersSpecAs(redisCommandMode string /* "RedisConfigCommand" or "redisRuntimeCommand" */, users map[string]redisfailoverv1.UserSpec) (string, error) {
 
 	var userCreationCmd string
 	var usersToCreate string
 	var err error
 
 	if users != nil {
-		for _, user := range users {
+		for username, userSpec := range users {
 
-			usersToCreate, err = getUserSpecAs(redisCommandMode, &user)
+			usersToCreate, err = getUserSpecAs(redisCommandMode, username, userSpec)
 			if nil != err {
-				return "", fmt.Errorf("Unable to process userspec for %v : %v", user.Name, err)
+				return "", fmt.Errorf("Unable to process userspec for %v : %v", username, err)
 			}
 			userCreationCmd = fmt.Sprintf("%s\n%s", userCreationCmd, usersToCreate)
 		}
@@ -203,8 +209,8 @@ Outputs:
 	string                        : Config converted to string in appropriate format
 	error                         : if error is encountered, nil otherwise
 */
-func GetAuthSpecAsRedisConf(users []redisfailoverv1.User) (string, error) {
-	return getUsersSpecAs(redisConfigCommand, users)
+func GetAuthSpecAsRedisConf(users map[string]redisfailoverv1.UserSpec) (string, error) {
+	return getUsersSpecAs(RedisConfigCommand, users)
 }
 
 /*
@@ -218,6 +224,6 @@ Outputs:
 	string                        : Config converted to string in appropriate format
 	error                         : if error is encountered, nil otherwise
 */
-func GetAuthSpecAsRedisCliCommands(users []redisfailoverv1.User) (string, error) {
-	return getUsersSpecAs(redisRuntimeCommand, users)
+func GetAuthSpecAsRedisCliCommands(users map[string]redisfailoverv1.UserSpec) (string, error) {
+	return getUsersSpecAs(RedisRuntimeCommand, users)
 }
