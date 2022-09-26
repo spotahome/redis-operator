@@ -30,7 +30,7 @@ const (
 // to create redis failovers.
 func New(cfg Config, k8sService k8s.Services, k8sClient kubernetes.Interface, lockNamespace string, redisClient redis.Client, kooperMetricsRecorder metrics.Recorder, logger log.Logger) (controller.Controller, error) {
 	// Create internal services.
-	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger)
+	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger, kooperMetricsRecorder)
 	rfChecker := rfservice.NewRedisFailoverChecker(k8sService, redisClient, logger)
 	rfHealer := rfservice.NewRedisFailoverHealer(k8sService, redisClient, logger)
 

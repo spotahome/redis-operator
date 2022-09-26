@@ -17,3 +17,7 @@ type dummy struct {
 func (d *dummy) SetClusterOK(namespace string, name string)    {}
 func (d *dummy) SetClusterError(namespace string, name string) {}
 func (d *dummy) DeleteCluster(namespace string, name string)   {}
+func (d *dummy) IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
+}
+func (d *dummy) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
+}

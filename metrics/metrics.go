@@ -10,20 +10,43 @@ const (
 	promControllerSubsystem = "controller"
 )
 
+const ()
+
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
 type Recorder interface {
 	koopercontroller.MetricsRecorder
 
+	// ClusterOK metrics
 	SetClusterOK(namespace string, name string)
 	SetClusterError(namespace string, name string)
 	DeleteCluster(namespace string, name string)
+
+	//K8s Manager resources
+	IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string)
+	IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
 type recorder struct {
 	// Metrics fields.
-	clusterOK *prometheus.GaugeVec // clusterOk is the status of a cluster
+	clusterOK                     *prometheus.GaugeVec   // clusterOk is the status of a cluster
+	ensureResourceSuccess         *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
+	ensureResourceFailureRecorder *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
+	koopercontroller.MetricsRecorder
+}
 
+type ensureResourceSuccessRecorder struct {
+	ensureResourceSuccess *prometheus.CounterVec
+	koopercontroller.MetricsRecorder
+}
+
+type ensureResourceFailureRecorder struct {
+	ensureResourceSuccess *prometheus.CounterVec
+	koopercontroller.MetricsRecorder
+}
+
+type k8sClientErrorRecorder struct {
+	k8sClientErrors *prometheus.GaugeVec
 	koopercontroller.MetricsRecorder
 }
 
@@ -37,10 +60,25 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		Help:      "Number of failover clusters managed by the operator.",
 	}, []string{"namespace", "name"})
 
+	ensureResourceSuccess := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: promControllerSubsystem,
+		Name:      "ensure_resource_success",
+		Help:      "number of successful 'ensure' operations on a resource performed by the controller.",
+	}, []string{"object_namespace", "object_name", "object_kind", "resource_name"})
+
+	ensureResourceFailure := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: promControllerSubsystem,
+		Name:      "ensure_resource_failure",
+		Help:      "number of failed 'ensure' operations on a resource performed by the controller.",
+	}, []string{"object_namespace", "object_name", "object_kind", "resource_name"})
+
 	// Create the instance.
 	r := recorder{
-		clusterOK: clusterOK,
-
+		clusterOK:                     clusterOK,
+		ensureResourceSuccess:         ensureResourceSuccess,
+		ensureResourceFailureRecorder: ensureResourceFailure,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
 			Registerer: reg,
 		}),
@@ -49,6 +87,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	// Register metrics.
 	reg.MustRegister(
 		r.clusterOK,
+		r.ensureResourceSuccess,
 	)
 
 	return r
@@ -67,4 +106,12 @@ func (r recorder) SetClusterError(namespace string, name string) {
 // DeleteCluster set the cluster status to Error
 func (r recorder) DeleteCluster(namespace string, name string) {
 	r.clusterOK.DeleteLabelValues(namespace, name)
+}
+
+func (r recorder) IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
+	r.ensureResourceSuccess.WithLabelValues(objectNamespace, objectName, objectKind, resourceName).Add(1)
+}
+
+func (r recorder) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
+	r.ensureResourceSuccess.WithLabelValues(objectNamespace, objectName, objectKind, resourceName).Add(1)
 }

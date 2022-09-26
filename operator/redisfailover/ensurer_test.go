@@ -124,7 +124,7 @@ func TestEnsure(t *testing.T) {
 
 			// Create the Kops client and call the valid logic.
 			handler := rfOperator.NewRedisFailoverHandler(config, mrfs, mrfc, mrfh, mk, metrics.Dummy, log.Dummy)
-			err := handler.Ensure(rf, map[string]string{}, []metav1.OwnerReference{})
+			err := handler.Ensure(rf, map[string]string{}, []metav1.OwnerReference{}, metrics.Dummy)
 
 			assert.NoError(err)
 			mrfs.AssertExpectations(t)

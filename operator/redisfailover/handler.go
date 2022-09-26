@@ -71,7 +71,7 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 	// Create the labels every object derived from this need to have.
 	labels := r.getLabels(rf)
 
-	if err := r.Ensure(rf, labels, oRefs); err != nil {
+	if err := r.Ensure(rf, labels, oRefs, r.mClient); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
 	}
