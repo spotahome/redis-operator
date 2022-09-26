@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	rediscli "github.com/go-redis/redis/v8"
+	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
 )
 
@@ -74,6 +75,7 @@ func (c *client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 	defer rClient.Close()
 	info, err := rClient.Info(context.TODO(), "sentinel").Result()
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return 0, err
 	}
 	if err2 := isSentinelReady(info); err2 != nil {
@@ -101,6 +103,7 @@ func (c *client) GetNumberSentinelSlavesInMemory(ip string) (int32, error) {
 	defer rClient.Close()
 	info, err := rClient.Info(context.TODO(), "sentinel").Result()
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return 0, err
 	}
 	if err2 := isSentinelReady(info); err2 != nil {
@@ -137,6 +140,7 @@ func (c *client) ResetSentinel(ip string) error {
 	cmd := rediscli.NewIntCmd(context.TODO(), "SENTINEL", "reset", "*")
 	err := rClient.Process(context.TODO(), cmd)
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return err
 	}
 	_, err = cmd.Result()
@@ -148,6 +152,7 @@ func (c *client) ResetSentinel(ip string) error {
 
 // GetSlaveOf returns the master of the given redis, or nil if it's master
 func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
+
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
 		Password: password,
@@ -157,10 +162,13 @@ func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
 	defer rClient.Close()
 	info, err := rClient.Info(context.TODO(), "replication").Result()
 	if err != nil {
+		log.Errorf("error while getting masterIP : %v", err)
+		c.recordRedisError(err, ip)
 		return "", err
 	}
 	match := redisMasterHostRE.FindStringSubmatch(info)
 	if len(match) == 0 {
+		log.Errorf("error while getting masterIP : %v", err)
 		c.metricsRecorder.SetRedisInstance(ip, ip, "master")
 		return "", nil
 	}
@@ -178,6 +186,7 @@ func (c *client) IsMaster(ip, port, password string) (bool, error) {
 	defer rClient.Close()
 	info, err := rClient.Info(context.TODO(), "replication").Result()
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return false, err
 	}
 	return strings.Contains(info, redisRoleMaster), nil
@@ -201,10 +210,12 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 	cmd = rediscli.NewBoolCmd(context.TODO(), "SENTINEL", "MONITOR", masterName, monitor, port, quorum)
 	err := rClient.Process(context.TODO(), cmd)
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return err
 	}
 	_, err = cmd.Result()
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return err
 	}
 
@@ -212,6 +223,7 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 		cmd = rediscli.NewBoolCmd(context.TODO(), "SENTINEL", "SET", masterName, "auth-pass", password)
 		err := rClient.Process(context.TODO(), cmd)
 		if err != nil {
+			c.recordRedisError(err, ip)
 			return err
 		}
 		_, err = cmd.Result()
@@ -231,6 +243,7 @@ func (c *client) MakeMaster(ip string, port string, password string) error {
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	if res := rClient.SlaveOf(context.TODO(), "NO", "ONE"); res.Err() != nil {
+		c.recordRedisError(res.Err(), ip)
 		return res.Err()
 	}
 	return nil
@@ -249,6 +262,7 @@ func (c *client) MakeSlaveOfWithPort(ip, masterIP, masterPort, password string) 
 	rClient := rediscli.NewClient(options)
 	defer rClient.Close()
 	if res := rClient.SlaveOf(context.TODO(), masterIP, masterPort); res.Err() != nil {
+		c.recordRedisError(res.Err(), ip)
 		return res.Err()
 	}
 	return nil
@@ -265,10 +279,12 @@ func (c *client) GetSentinelMonitor(ip string) (string, string, error) {
 	cmd := rediscli.NewSliceCmd(context.TODO(), "SENTINEL", "master", masterName)
 	err := rClient.Process(context.TODO(), cmd)
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return "", "", err
 	}
 	res, err := cmd.Result()
 	if err != nil {
+		c.recordRedisError(err, ip)
 		return "", "", err
 	}
 	masterIP := res[3].(string)
@@ -320,6 +336,10 @@ func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, 
 
 func (c *client) applyRedisConfig(parameter string, value string, rClient *rediscli.Client) error {
 	result := rClient.ConfigSet(context.TODO(), parameter, value)
+	if nil != result.Err() {
+		c.recordRedisError(result.Err(), strings.Split(rClient.Options().Addr, ":")[0])
+	}
+
 	return result.Err()
 }
 
@@ -327,6 +347,7 @@ func (c *client) applySentinelConfig(parameter string, value string, rClient *re
 	cmd := rediscli.NewStatusCmd(context.TODO(), "SENTINEL", "set", masterName, parameter, value)
 	err := rClient.Process(context.TODO(), cmd)
 	if err != nil {
+		c.recordRedisError(err, strings.Split(rClient.Options().Addr, ":")[0])
 		return err
 	}
 	return cmd.Err()
@@ -350,6 +371,7 @@ func (c *client) SlaveIsReady(ip, port, password string) (bool, error) {
 	defer rClient.Close()
 	info, err := rClient.Info(context.TODO(), "replication").Result()
 	if err != nil {
+		c.recordRedisError(err, err.Error())
 		return false, err
 	}
 
@@ -358,4 +380,18 @@ func (c *client) SlaveIsReady(ip, port, password string) (bool, error) {
 		strings.Contains(info, redisLinkUp)
 
 	return ok, nil
+}
+
+func (c *client) recordRedisError(err error, ip string) {
+	if strings.Contains(err.Error(), "NOAUTH") {
+		c.metricsRecorder.IncrRedisUnhealthyCount(metrics.NOT_APPLICABLE, metrics.NOT_APPLICABLE, metrics.NOAUTH, ip)
+	} else if strings.Contains(err.Error(), "WRONGPASS") {
+		c.metricsRecorder.IncrRedisUnhealthyCount(metrics.NOT_APPLICABLE, metrics.NOT_APPLICABLE, metrics.WRONG_PASSWORD_USED, ip)
+	} else if strings.Contains(err.Error(), "NOPERM") {
+		c.metricsRecorder.IncrRedisUnhealthyCount(metrics.NOT_APPLICABLE, metrics.NOT_APPLICABLE, metrics.NOPERM, ip)
+	} else if strings.Contains(err.Error(), "i/o timeout") {
+		c.metricsRecorder.IncrRedisUnhealthyCount(metrics.NOT_APPLICABLE, metrics.NOT_APPLICABLE, metrics.IO_TIMEOUT, ip)
+	} else if strings.Contains(err.Error(), "connection refused") {
+		c.metricsRecorder.IncrRedisUnhealthyCount(metrics.NOT_APPLICABLE, metrics.NOT_APPLICABLE, metrics.CONNECTION_REFUSED, ip)
+	}
 }

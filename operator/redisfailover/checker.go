@@ -6,13 +6,14 @@ import (
 	"time"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 const (
 	timeToPrepare = 2 * time.Minute
 )
 
-//UpdateRedisesPods if the running version of pods are equal to the statefulset one
+// UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
 	if err != nil {
@@ -100,12 +101,16 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	// All sentinels points to the same redis master
 	// Sentinel has not death nodes
 	// Sentinel knows the correct slave number
+
 	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
 		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
+		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)
 		return nil
 	}
+
 	if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
 		r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
+		r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)
 		return nil
 	}
 
@@ -115,6 +120,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	}
 	switch nMasters {
 	case 0:
+		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE)
 		redisesIP, err := r.rfChecker.GetRedisesIPs(rf)
 		if err != nil {
 			return err
@@ -143,6 +149,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	case 1:
 		break
 	default:
+		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE)
 		return errors.New("More than one master, fix manually")
 	}
 
@@ -174,11 +181,13 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, sip := range sentinels {
 		if err := r.rfChecker.CheckSentinelMonitor(sip, master, port); err != nil {
+			r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip)
 			r.logger.Debug("Sentinel is not monitoring the correct master")
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
 			}
 		}
+
 	}
 	return r.checkAndHealSentinels(rf, sentinels)
 }

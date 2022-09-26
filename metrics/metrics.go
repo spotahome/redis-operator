@@ -10,7 +10,24 @@ const (
 	promControllerSubsystem = "controller"
 )
 
-const ()
+// variables for setting various indicator labels
+const (
+	NOT_APPLICABLE            = "NA"
+	UNHEALTHY                 = 1.0
+	HEALTHY                   = 0.0
+	REDIS_REPLICA_MISMATCH    = "REDIS_STATEFULSET_REPLICAS_MISMATCH"
+	SENTINEL_REPLICA_MISMATCH = "SENTINEL_DEPLOYMENT_REPLICAS_MISMATCH"
+	NUMBER_OF_MASTERS         = "MASTER_COUNT_IS_NOT_ONE"
+	SENTINEL_WRONG_MASTER     = "SENTINEL_IS_CONFIGURED_WITH_WRONG_MASTER_IP"
+	SLAVE_WRONG_MASTER        = "SLAVE_IS_CONFIGURED_WITH_WRONG_MASTER_IP"
+
+	// redis connection related errors
+	WRONG_PASSWORD_USED = "WRONG_PASSWORD_USED"
+	NOAUTH              = "AUTH_CREDENTIALS_NOT_PROVIDED"
+	NOPERM              = "REDIS_USER_DOES_NOT_HAVE_PERMISSIONS"
+	IO_TIMEOUT          = "CONNECTION_TIMEDOUT"
+	CONNECTION_REFUSED  = "CONNECTION_REFUSED"
+)
 
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
 type Recorder interface {
@@ -25,8 +42,13 @@ type Recorder interface {
 	IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string)
 	// Indicate if `ensure` operation failed
 	IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string)
+
 	// Indicate redis instances being monitored
 	SetRedisInstance(IP string, masterIP string, role string)
+	ResetRedisInstance()
+
+	IncrRedisUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string)
+	IncrSentinelUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
@@ -36,6 +58,8 @@ type recorder struct {
 	ensureResourceSuccess *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
 	ensureResourceFailure *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
 	redisInstance         *prometheus.GaugeVec   // Indicates known redis instances, with IPs and master/slave status
+	redisUnhealthy        *prometheus.CounterVec // indicates any error encountered in managed redis instance(s)
+	sentinelUnhealthy     *prometheus.CounterVec // indicates any error encountered in managed sentinel instance(s)
 	koopercontroller.MetricsRecorder
 }
 
@@ -51,6 +75,16 @@ type ensureResourceFailureRecorder struct {
 
 type redisInstanceRecorder struct {
 	ensureResourceSuccess *prometheus.GaugeVec
+	koopercontroller.MetricsRecorder
+}
+
+type redisHealthRecorder struct {
+	redisUnhealthy *prometheus.CounterVec
+	koopercontroller.MetricsRecorder
+}
+
+type sentinelHealthRecorder struct {
+	sentinelUnhealthy *prometheus.CounterVec
 	koopercontroller.MetricsRecorder
 }
 
@@ -81,9 +115,23 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	redisInstance := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "redis_instance",
-		Help:      "redis instances discovered guage. IPs of redis instances, and Master/Slave role as indicators in the labels.",
+		Name:      "redis_instance_info",
+		Help:      "redis instances discovered. IPs of redis instances, and Master/Slave role as indicators in the labels.",
 	}, []string{"IP", "MasterIP", "role"})
+
+	redisUnhealthy := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: promControllerSubsystem,
+		Name:      "redis_unhealthy",
+		Help:      "indicates any error encountered in managed redis instance(s)",
+	}, []string{"namespace", "resource", "indicator", "instance"})
+
+	sentinelUnhealthy := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: promControllerSubsystem,
+		Name:      "sentinel_unhealthy",
+		Help:      "indicates any error encountered in managed sentinel instance(s)",
+	}, []string{"namespace", "resource", "indicator", "instance"})
 
 	// Create the instance.
 	r := recorder{
@@ -91,6 +139,8 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		ensureResourceSuccess: ensureResourceSuccess,
 		ensureResourceFailure: ensureResourceFailure,
 		redisInstance:         redisInstance,
+		redisUnhealthy:        redisUnhealthy,
+		sentinelUnhealthy:     sentinelUnhealthy,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
 			Registerer: reg,
 		}),
@@ -102,6 +152,8 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		r.ensureResourceSuccess,
 		r.ensureResourceFailure,
 		r.redisInstance,
+		r.redisUnhealthy,
+		r.sentinelUnhealthy,
 	)
 
 	return r
@@ -132,4 +184,16 @@ func (r recorder) IncrEnsureResourceFailureCount(objectNamespace string, objectN
 
 func (r recorder) SetRedisInstance(IP string, masterIP string, role string) {
 	r.redisInstance.WithLabelValues(IP, masterIP, role).Set(1)
+}
+
+func (r recorder) ResetRedisInstance() {
+	r.redisInstance.Reset()
+}
+
+func (r recorder) IncrRedisUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string) {
+	r.redisUnhealthy.WithLabelValues(namespace, resource, indicator, instance).Add(1)
+}
+
+func (r recorder) IncrSentinelUnhealthyCount(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string) {
+	r.sentinelUnhealthy.WithLabelValues(namespace, resource, indicator, instance).Add(1)
 }

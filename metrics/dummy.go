@@ -22,3 +22,8 @@ func (d *dummy) IncrEnsureResourceSuccessCount(objectNamespace string, objectNam
 func (d *dummy) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
 }
 func (d *dummy) SetRedisInstance(IP string, masterIP string, role string) {}
+func (d *dummy) ResetRedisInstance()                                      {}
+func (d *dummy) IncrRedisUnhealthyCount(namespace string, resource string, indicator string, instance string) {
+}
+func (d *dummy) IncrSentinelUnhealthyCount(namespace string, resource string, indicator string, instance string) {
+}
