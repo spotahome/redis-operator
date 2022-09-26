@@ -29,9 +29,9 @@ type Recorder interface {
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
 type recorder struct {
 	// Metrics fields.
-	clusterOK                     *prometheus.GaugeVec   // clusterOk is the status of a cluster
-	ensureResourceSuccess         *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
-	ensureResourceFailureRecorder *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
+	clusterOK             *prometheus.GaugeVec   // clusterOk is the status of a cluster
+	ensureResourceSuccess *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
+	ensureResourceFailure *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
 	koopercontroller.MetricsRecorder
 }
 
@@ -76,9 +76,9 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 
 	// Create the instance.
 	r := recorder{
-		clusterOK:                     clusterOK,
-		ensureResourceSuccess:         ensureResourceSuccess,
-		ensureResourceFailureRecorder: ensureResourceFailure,
+		clusterOK:             clusterOK,
+		ensureResourceSuccess: ensureResourceSuccess,
+		ensureResourceFailure: ensureResourceFailure,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
 			Registerer: reg,
 		}),
@@ -88,6 +88,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	reg.MustRegister(
 		r.clusterOK,
 		r.ensureResourceSuccess,
+		r.ensureResourceFailure,
 	)
 
 	return r
