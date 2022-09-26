@@ -14,6 +14,7 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 	mK8SService "github.com/spotahome/redis-operator/mocks/service/k8s"
 	mRedisService "github.com/spotahome/redis-operator/mocks/service/redis"
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
@@ -66,7 +67,7 @@ func TestCheckRedisNumberFalse(t *testing.T) {
 	ms.On("GetStatefulSet", namespace, rfservice.GetRedisName(rf)).Once().Return(ss, nil)
 	mr := &mRedisService.Client{}
 
-	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{})
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
 	err := checker.CheckRedisNumber(rf)
 	assert.Error(err)

@@ -85,7 +85,7 @@ func (m *Main) Run() error {
 	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger)
 
 	// Create the redis clients
-	redisClient := redis.New()
+	redisClient := redis.New(metricsRecorder)
 
 	// Get lease lock resource namespace
 	lockNamespace := getNamespace()

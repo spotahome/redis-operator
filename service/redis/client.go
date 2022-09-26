@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	rediscli "github.com/go-redis/redis/v8"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // Client defines the functions neccesary to connect to redis and sentinel to get or set what we nned
@@ -31,11 +32,14 @@ type Client interface {
 }
 
 type client struct {
+	metricsRecorder metrics.Recorder
 }
 
 // New returns a redis client
-func New() Client {
-	return &client{}
+func New(metricsRecorder metrics.Recorder) Client {
+	return &client{
+		metricsRecorder: metricsRecorder,
+	}
 }
 
 const (
@@ -157,8 +161,10 @@ func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
 	}
 	match := redisMasterHostRE.FindStringSubmatch(info)
 	if len(match) == 0 {
+		c.metricsRecorder.SetRedisInstance(ip, ip, "master")
 		return "", nil
 	}
+	c.metricsRecorder.SetRedisInstance(ip, match[1], "slave")
 	return match[1], nil
 }
 

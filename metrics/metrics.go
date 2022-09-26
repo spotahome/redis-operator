@@ -21,9 +21,12 @@ type Recorder interface {
 	SetClusterError(namespace string, name string)
 	DeleteCluster(namespace string, name string)
 
-	//K8s Manager resources
+	// Indicate if `ensure` operation succeeded
 	IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string)
+	// Indicate if `ensure` operation failed
 	IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string)
+	// Indicate redis instances being monitored
+	SetRedisInstance(IP string, masterIP string, role string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
@@ -32,6 +35,7 @@ type recorder struct {
 	clusterOK             *prometheus.GaugeVec   // clusterOk is the status of a cluster
 	ensureResourceSuccess *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
 	ensureResourceFailure *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
+	redisInstance         *prometheus.GaugeVec   // Indicates known redis instances, with IPs and master/slave status
 	koopercontroller.MetricsRecorder
 }
 
@@ -45,8 +49,8 @@ type ensureResourceFailureRecorder struct {
 	koopercontroller.MetricsRecorder
 }
 
-type k8sClientErrorRecorder struct {
-	k8sClientErrors *prometheus.GaugeVec
+type redisInstanceRecorder struct {
+	ensureResourceSuccess *prometheus.GaugeVec
 	koopercontroller.MetricsRecorder
 }
 
@@ -74,11 +78,19 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		Help:      "number of failed 'ensure' operations on a resource performed by the controller.",
 	}, []string{"object_namespace", "object_name", "object_kind", "resource_name"})
 
+	redisInstance := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: promControllerSubsystem,
+		Name:      "redis_instance",
+		Help:      "redis instances discovered guage. IPs of redis instances, and Master/Slave role as indicators in the labels.",
+	}, []string{"IP", "MasterIP", "role"})
+
 	// Create the instance.
 	r := recorder{
 		clusterOK:             clusterOK,
 		ensureResourceSuccess: ensureResourceSuccess,
 		ensureResourceFailure: ensureResourceFailure,
+		redisInstance:         redisInstance,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
 			Registerer: reg,
 		}),
@@ -89,6 +101,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		r.clusterOK,
 		r.ensureResourceSuccess,
 		r.ensureResourceFailure,
+		r.redisInstance,
 	)
 
 	return r
@@ -115,4 +128,8 @@ func (r recorder) IncrEnsureResourceSuccessCount(objectNamespace string, objectN
 
 func (r recorder) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
 	r.ensureResourceSuccess.WithLabelValues(objectNamespace, objectName, objectKind, resourceName).Add(1)
+}
+
+func (r recorder) SetRedisInstance(IP string, masterIP string, role string) {
+	r.redisInstance.WithLabelValues(IP, masterIP, role).Set(1)
 }

@@ -69,14 +69,14 @@ func generateRedisSlaveRoleLabel() map[string]string {
 func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateSentinelService(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
-	return r.setK8sObjectCreationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
+	return r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
 }
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
 func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	cm := generateSentinelConfigMap(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
-	return r.setK8sObjectCreationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
+	return r.setEnsureOperationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
 }
 
 // EnsureSentinelDeployment makes sure the sentinel deployment exists in the desired state
@@ -87,7 +87,7 @@ func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1.R
 	d := generateSentinelDeployment(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateDeployment(rf.Namespace, d)
 
-	return r.setK8sObjectCreationMetrics(d.Namespace, d.Name, "Deployment", rf.Name, err)
+	return r.setEnsureOperationMetrics(d.Namespace, d.Name, "Deployment", rf.Name, err)
 }
 
 // EnsureRedisStatefulset makes sure the redis statefulset exists in the desired state
@@ -98,7 +98,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.Red
 	ss := generateRedisStatefulSet(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateStatefulSet(rf.Namespace, ss)
 
-	return r.setK8sObjectCreationMetrics(ss.Namespace, ss.Name, "StatefulSet", rf.Name, err)
+	return r.setEnsureOperationMetrics(ss.Namespace, ss.Name, "StatefulSet", rf.Name, err)
 }
 
 // EnsureRedisConfigMap makes sure the Redis ConfigMap exists
@@ -112,7 +112,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisConfigMap(rf *redisfailoverv1.Redis
 	cm := generateRedisConfigMap(rf, labels, ownerRefs, password)
 	err = r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
 
-	return r.setK8sObjectCreationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
+	return r.setEnsureOperationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
 }
 
 // EnsureRedisShutdownConfigMap makes sure the redis configmap with shutdown script exists
@@ -124,7 +124,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailover
 	} else {
 		cm := generateRedisShutdownConfigMap(rf, labels, ownerRefs)
 		err := r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
-		return r.setK8sObjectCreationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
+		return r.setEnsureOperationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
 	}
 	return nil
 }
@@ -133,7 +133,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisShutdownConfigMap(rf *redisfailover
 func (r *RedisFailoverKubeClient) EnsureRedisReadinessConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	cm := generateRedisReadinessConfigMap(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateConfigMap(rf.Namespace, cm)
-	return r.setK8sObjectCreationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
+	return r.setEnsureOperationMetrics(cm.Namespace, cm.Name, "ConfigMap", rf.Name, err)
 }
 
 // EnsureRedisService makes sure the redis statefulset exists
@@ -141,7 +141,7 @@ func (r *RedisFailoverKubeClient) EnsureRedisService(rf *redisfailoverv1.RedisFa
 	svc := generateRedisService(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
 
-	return r.setK8sObjectCreationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
+	return r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
 }
 
 // EnsureNotPresentRedisService makes sure the redis service is not present
@@ -169,10 +169,10 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 
 	pdb := generatePodDisruptionBudget(name, namespace, labels, ownerRefs, minAvailable)
 	err := r.K8SService.CreateOrUpdatePodDisruptionBudget(namespace, pdb)
-	return r.setK8sObjectCreationMetrics(pdb.Namespace, pdb.Name, "PodDisruptionBudget" /* pdb.TypeMeta.Kind isnt working;  pdb.Kind isnt working either */, rf.Name, err)
+	return r.setEnsureOperationMetrics(pdb.Namespace, pdb.Name, "PodDisruptionBudget" /* pdb.TypeMeta.Kind isnt working;  pdb.Kind isnt working either */, rf.Name, err)
 }
 
-func (r *RedisFailoverKubeClient) setK8sObjectCreationMetrics(objectNamespace string, objectName string, objectKind string, ownerName string, err error) error {
+func (r *RedisFailoverKubeClient) setEnsureOperationMetrics(objectNamespace string, objectName string, objectKind string, ownerName string, err error) error {
 	if nil != err {
 		r.metricsClient.IncrEnsureResourceFailureCount(objectNamespace, objectName, objectKind, ownerName)
 	}
