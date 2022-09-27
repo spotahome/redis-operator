@@ -27,3 +27,7 @@ func (d *dummy) IncrRedisUnhealthyCount(namespace string, resource string, indic
 }
 func (d *dummy) IncrSentinelUnhealthyCount(namespace string, resource string, indicator string, instance string) {
 }
+func (d dummy) RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string) {
+}
+func (d dummy) RecordRedisOperation(kind /*redis/sentinel? */ string, IP string, operation string, status string, err string) {
+}

@@ -158,6 +158,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		return err
 	}
 	if err2 := r.rfChecker.CheckAllSlavesFromMaster(master, rf); err2 != nil {
+		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.SLAVE_WRONG_MASTER, metrics.NOT_APPLICABLE)
 		r.logger.Debug("Not all slaves have the same master")
 		if err3 := r.rfHealer.SetMasterOnAll(master, rf); err3 != nil {
 			return err3
@@ -181,7 +182,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, sip := range sentinels {
 		if err := r.rfChecker.CheckSentinelMonitor(sip, master, port); err != nil {
-			r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip)
+			r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip)
 			r.logger.Debug("Sentinel is not monitoring the correct master")
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
@@ -251,6 +252,7 @@ func (r *RedisFailoverHandler) applyRedisCustomConfig(rf *redisfailoverv1.RedisF
 func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFailover, sentinels []string) error {
 	for _, sip := range sentinels {
 		if err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
+			r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_NUMBER_IN_MEMORY_MISMATCH, metrics.NOT_APPLICABLE)
 			r.logger.Debug("Sentinel has more sentinel in memory than spected")
 			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
 				return err
@@ -261,6 +263,7 @@ func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFa
 		if err := r.rfChecker.CheckSentinelSlavesNumberInMemory(sip, rf); err != nil {
 			r.logger.Debug("Sentinel has more slaves in memory than spected")
 			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
+				r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_SLAVES_NUMBER_IN_MEMORY_MISMATCH, metrics.NOT_APPLICABLE)
 				return err
 			}
 		}

@@ -98,7 +98,6 @@ func (r *RedisFailoverChecker) setSlaveLabelIfNecessary(namespace string, pod co
 
 // CheckAllSlavesFromMaster controlls that all slaves have the same master (the real one)
 func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1.RedisFailover) error {
-	r.metricsClient.ResetRedisInstance()
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
 		return err
@@ -130,7 +129,6 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 			return err
 		}
 		if slave != "" && slave != master {
-			r.metricsClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.SLAVE_WRONG_MASTER, rp.Status.PodIP)
 			return fmt.Errorf("slave %s don't have the master %s, has %s", rp.Status.PodIP, master, slave)
 		}
 

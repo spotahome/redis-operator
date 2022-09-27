@@ -14,6 +14,7 @@ import (
 	kubetesting "k8s.io/client-go/testing"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 	"github.com/spotahome/redis-operator/service/k8s"
 )
 
@@ -103,7 +104,7 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewStatefulSetService(mcli, log.Dummy)
+			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
 			err := service.CreateOrUpdateStatefulSet(testns, test.statefulSet)
 
 			if test.expErr {

@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // Deployment the Deployment service that knows how to interact with k8s to manage them
@@ -27,22 +28,25 @@ type Deployment interface {
 
 // DeploymentService is the service account service implementation using API calls to kubernetes.
 type DeploymentService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewDeploymentService returns a new Deployment KubeService.
-func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger) *DeploymentService {
+func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *DeploymentService {
 	logger = logger.With("service", "k8s.deployment")
 	return &DeploymentService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 // GetDeployment will retrieve the requested deployment based on namespace and name
 func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1.Deployment, error) {
 	deployment, err := d.kubeClient.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "Deployment", name, "GET", err, d.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +56,7 @@ func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1.Deplo
 // GetDeploymentPods will retrieve the pods managed by a given deployment
 func (d *DeploymentService) GetDeploymentPods(namespace, name string) (*corev1.PodList, error) {
 	deployment, err := d.kubeClient.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "Deployment", name, "GET", err, d.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +71,7 @@ func (d *DeploymentService) GetDeploymentPods(namespace, name string) (*corev1.P
 // CreateDeployment will create the given deployment
 func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv1.Deployment) error {
 	_, err := d.kubeClient.AppsV1().Deployments(namespace).Create(context.TODO(), deployment, metav1.CreateOptions{})
+	recordMetrics(namespace, "Deployment", deployment.GetName(), "CREATE", err, d.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -76,6 +82,7 @@ func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv
 // UpdateDeployment will update the given deployment
 func (d *DeploymentService) UpdateDeployment(namespace string, deployment *appsv1.Deployment) error {
 	_, err := d.kubeClient.AppsV1().Deployments(namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	recordMetrics(namespace, "Deployment", deployment.GetName(), "UPDATE", err, d.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -105,10 +112,14 @@ func (d *DeploymentService) CreateOrUpdateDeployment(namespace string, deploymen
 // DeleteDeployment will delete the given deployment
 func (d *DeploymentService) DeleteDeployment(namespace, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return d.kubeClient.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	err := d.kubeClient.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	recordMetrics(namespace, "Deployment", name, "DELETE", err, d.metricsRecorder)
+	return err
 }
 
 // ListDeployments will give all the deployments on a given namespace
 func (d *DeploymentService) ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
-	return d.kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
+	deployments, err := d.kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
+	recordMetrics(namespace, "Deployment", metrics.NOT_APPLICABLE, "DELETE", err, d.metricsRecorder)
+	return deployments, err
 }

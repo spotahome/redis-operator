@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // RBAC is the service that knows how to interact with k8s to manage RBAC related resources.
@@ -26,33 +27,42 @@ type RBAC interface {
 
 // NamespaceService is the Namespace service implementation using API calls to kubernetes.
 type RBACService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewRBACService returns a new RBAC KubeService.
-func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger) *RBACService {
+func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *RBACService {
 	logger = logger.With("service", "k8s.rbac")
 	return &RBACService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (r *RBACService) GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
-	return r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(metrics.NOT_APPLICABLE, "ClusterRole", name, "GET", err, r.metricsRecorder)
+	return clusterRole, err
 }
 
 func (r *RBACService) GetRole(namespace, name string) (*rbacv1.Role, error) {
-	return r.kubeClient.RbacV1().Roles(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	role, err := r.kubeClient.RbacV1().Roles(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "Role", name, "GET", err, r.metricsRecorder)
+	return role, err
 }
 
 func (r *RBACService) GetRoleBinding(namespace, name string) (*rbacv1.RoleBinding, error) {
-	return r.kubeClient.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	rolbinding, err := r.kubeClient.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "RoleBinding", name, "GET", err, r.metricsRecorder)
+	return rolbinding, err
 }
 
 func (r *RBACService) DeleteRole(namespace, name string) error {
 	err := r.kubeClient.RbacV1().Roles(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	recordMetrics(namespace, "Role", name, "DELETE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -62,6 +72,7 @@ func (r *RBACService) DeleteRole(namespace, name string) error {
 
 func (r *RBACService) CreateRole(namespace string, role *rbacv1.Role) error {
 	_, err := r.kubeClient.RbacV1().Roles(namespace).Create(context.TODO(), role, metav1.CreateOptions{})
+	recordMetrics(namespace, "Role", role.GetName(), "CREATE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -71,6 +82,7 @@ func (r *RBACService) CreateRole(namespace string, role *rbacv1.Role) error {
 
 func (s *RBACService) UpdateRole(namespace string, role *rbacv1.Role) error {
 	_, err := s.kubeClient.RbacV1().Roles(namespace).Update(context.TODO(), role, metav1.UpdateOptions{})
+	recordMetrics(namespace, "Role", role.GetName(), "UPDATE", err, s.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -98,6 +110,7 @@ func (r *RBACService) CreateOrUpdateRole(namespace string, role *rbacv1.Role) er
 
 func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
 	err := r.kubeClient.RbacV1().RoleBindings(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	recordMetrics(namespace, "Role", name, "DELETE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -107,6 +120,7 @@ func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
 
 func (r *RBACService) CreateRoleBinding(namespace string, binding *rbacv1.RoleBinding) error {
 	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Create(context.TODO(), binding, metav1.CreateOptions{})
+	recordMetrics(namespace, "RoleBinding", binding.GetName(), "CREATE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -116,6 +130,7 @@ func (r *RBACService) CreateRoleBinding(namespace string, binding *rbacv1.RoleBi
 
 func (r *RBACService) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBinding) error {
 	_, err := r.kubeClient.RbacV1().RoleBindings(namespace).Update(context.TODO(), binding, metav1.UpdateOptions{})
+	recordMetrics(namespace, "Role", binding.GetName(), "UPDATE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}

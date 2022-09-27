@@ -6,6 +6,7 @@ import (
 
 	redisfailoverclientset "github.com/spotahome/redis-operator/client/k8s/clientset/versioned"
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // Service is the K8s service entrypoint.
@@ -34,16 +35,16 @@ type services struct {
 }
 
 // New returns a new Kubernetes service.
-func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger) Services {
+func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder) Services {
 	return &services{
-		ConfigMap:           NewConfigMapService(kubecli, logger),
-		Secret:              NewSecretService(kubecli, logger),
-		Pod:                 NewPodService(kubecli, logger),
-		PodDisruptionBudget: NewPodDisruptionBudgetService(kubecli, logger),
-		RedisFailover:       NewRedisFailoverService(crdcli, logger),
-		Service:             NewServiceService(kubecli, logger),
-		RBAC:                NewRBACService(kubecli, logger),
-		Deployment:          NewDeploymentService(kubecli, logger),
-		StatefulSet:         NewStatefulSetService(kubecli, logger),
+		ConfigMap:           NewConfigMapService(kubecli, logger, metricsRecorder),
+		Secret:              NewSecretService(kubecli, logger, metricsRecorder),
+		Pod:                 NewPodService(kubecli, logger, metricsRecorder),
+		PodDisruptionBudget: NewPodDisruptionBudgetService(kubecli, logger, metricsRecorder),
+		RedisFailover:       NewRedisFailoverService(crdcli, logger, metricsRecorder),
+		Service:             NewServiceService(kubecli, logger, metricsRecorder),
+		RBAC:                NewRBACService(kubecli, logger, metricsRecorder),
+		Deployment:          NewDeploymentService(kubecli, logger, metricsRecorder),
+		StatefulSet:         NewStatefulSetService(kubecli, logger, metricsRecorder),
 	}
 }
