@@ -123,7 +123,6 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 		}
 
 		slave, err := r.redisClient.GetSlaveOf(rp.Status.PodIP, rport, password)
-		// set redis instance metrics
 		if err != nil {
 			r.logger.Errorf("Get slave of master failed, maybe this node is not ready, pod ip: %s", rp.Status.PodIP)
 			return err
@@ -131,7 +130,6 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 		if slave != "" && slave != master {
 			return fmt.Errorf("slave %s don't have the master %s, has %s", rp.Status.PodIP, master, slave)
 		}
-
 	}
 	return nil
 }

@@ -101,13 +101,11 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	// All sentinels points to the same redis master
 	// Sentinel has not death nodes
 	// Sentinel knows the correct slave number
-
 	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
 		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
 		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)
 		return nil
 	}
-
 	if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
 		r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
 		r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)

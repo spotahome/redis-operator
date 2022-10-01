@@ -18,7 +18,7 @@ RUN wget http://github.com/kubernetes/code-generator/archive/kubernetes-${CODEGE
 
 # Mock creator
 ARG MOCKERY_VERSION="2.9.4"
-RUN wget -c "https://github.com/vektra/mockery/releases/download/v2.9.4/mockery_2.9.4_Linux_arm64.tar.gz" -O - | tar -xz -C /go/bin/
+RUN wget -c https://github.com/vektra/mockery/releases/download/v${MOCKERY_VERSION}/mockery_${MOCKERY_VERSION}_$(uname -o)_$(uname -m).tar.gz -O - | tar -xz -C /go/bin/
 
 # Create user
 ARG uid=1000

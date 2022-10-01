@@ -12,7 +12,6 @@ const (
 
 // Validate set the values by default if not defined and checks if the values given are valid
 func (r *RedisFailover) Validate() error {
-
 	if len(r.Name) > maxNameLength {
 		return fmt.Errorf("name length can't be higher than %d", maxNameLength)
 	}

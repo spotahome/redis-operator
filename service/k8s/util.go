@@ -41,5 +41,4 @@ func recordMetrics(namespace string, kind string, object string, operation strin
 	} else {
 		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_MISC)
 	}
-
 }

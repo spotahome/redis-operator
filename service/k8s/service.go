@@ -42,7 +42,6 @@ func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metri
 
 func (s *ServiceService) GetService(namespace string, name string) (*corev1.Service, error) {
 	service, err := s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-
 	recordMetrics(namespace, "Service", name, "GET", err, s.metricsRecorder)
 	if err != nil {
 		log.Errorf("Error while getting service %v in %v namespace : %v", name, namespace, err)
@@ -80,7 +79,6 @@ func (s *ServiceService) UpdateService(namespace string, service *corev1.Service
 		return err
 	}
 	s.logger.WithField("namespace", namespace).WithField("serviceName", service.Name).Infof("service updated")
-
 	return nil
 }
 func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1.Service) error {
