@@ -94,6 +94,7 @@ image: deps-development
 	-t $(SERVICE_NAME) \
 	-t $(REPOSITORY):latest \
 	-t $(REPOSITORY):$(COMMIT) \
+	-t $(REPOSITORY):$(BRANCH) \
 	-f $(APP_DIR)/Dockerfile \
 	.
 
