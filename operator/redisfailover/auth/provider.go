@@ -43,8 +43,6 @@ type provider interface {
 	GetACLs(crUser redisfailoverv1.UserSpec) []string
 	// labels to attach to statefulset reflecting authmode
 	GetAuthModeLabels() map[string]string
-	// get "pinger" user credentials
-	GetPingerCredentials() (string /* username */, string /* password */, error)
 }
 
 type providerV1 struct {
@@ -135,10 +133,6 @@ func (p providerV1) GetAuthModeLabels() map[string]string {
 	}
 }
 
-func (p providerV1) GetPingerCredentials() (string /* username */, string /* password */, error) {
-	return authv1.PingerUserName, authv1.DefaultPingerUserPassword, nil
-}
-
 // --------------------------------------- AuthV2 Impl --------------------------------------- #
 func (p providerV2) GetAdminCredentials() (string /* username */, string /* password */, error) {
 	users, err := redisauthv2.InterceptUsers(p.rf.Spec.AuthV2.Users, p.rf.Namespace, p.k8sService)
@@ -217,8 +211,4 @@ func (p providerV2) GetAuthModeLabels() map[string]string {
 	return map[string]string{
 		"auth-mode": p.Version(),
 	}
-}
-
-func (p providerV2) GetPingerCredentials() (string /* username */, string /* password */, error) {
-	return authv2.PingerUserName, authv2.DefaultPingerUserPassword, nil
 }

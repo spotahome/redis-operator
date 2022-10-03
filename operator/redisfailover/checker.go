@@ -3,13 +3,13 @@ package redisfailover
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	redisauth "github.com/spotahome/redis-operator/operator/redisfailover/auth"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 )
 
 const (
@@ -280,32 +280,26 @@ func getRedisPort(p int32) string {
 - applies newly added permissions, passwords at runtime.
 */
 func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1.RedisFailover) error {
-
 	masterIP, err := r.rfChecker.GetMasterIP(rFailover)
 	port := getRedisPort(rFailover.Spec.Redis.Port)
 
 	if !r.rfChecker.ShouldProcessRedisUsers(rFailover) {
-		log.Debugf("redis users check not enabled for %v resource. should process users returned: %v", rFailover.Name, r.rfChecker.ShouldProcessRedisUsers(rFailover))
 		return nil
 	}
 	// fetch users from CR spec
-	desiredUsers, err := r.rfChecker.GetDesiredUsers(rFailover)
+	desiredUsers, err := r.rfChecker.GetDesiredRedisUsers(rFailover)
 	if nil != err {
 		return fmt.Errorf("unable to check redis user status - get desiredusers failed: %v", err.Error())
 	}
 	// fetch users from redis
-	redisUsers, err := r.rfChecker.GetRedisUsersAsString(rFailover)
+	redisUsers, err := r.rfChecker.GetActualRedisUsers(rFailover)
 	if nil != err {
 		return fmt.Errorf("unable to check redis user status - get redis users failed: %v", err.Error())
 	}
 	// delete unknown users from redis
 	for _, redisUser := range redisUsers {
-		redisUserName := ""
-		re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
-		matches := re.FindStringSubmatch(redisUser)
-		if nil != matches {
-			redisUserName = string(matches[1])
-		}
+		redisUserName := util.GetUsernameFromRedisUserConf(redisUser)
+
 		_, userInSpec := desiredUsers[redisUserName]
 		_, userInDefaults := redisauth.DefaultUsers[redisUserName]
 
@@ -314,7 +308,9 @@ func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1
 			log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Warnf("deleting unrecognised user %v from instance %v", redisUserName, masterIP)
 			err := r.rfHealer.DeleteRedisUser(rFailover, masterIP, port, redisUserName)
 			if nil != err {
-				return fmt.Errorf("unable to delete redundant user %v %v", userInSpec, err.Error())
+				// Donot return, this will cause other important this like applying latest redis spec at runtime to fail.
+
+				log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Errorf("unable to delete redundant user %v - %v", userInSpec, err.Error())
 			}
 		}
 	}
@@ -322,8 +318,11 @@ func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1
 	// Does not remove deleted passwords or permissions that were removed it CR; for now, a restart of instances must be done.
 	//		Need to ponder over rotation policies etc before we handle deletion usecases
 	for username, userSpec := range desiredUsers {
-		r.rfHealer.ApplyRedisACL(rFailover, userSpec, username, masterIP, port)
-	}
 
+		err := r.rfHealer.ApplyRedisACL(rFailover, userSpec, username, masterIP, port)
+		if nil != err {
+			return err
+		}
+	}
 	return nil
 }

@@ -5,7 +5,7 @@ const (
 	RedisRuntimeCommand = "redisRuntimeCommand"
 
 	AdminUserName            = "admin"
-	DefaultAdminPermissions  = "+@all +client +ping +info +config|get +cluster|info +slowlog +latency +memory +select +get +scan +xinfo +type +pfcount +strlen +llen +scard +zcard +hlen +xlen +eval +@admin"
+	DefaultAdminPermissions  = "+client +ping +multi +info +slaveof +exec +subscribe +config|rewrite +role +publish +client|setname +client|kill +script|kill +config|get +cluster|info +slowlog +latency +memory +select +get +scan +xinfo +type +pfcount +strlen +llen +scard +zcard +hlen +xlen +eval +@admin"
 	DefaultAdminUserPassword = "password"
 
 	DefaultUserName            = "default"

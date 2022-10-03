@@ -34,8 +34,8 @@ type RedisFailoverCheck interface {
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetRedisRevisionHash(podName string, rFailover *redisfailoverv1.RedisFailover) (string, error)
 	CheckRedisSlavesReady(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
-	GetDesiredUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error)
-	GetRedisUsersAsString(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
+	GetDesiredRedisUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error)
+	GetActualRedisUsers(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	ShouldProcessRedisUsers(rFailover *redisfailoverv1.RedisFailover) bool
 }
 
@@ -193,7 +193,7 @@ func (r *RedisFailoverChecker) GetMasterIP(rf *redisfailoverv1.RedisFailover) (s
 	for _, rip := range rips {
 		master, err := r.redisClient.IsMaster(rip, rport, username, password)
 		if err != nil {
-			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s ; error is: %s", rip, err.Error())
+			r.logger.Errorf("Get redis info failed, maybe this node is not ready, pod ip: %s ; error is: %v", rip, err.Error())
 			continue
 		}
 		if master {
@@ -404,7 +404,7 @@ outputs:
 
 	[map]redisfailoverv1.UserSpec (a map of username -> userSpec )
 */
-func (r *RedisFailoverChecker) GetDesiredUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error) {
+func (r *RedisFailoverChecker) GetDesiredRedisUsers(rFailover *redisfailoverv1.RedisFailover) (map[string]redisfailoverv1.UserSpec, error) {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	return authProvider.InterceptUsers(rFailover.Spec.AuthV2.Users, rFailover.Namespace, r.k8sService)
 
@@ -430,7 +430,7 @@ output:
 
 	[]string (`acl list` output as string)
 */
-func (r *RedisFailoverChecker) GetRedisUsersAsString(rFailover *redisfailoverv1.RedisFailover) ([]string, error) {
+func (r *RedisFailoverChecker) GetActualRedisUsers(rFailover *redisfailoverv1.RedisFailover) ([]string, error) {
 	authProvider := redisauth.GetAuthProvider(rFailover, r.k8sService)
 	adminUser, adminPassword, err := authProvider.GetAdminCredentials()
 	if nil != err {

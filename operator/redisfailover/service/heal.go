@@ -290,3 +290,4 @@ func (r *RedisFailoverHealer) ApplyRedisACL(rFailover *redisfailoverv1.RedisFail
 	r.logger.Debugf("Applying user acls for %s user in %s instance", redisUserName, masterIP)
 	return r.redisClient.ACLSetUser(masterIP, port, adminUsername, adminPassword, redisUserName, redisauth.DefaultPermissionSpace, passwords, acls)
 }
+
