@@ -16,7 +16,6 @@ func (r *RedisFailover) Validate() error {
 		return fmt.Errorf("name length can't be higher than %d", maxNameLength)
 	}
 
-	initialRedisCustomConfig := defaultRedisCustomConfig
 	if r.Bootstrapping() {
 		if r.Spec.BootstrapNode.Host == "" {
 			return errors.New("BootstrapNode must include a host when provided")
@@ -25,19 +24,9 @@ func (r *RedisFailover) Validate() error {
 		if r.Spec.BootstrapNode.Port == "" {
 			r.Spec.BootstrapNode.Port = strconv.Itoa(defaultRedisPort)
 		}
-		initialRedisCustomConfig = bootstrappingRedisCustomConfig
-	}
-
-	for _, initialConfig := range initialRedisCustomConfig {
-		redisCustomConfigExists := false
-		for _, customConfig := range r.Spec.Redis.CustomConfig {
-			if customConfig == initialConfig {
-				redisCustomConfigExists = true
-			}
-		}
-		if !redisCustomConfigExists {
-			r.Spec.Redis.CustomConfig = append([]string{initialConfig}, r.Spec.Redis.CustomConfig...)
-		}
+		r.Spec.Redis.CustomConfig = deduplicateStr(append(bootstrappingRedisCustomConfig, r.Spec.Redis.CustomConfig...))
+	} else {
+		r.Spec.Redis.CustomConfig = deduplicateStr(append(defaultRedisCustomConfig, r.Spec.Redis.CustomConfig...))
 	}
 
 	if r.Spec.Redis.Image == "" {
@@ -73,4 +62,16 @@ func (r *RedisFailover) Validate() error {
 	}
 
 	return nil
+}
+
+func deduplicateStr(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	list := []string{}
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }
