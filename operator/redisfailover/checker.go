@@ -309,7 +309,6 @@ func (r *RedisFailoverHandler) checkAndHealRedisUsers(rFailover *redisfailoverv1
 			err := r.rfHealer.DeleteRedisUser(rFailover, masterIP, port, redisUserName)
 			if nil != err {
 				// Donot return, this will cause other important this like applying latest redis spec at runtime to fail.
-
 				log.WithField("namespace", rFailover.Namespace).WithField("resource", rFailover.Name).Errorf("unable to delete redundant user %v - %v", userInSpec, err.Error())
 			}
 		}

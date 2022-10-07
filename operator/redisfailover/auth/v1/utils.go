@@ -14,7 +14,7 @@ func GetAuthSpecAsRedisConf(rf *redisfailoverv1.RedisFailover, k8sService k8s.Se
 	}
 	defaultUSerSpec := ""
 	if defaultUserPassword != "" {
-		defaultUSerSpec = fmt.Sprintf("requirepass  %v\n", defaultUserPassword)
+		defaultUSerSpec = fmt.Sprintf("requirepass %v\n", defaultUserPassword)
 	}
 	pingerUserSpec := fmt.Sprintf("user %v on >%v %v %v %v\n", PingerUserName, DefaultPingerUserPassword, PingerUserPermissions, DefaultPermittedKeys, DefaultPermittedChannels)
 	return defaultUSerSpec + pingerUserSpec, nil

@@ -318,7 +318,8 @@ func TestCheckAndHeal(t *testing.T) {
 				if !expErr && continueTests {
 					mrfc.On("GetMasterIP", rf).Twice().Return(master, nil)
 					mrfc.On("GetMasterIP", rf).Once().Return(master, nil)
-					mrfc.On("ShouldProcessRedisUsers", rf).Twice().Return(false, nil)
+					//mrfc.On("ShouldProcessRedisUsers", rf).Twice().Return(false, nil)
+					mrfc.On("ShouldProcessRedisUsers", rf).Once().Return(false, nil)
 					if test.slavesOK {
 						mrfc.On("CheckAllSlavesFromMaster", master, rf).Once().Return(nil)
 					} else {

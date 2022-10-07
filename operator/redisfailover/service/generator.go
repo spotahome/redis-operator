@@ -157,21 +157,17 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	// https://github.com/redis/redis/blob/6.0.0/redis.conf#L375
 	masteruserSetting := ""
 	requirepassSetting := ""
-	nmasterauthSetting := ""
+	masterauthSetting := ""
 	if masterPassword != "" {
-		nmasterauthSetting = fmt.Sprintf("masterauth %s", masterPassword)
+		masterauthSetting = fmt.Sprintf("masterauth %s", masterPassword)
 		if masterUsername != "" {
 			masteruserSetting = fmt.Sprintf("masteruser %s", masterUsername)
 		}
 	}
-	if defaultPassword != "" {
-		requirepassSetting = fmt.Sprintf("requirepass %s", defaultPassword)
-
-	}
-	redisConfigFileContent = fmt.Sprintf("%s\n%s\n%s\n%s", redisConfigFileContent, nmasterauthSetting, masteruserSetting, requirepassSetting)
+	redisConfigFileContent = fmt.Sprintf("%s\n%s\n%s\n%s", redisConfigFileContent, masterauthSetting, masteruserSetting, requirepassSetting)
 
 	// add authV2 user creation spec
-	redisConfigFileContent = fmt.Sprintf("%s%s", redisConfigFileContent, authV2UserCreationSpec)
+	redisConfigFileContent = fmt.Sprintf("%s\n%s", redisConfigFileContent, authV2UserCreationSpec)
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

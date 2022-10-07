@@ -1,11 +1,10 @@
-//go:build integration
-// +build integration
-
 package redisfailover_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -69,10 +68,17 @@ func TestRedisFailover(t *testing.T) {
 	// Create signal channels.
 	stopC := make(chan struct{})
 	errC := make(chan error)
-
-	flags := &utils.CMDFlags{
-		KubeConfig:  filepath.Join(homedir.HomeDir(), ".kube", "config"),
-		Development: true,
+	var flags *utils.CMDFlags
+	kubeConfigFile := filepath.Join(homedir.HomeDir(), ".kube", "config")
+	if _, err := os.Stat(kubeConfigFile); errors.Is(err, os.ErrNotExist) {
+		flags = &utils.CMDFlags{
+			Development: true,
+		}
+	} else {
+		flags = &utils.CMDFlags{
+			KubeConfig:  filepath.Join(homedir.HomeDir(), ".kube", "config"),
+			Development: true,
+		}
 	}
 
 	// Kubernetes clients.
@@ -130,6 +136,10 @@ func TestRedisFailover(t *testing.T) {
 	ok := t.Run("Check Custom Resource Creation", clients.testCRCreation)
 	require.True(ok, "the custom resource has to be created to continue")
 
+	// Check that if we create a RedisFailover, it is certainly created and we can get it
+	ok = t.Run("Check Custom Resource Creation For Auth V2", clients.testCRCreationAuthV2)
+	require.True(ok, "the custom resource has to be created to continue")
+
 	// Giving time to the operator to create the resources
 	time.Sleep(3 * time.Minute)
 
@@ -152,6 +162,17 @@ func TestRedisFailover(t *testing.T) {
 	// check that all of them are connected to the same Redis node, and also that that node
 	// is the master.
 	t.Run("Check Sentinels Checking the Redis Master", clients.testSentinelMonitoring)
+
+	// Check if user is getting created on the fly after updating CR
+	t.Run("Check User Creation at runtime", clients.testUserCreationAtRuntime)
+
+	fmt.Printf("Running password addition test")
+	// If a password is added to userspec in CR, it should be added in redis as well.
+	t.Run("Check Password addition at runtime", clients.testPasswordAdditionAtRuntime)
+
+	// If a user is deleted from CR, it should be removed from redis as well.
+	t.Run("Check User Deletion at runtime", clients.testUserDeletionAtRuntime)
+
 }
 
 func (c *clients) testCRCreation(t *testing.T) {
@@ -177,9 +198,10 @@ func (c *clients) testCRCreation(t *testing.T) {
 		},
 	}
 
-	c.rfClient.DatabasesV1().RedisFailovers(namespace).Create(context.Background(), toCreate, metav1.CreateOptions{})
-	gotRF, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	_, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Create(context.Background(), toCreate, metav1.CreateOptions{})
+	assert.NoError(err)
 
+	gotRF, err := c.rfClient.DatabasesV1().RedisFailovers(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	assert.NoError(err)
 	assert.Equal(toCreate.Spec, gotRF.Spec)
 }
@@ -264,6 +286,5 @@ func (c *clients) testAuth(t *testing.T) {
 
 	assert.Len(redisSS.Spec.Template.Spec.Containers, 2)
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Name, "REDIS_PASSWORD")
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.Key, "password")
-	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
+	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[1].Value, testPass)
 }

@@ -8,7 +8,7 @@ func GetHashedPasswordsFromRedisUserConf(userConf string) []string {
 	return passwords
 }
 
-// Returns username from a string containing userspec, in the format returned by `acl list`
+// Returns username from a string containing userspec - in the format returned by `acl list`
 func GetUsernameFromRedisUserConf(userConf string) string {
 	re := regexp.MustCompile("user ([a-z0-9A-Z-]+)")
 	matches := re.FindStringSubmatch(userConf)
