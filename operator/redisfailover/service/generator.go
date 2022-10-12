@@ -280,6 +280,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
+			Annotations:     rf.Annotations,
 			Name:            name,
 			Namespace:       namespace,
 			Labels:          labels,
