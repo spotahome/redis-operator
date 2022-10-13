@@ -18,9 +18,15 @@ spec:
     spec:
       serviceAccountName: redisoperator
       containers:
-        - image: quay.io/spotahome/redis-operator:v1.1.0
-          imagePullPolicy: IfNotPresent
+        - image: redis-operator:latest
+          args:
+          - --debug
+          imagePullPolicy: Never
           name: app
+          ports:
+            - name: metrics
+              containerPort: 9710
+              protocol: TCP
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
@@ -108,3 +114,58 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: redisoperator
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: http
+    prometheus.io/scrape: "true"
+  name: redisoperator
+  labels:
+    app: redisoperator
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9710
+    protocol: TCP
+    targetPort: metrics
+  selector:
+    app: redisoperator
+---
+
+#apiVersion: monitoring.coreos.com/v1
+#kind: ServiceMonitor
+#metadata:
+#  name: redis-operator-metrics
+#  labels:
+#    app: redisoperator
+#    release: prometheus
+#spec:
+#  selector:
+#    matchLabels:
+#      app: redisoperator
+#  endpoints:
+#  - port: metrics
+#  namespaceSelector:
+#    matchNames:
+#    - default
+#---
+#
+#
+#apiVersion: monitoring.coreos.com/v1
+#kind: PodMonitor
+#metadata:
+#  name: redisoperator
+#  labels:
+#    app: redisoperator
+#    release: prometheus
+#spec:
+#  selector:
+#    matchLabels:
+#      app: redisoperator
+#  podMetricsEndpoints:
+#  - port: metrics

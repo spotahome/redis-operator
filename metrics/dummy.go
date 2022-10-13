@@ -14,20 +14,18 @@ type dummy struct {
 	koopercontroller.MetricsRecorder
 }
 
-func (d *dummy) SetClusterOK(namespace string, name string)    {}
-func (d *dummy) SetClusterError(namespace string, name string) {}
-func (d *dummy) DeleteCluster(namespace string, name string)   {}
-func (d *dummy) IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
-}
-func (d *dummy) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
-}
+func (d *dummy) SetClusterOK(namespace string, name string)               {}
+func (d *dummy) SetClusterError(namespace string, name string)            {}
+func (d *dummy) DeleteCluster(namespace string, name string)              {}
 func (d *dummy) SetRedisInstance(IP string, masterIP string, role string) {}
 func (d *dummy) ResetRedisInstance()                                      {}
-func (d *dummy) IncrRedisUnhealthyCount(namespace string, resource string, indicator string, instance string) {
+func (d *dummy) RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string) {
 }
-func (d *dummy) IncrSentinelUnhealthyCount(namespace string, resource string, indicator string, instance string) {
+func (d *dummy) RecordRedisCheck(namespace string, resource string, indicator string, instance string, status string) {
+}
+func (d *dummy) RecordSentinelCheck(namespace string, resource string, indicator string, instance string, status string) {
 }
 func (d dummy) RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string) {
 }
-func (d dummy) RecordRedisOperation(kind /*redis/sentinel? */ string, IP string, operation string, status string, err string) {
+func (d dummy) RecordRedisOperation(kind string, IP string, operation string, status string, err string) {
 }

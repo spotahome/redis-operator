@@ -14,6 +14,8 @@ const (
 const (
 	SUCCESS                                = "SUCCESS"
 	FAIL                                   = "FAIL"
+	STATUS_HEALTHY                         = "HEALTHY"
+	STATUS_UNHEALTHY                       = "UNHEALTHY"
 	NOT_APPLICABLE                         = "NA"
 	UNHEALTHY                              = 1.0
 	HEALTHY                                = 0.0
@@ -64,64 +66,28 @@ type Recorder interface {
 	SetClusterError(namespace string, name string)
 	DeleteCluster(namespace string, name string)
 
-	// Indicate if `ensure` operation succeeded
-	IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string)
-	// Indicate if `ensure` operation failed
-	IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string)
-
 	// Indicate redis instances being monitored
 	SetRedisInstance(IP string, masterIP string, role string)
-	ResetRedisInstance()
+	RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string)
 
-	IncrRedisUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string)
-	IncrSentinelUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string)
+	RecordRedisCheck(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string, status string)
+	RecordSentinelCheck(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string, status string)
 
 	RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string)
-
-	RecordRedisOperation(kind /*redis/sentinel? */ string, IP string, operation string, status string, err string)
+	RecordRedisOperation(kind string, IP string, operation string, status string, err string)
 }
 
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
 type recorder struct {
 	// Metrics fields.
 	clusterOK             *prometheus.GaugeVec   // clusterOk is the status of a cluster
-	ensureResourceSuccess *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
+	ensureResource        *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
 	ensureResourceFailure *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
 	redisInstance         *prometheus.GaugeVec   // indicates known redis instances, with IPs and master/slave status
-	redisUnhealthy        *prometheus.CounterVec // indicates any error encountered in managed redis instance(s)
-	sentinelUnhealthy     *prometheus.CounterVec // indicates any error encountered in managed sentinel instance(s)
+	redisCheck            *prometheus.CounterVec // indicates any error encountered in managed redis instance(s)
+	sentinelCheck         *prometheus.CounterVec // indicates any error encountered in managed sentinel instance(s)
 	k8sServiceOperations  *prometheus.CounterVec // number of operations performed on k8s
 	redisOperations       *prometheus.CounterVec // number of operations performed on redis/sentinel instances
-	koopercontroller.MetricsRecorder
-}
-
-type ensureResourceSuccessRecorder struct {
-	ensureResourceSuccess *prometheus.CounterVec
-	koopercontroller.MetricsRecorder
-}
-
-type ensureResourceFailureRecorder struct {
-	ensureResourceSuccess *prometheus.CounterVec
-	koopercontroller.MetricsRecorder
-}
-
-type redisInstanceRecorder struct {
-	ensureResourceSuccess *prometheus.GaugeVec
-	koopercontroller.MetricsRecorder
-}
-
-type k8sServiceOperationsRecorder struct {
-	operations *prometheus.CounterVec
-	koopercontroller.MetricsRecorder
-}
-
-type k8sServiceerrorRecorder struct {
-	errors *prometheus.CounterVec
-	koopercontroller.MetricsRecorder
-}
-
-type redisHealthRecorder struct {
-	redisUnhealthy *prometheus.CounterVec
 	koopercontroller.MetricsRecorder
 }
 
@@ -135,12 +101,12 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		Help:      "Number of failover clusters managed by the operator.",
 	}, []string{"namespace", "name"})
 
-	ensureResourceSuccess := prometheus.NewCounterVec(prometheus.CounterOpts{
+	ensureResource := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "ensure_resource_success",
+		Name:      "ensure_resource",
 		Help:      "number of successful 'ensure' operations on a resource performed by the controller.",
-	}, []string{"object_namespace", "object_name", "object_kind", "resource_name"})
+	}, []string{"object_namespace", "object_name", "object_kind", "resource_name", "status"})
 
 	ensureResourceFailure := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
@@ -156,19 +122,19 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		Help:      "redis instances discovered. IPs of redis instances, and Master/Slave role as indicators in the labels.",
 	}, []string{"IP", "MasterIP", "role"})
 
-	redisUnhealthy := prometheus.NewCounterVec(prometheus.CounterOpts{
+	redisCheck := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "redis_unhealthy",
+		Name:      "redis_check",
 		Help:      "indicates any error encountered in managed redis instance(s)",
-	}, []string{"namespace", "resource", "indicator", "instance"})
+	}, []string{"namespace", "resource", "indicator", "instance", "status"})
 
-	sentinelUnhealthy := prometheus.NewCounterVec(prometheus.CounterOpts{
+	sentinelCheck := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "sentinel_unhealthy",
+		Name:      "sentinel_check",
 		Help:      "indicates any error encountered in managed sentinel instance(s)",
-	}, []string{"namespace", "resource", "indicator", "instance"})
+	}, []string{"namespace", "resource", "indicator", "instance", "status"})
 
 	redisOperations := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -188,11 +154,11 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	// Create the instance.
 	r := recorder{
 		clusterOK:             clusterOK,
-		ensureResourceSuccess: ensureResourceSuccess,
+		ensureResource:        ensureResource,
 		ensureResourceFailure: ensureResourceFailure,
 		redisInstance:         redisInstance,
-		redisUnhealthy:        redisUnhealthy,
-		sentinelUnhealthy:     sentinelUnhealthy,
+		redisCheck:            redisCheck,
+		sentinelCheck:         sentinelCheck,
 		k8sServiceOperations:  k8sServiceOperations,
 		redisOperations:       redisOperations,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
@@ -203,11 +169,11 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	// Register metrics.
 	reg.MustRegister(
 		r.clusterOK,
-		r.ensureResourceSuccess,
+		r.ensureResource,
 		r.ensureResourceFailure,
 		r.redisInstance,
-		r.redisUnhealthy,
-		r.sentinelUnhealthy,
+		r.redisCheck,
+		r.sentinelCheck,
 		r.k8sServiceOperations,
 		r.redisOperations,
 	)
@@ -230,28 +196,20 @@ func (r recorder) DeleteCluster(namespace string, name string) {
 	r.clusterOK.DeleteLabelValues(namespace, name)
 }
 
-func (r recorder) IncrEnsureResourceSuccessCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
-	r.ensureResourceSuccess.WithLabelValues(objectNamespace, objectName, objectKind, resourceName).Add(1)
-}
-
-func (r recorder) IncrEnsureResourceFailureCount(objectNamespace string, objectName string, objectKind string, resourceName string) {
-	r.ensureResourceSuccess.WithLabelValues(objectNamespace, objectName, objectKind, resourceName).Add(1)
-}
-
 func (r recorder) SetRedisInstance(IP string, masterIP string, role string) {
 	r.redisInstance.WithLabelValues(IP, masterIP, role).Set(1)
 }
 
-func (r recorder) ResetRedisInstance() {
-	r.redisInstance.Reset()
+func (r recorder) RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string) {
+	r.ensureResource.WithLabelValues(objectNamespace, objectName, objectKind, resourceName, status).Add(1)
 }
 
-func (r recorder) IncrRedisUnhealthyCount(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string) {
-	r.redisUnhealthy.WithLabelValues(namespace, resource, indicator, instance).Add(1)
+func (r recorder) RecordRedisCheck(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string, status string) {
+	r.redisCheck.WithLabelValues(namespace, resource, indicator, instance, status).Add(1)
 }
 
-func (r recorder) IncrSentinelUnhealthyCount(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string) {
-	r.sentinelUnhealthy.WithLabelValues(namespace, resource, indicator, instance).Add(1)
+func (r recorder) RecordSentinelCheck(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string, status string) {
+	r.sentinelCheck.WithLabelValues(namespace, resource, indicator, instance, status).Add(1)
 }
 
 func (r recorder) RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string) {

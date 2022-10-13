@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: http
+    prometheus.io/scrape: "true"
+  name: redisoperator
+  labels:
+    app: redisoperator
+  namespace: redis-failover
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9710
+    protocol: TCP
+    targetPort: metrics
+  selector:
+    app: redisoperator

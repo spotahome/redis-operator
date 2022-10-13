@@ -174,8 +174,8 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 
 func (r *RedisFailoverKubeClient) setEnsureOperationMetrics(objectNamespace string, objectName string, objectKind string, ownerName string, err error) error {
 	if nil != err {
-		r.metricsClient.IncrEnsureResourceFailureCount(objectNamespace, objectName, objectKind, ownerName)
+		r.metricsClient.RecordEnsureOperation(objectNamespace, objectName, objectKind, ownerName, metrics.FAIL)
 	}
-	r.metricsClient.IncrEnsureResourceSuccessCount(objectNamespace, objectName, objectKind, ownerName)
+	r.metricsClient.RecordEnsureOperation(objectNamespace, objectName, objectKind, ownerName, metrics.SUCCESS)
 	return err
 }

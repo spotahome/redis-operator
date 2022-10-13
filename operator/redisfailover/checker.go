@@ -101,14 +101,19 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	// All sentinels points to the same redis master
 	// Sentinel has not death nodes
 	// Sentinel knows the correct slave number
-	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+
+	err := r.rfChecker.CheckRedisNumber(rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
+	if err != nil {
 		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
-		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)
 		return nil
 	}
-	if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
+	r.mClient.RecordRedisCheck(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, metrics.STATUS_HEALTHY)
+
+	err = r.rfChecker.CheckSentinelNumber(rf)
+	setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
+	if err != nil {
 		r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
-		r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE)
 		return nil
 	}
 
@@ -118,7 +123,7 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	}
 	switch nMasters {
 	case 0:
-		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE)
+		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, errors.New("No masters detected"))
 		redisesIP, err := r.rfChecker.GetRedisesIPs(rf)
 		if err != nil {
 			return err
@@ -145,9 +150,10 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 			return nil
 		}
 	case 1:
+		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, nil)
 		break
 	default:
-		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE)
+		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, errors.New("Multiple masters detected"))
 		return errors.New("More than one master, fix manually")
 	}
 
@@ -155,15 +161,19 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	if err != nil {
 		return err
 	}
-	if err2 := r.rfChecker.CheckAllSlavesFromMaster(master, rf); err2 != nil {
-		r.mClient.IncrRedisUnhealthyCount(rf.Namespace, rf.Name, metrics.SLAVE_WRONG_MASTER, metrics.NOT_APPLICABLE)
+
+	err2 := r.rfChecker.CheckAllSlavesFromMaster(master, rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.SLAVE_WRONG_MASTER, metrics.NOT_APPLICABLE, err)
+	if err2 != nil {
 		r.logger.Debug("Not all slaves have the same master")
 		if err3 := r.rfHealer.SetMasterOnAll(master, rf); err3 != nil {
 			return err3
 		}
 	}
 
-	if err := r.applyRedisCustomConfig(rf); err != nil {
+	err = r.applyRedisCustomConfig(rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.APPLY_REDIS_CONFIG, metrics.NOT_APPLICABLE, err)
+	if err != nil {
 		return err
 	}
 
@@ -179,8 +189,9 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, sip := range sentinels {
-		if err := r.rfChecker.CheckSentinelMonitor(sip, master, port); err != nil {
-			r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip)
+		err = r.rfChecker.CheckSentinelMonitor(sip, master, port)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, sip, metrics.NOT_APPLICABLE, err)
+		if err != nil {
 			r.logger.Debug("Sentinel is not monitoring the correct master")
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
@@ -192,17 +203,20 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 }
 
 func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
-	if err := r.rfChecker.CheckRedisNumber(rf); err != nil {
+	err := r.rfChecker.CheckRedisNumber(rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
+	if err != nil {
 		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
 		return nil
 	}
 
-	err := r.UpdateRedisesPods(rf)
+	err = r.UpdateRedisesPods(rf)
 	if err != nil {
 		return err
 	}
-
-	if err := r.applyRedisCustomConfig(rf); err != nil {
+	err = r.applyRedisCustomConfig(rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.APPLY_REDIS_CONFIG, metrics.NOT_APPLICABLE, err)
+	if err != nil {
 		return err
 	}
 
@@ -212,8 +226,9 @@ func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.Red
 	}
 
 	if rf.SentinelsAllowed() {
-		if err := r.rfChecker.CheckSentinelNumber(rf); err != nil {
-			r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
+		err = r.rfChecker.CheckSentinelNumber(rf)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
+		if err != nil {
 			return nil
 		}
 
@@ -222,7 +237,9 @@ func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.Red
 			return err
 		}
 		for _, sip := range sentinels {
-			if err := r.rfChecker.CheckSentinelMonitor(sip, bootstrapSettings.Host, bootstrapSettings.Port); err != nil {
+			err = r.rfChecker.CheckSentinelMonitor(sip, bootstrapSettings.Host, bootstrapSettings.Port)
+			setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip, err)
+			if err != nil {
 				r.logger.Debug("Sentinel is not monitoring the correct master")
 				if err := r.rfHealer.NewSentinelMonitorWithPort(sip, bootstrapSettings.Host, bootstrapSettings.Port, rf); err != nil {
 					return err
@@ -249,25 +266,30 @@ func (r *RedisFailoverHandler) applyRedisCustomConfig(rf *redisfailoverv1.RedisF
 
 func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFailover, sentinels []string) error {
 	for _, sip := range sentinels {
-		if err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf); err != nil {
-			r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.SENTINEL_NUMBER_IN_MEMORY_MISMATCH, metrics.NOT_APPLICABLE)
+		err := r.rfChecker.CheckSentinelNumberInMemory(sip, rf)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_NUMBER_IN_MEMORY_MISMATCH, sip, err)
+		if err != nil {
 			r.logger.Debug("Sentinel has more sentinel in memory than spected")
 			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
 				return err
 			}
 		}
+
 	}
 	for _, sip := range sentinels {
-		if err := r.rfChecker.CheckSentinelSlavesNumberInMemory(sip, rf); err != nil {
+		err := r.rfChecker.CheckSentinelSlavesNumberInMemory(sip, rf)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.REDIS_SLAVES_NUMBER_IN_MEMORY_MISMATCH, sip, err)
+		if err != nil {
 			r.logger.Debug("Sentinel has more slaves in memory than spected")
 			if err := r.rfHealer.RestoreSentinel(sip); err != nil {
-				r.mClient.IncrSentinelUnhealthyCount(rf.Namespace, rf.Name, metrics.REDIS_SLAVES_NUMBER_IN_MEMORY_MISMATCH, metrics.NOT_APPLICABLE)
 				return err
 			}
 		}
 	}
 	for _, sip := range sentinels {
-		if err := r.rfHealer.SetSentinelCustomConfig(sip, rf); err != nil {
+		err := r.rfHealer.SetSentinelCustomConfig(sip, rf)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.APPLY_SENTINEL_CONFIG, sip, err)
+		if err != nil {
 			return err
 		}
 	}
@@ -276,4 +298,21 @@ func (r *RedisFailoverHandler) checkAndHealSentinels(rf *redisfailoverv1.RedisFa
 
 func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
+}
+
+func setRedisCheckerMetrics(metricsClient metrics.Recorder, mode /* redis or sentinel? */ string, rfNamespace string, rfName string, property string, IP string, err error) {
+	if mode == "sentinel" {
+		if err != nil {
+			metricsClient.RecordSentinelCheck(rfNamespace, rfName, property, IP, metrics.STATUS_UNHEALTHY)
+		} else {
+			metricsClient.RecordSentinelCheck(rfNamespace, rfName, property, IP, metrics.STATUS_HEALTHY)
+		}
+
+	} else if mode == "redis" {
+		if err != nil {
+			metricsClient.RecordRedisCheck(rfNamespace, rfName, property, IP, metrics.STATUS_UNHEALTHY)
+		} else {
+			metricsClient.RecordRedisCheck(rfNamespace, rfName, property, IP, metrics.STATUS_HEALTHY)
+		}
+	}
 }

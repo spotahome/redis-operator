@@ -3,7 +3,10 @@ package redisfailover
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
+	"runtime/debug"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,6 +85,14 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 	}
 
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
+
+	// ---------------------
+	file, err := os.Create("/tmp/" + fmt.Sprintf("%v", time.Now().Second()) + ".dump")
+	if err != nil {
+		log.Error(err)
+	}
+	debug.WriteHeapDump(file.Fd())
+
 	return nil
 }
 
