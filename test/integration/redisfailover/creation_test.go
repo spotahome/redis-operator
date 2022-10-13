@@ -81,7 +81,7 @@ func TestRedisFailover(t *testing.T) {
 	require.NoError(err)
 
 	// Create the redis clients
-	redisClient := redis.New()
+	redisClient := redis.New(metrics.Dummy)
 
 	clients := clients{
 		k8sClient:   k8sClient,
@@ -91,7 +91,7 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy, metrics.Dummy)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
