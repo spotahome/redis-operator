@@ -28,7 +28,6 @@ func (r *RedisFailover) Validate() error {
 	} else {
 		r.Spec.Redis.CustomConfig = deduplicateStr(append(defaultRedisCustomConfig, r.Spec.Redis.CustomConfig...))
 	}
-
 	if r.Spec.Redis.Image == "" {
 		r.Spec.Redis.Image = defaultImage
 	}
