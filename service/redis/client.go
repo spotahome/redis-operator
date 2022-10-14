@@ -341,6 +341,10 @@ func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, 
 		if err != nil {
 			return err
 		}
+		// If the configuration is an empty line , it will result in an incorrect configSet, which will not run properly down the line.
+		if strings.TrimSpace(param) == "" || strings.TrimSpace(value) == "" {
+			continue
+		}
 		if err := c.applyRedisConfig(param, value, rClient); err != nil {
 			return err
 		}
@@ -373,6 +377,9 @@ func (c *client) getConfigParameters(config string) (parameter string, value str
 	s := strings.Split(config, " ")
 	if len(s) < 2 {
 		return "", "", fmt.Errorf("configuration '%s' malformed", config)
+	}
+	if len(s) == 2 && s[1] == `""` {
+		return s[0], "", nil
 	}
 	return s[0], strings.Join(s[1:], " "), nil
 }
