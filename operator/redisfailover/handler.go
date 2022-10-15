@@ -82,7 +82,6 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 	}
 
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
-
 	return nil
 }
 

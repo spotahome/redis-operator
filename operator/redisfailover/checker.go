@@ -108,7 +108,6 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		r.logger.Debug("Number of redis mismatch, this could be for a change on the statefulset")
 		return nil
 	}
-	r.mClient.RecordRedisCheck(rf.Namespace, rf.Name, metrics.REDIS_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, metrics.STATUS_HEALTHY)
 
 	err = r.rfChecker.CheckSentinelNumber(rf)
 	setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
@@ -189,14 +188,13 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, sip := range sentinels {
 		err = r.rfChecker.CheckSentinelMonitor(sip, master, port)
-		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, sip, metrics.NOT_APPLICABLE, err)
+		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_WRONG_MASTER, sip, err)
 		if err != nil {
 			r.logger.Debug("Sentinel is not monitoring the correct master")
 			if err := r.rfHealer.NewSentinelMonitor(sip, master, rf); err != nil {
 				return err
 			}
 		}
-
 	}
 	return r.checkAndHealSentinels(rf, sentinels)
 }
