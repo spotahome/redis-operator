@@ -120,6 +120,6 @@ func (d *DeploymentService) DeleteDeployment(namespace, name string) error {
 // ListDeployments will give all the deployments on a given namespace
 func (d *DeploymentService) ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	deployments, err := d.kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
-	recordMetrics(namespace, "Deployment", metrics.NOT_APPLICABLE, "DELETE", err, d.metricsRecorder)
+	recordMetrics(namespace, "Deployment", metrics.NOT_APPLICABLE, "LIST", err, d.metricsRecorder)
 	return deployments, err
 }

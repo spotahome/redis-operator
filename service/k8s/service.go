@@ -61,7 +61,6 @@ func (s *ServiceService) CreateService(namespace string, service *corev1.Service
 }
 
 func (s *ServiceService) CreateIfNotExistsService(namespace string, service *corev1.Service) error {
-	log.Debugf("trying to get %v service in %v namespace... ", service.GetName(), namespace)
 	if _, err := s.GetService(namespace, service.Name); err != nil {
 		// If no resource we need to create.
 		if errors.IsNotFound(err) {

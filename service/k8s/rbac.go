@@ -110,7 +110,7 @@ func (r *RBACService) CreateOrUpdateRole(namespace string, role *rbacv1.Role) er
 
 func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
 	err := r.kubeClient.RbacV1().RoleBindings(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	recordMetrics(namespace, "Role", name, "DELETE", err, r.metricsRecorder)
+	recordMetrics(namespace, "RoleBinding", name, "DELETE", err, r.metricsRecorder)
 	if err != nil {
 		return err
 	}
