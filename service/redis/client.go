@@ -342,7 +342,8 @@ func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, 
 			return err
 		}
 		// If the configuration is an empty line , it will result in an incorrect configSet, which will not run properly down the line.
-		if strings.TrimSpace(param) == "" || strings.TrimSpace(value) == "" {
+		// `config set save ""` should support
+		if strings.TrimSpace(param) == "" {
 			continue
 		}
 		if err := c.applyRedisConfig(param, value, rClient); err != nil {
