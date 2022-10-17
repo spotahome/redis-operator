@@ -226,6 +226,7 @@ func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.Red
 		err = r.rfChecker.CheckSentinelNumber(rf)
 		setRedisCheckerMetrics(r.mClient, "sentinel", rf.Namespace, rf.Name, metrics.SENTINEL_REPLICA_MISMATCH, metrics.NOT_APPLICABLE, err)
 		if err != nil {
+			r.logger.Debug("Number of sentinel mismatch, this could be for a change on the deployment")
 			return nil
 		}
 
