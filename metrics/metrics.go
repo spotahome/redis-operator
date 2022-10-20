@@ -57,6 +57,11 @@ const (
 	SLAVE_IS_READY              = "CHECK_IF_SLAVE_IS_READY"
 )
 
+var ( // Used for GCing stale metrics
+	trackedIPs       map[string]bool                       // IPs of either redis or sentinels that are being labelled every check and heal loop
+	trackedResources map[string]map[string]map[string]bool // namespace -> kind -> object
+)
+
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
 type Recorder interface {
 	koopercontroller.MetricsRecorder
@@ -67,7 +72,6 @@ type Recorder interface {
 	DeleteCluster(namespace string, name string)
 
 	// Indicate redis instances being monitored
-	SetRedisInstance(IP string, masterIP string, role string)
 	RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string)
 
 	RecordRedisCheck(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string, status string)
@@ -80,14 +84,12 @@ type Recorder interface {
 // PromMetrics implements the instrumenter so the metrics can be managed by Prometheus.
 type recorder struct {
 	// Metrics fields.
-	clusterOK             *prometheus.GaugeVec   // clusterOk is the status of a cluster
-	ensureResource        *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
-	ensureResourceFailure *prometheus.CounterVec // number of failed "ensure" operators performed by the controller.
-	redisInstance         *prometheus.GaugeVec   // indicates known redis instances, with IPs and master/slave status
-	redisCheck            *prometheus.CounterVec // indicates any error encountered in managed redis instance(s)
-	sentinelCheck         *prometheus.CounterVec // indicates any error encountered in managed sentinel instance(s)
-	k8sServiceOperations  *prometheus.CounterVec // number of operations performed on k8s
-	redisOperations       *prometheus.CounterVec // number of operations performed on redis/sentinel instances
+	clusterOK            *prometheus.GaugeVec   // clusterOk is the status of a cluster
+	ensureResource       *prometheus.CounterVec // number of successful "ensure" operators performed by the controller.
+	redisCheck           *prometheus.CounterVec // indicates any error encountered in managed redis instance(s)
+	sentinelCheck        *prometheus.CounterVec // indicates any error encountered in managed sentinel instance(s)
+	k8sServiceOperations *prometheus.CounterVec // number of operations performed on k8s
+	redisOperations      *prometheus.CounterVec // number of operations performed on redis/sentinel instances
 	koopercontroller.MetricsRecorder
 }
 
@@ -104,35 +106,21 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	ensureResource := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "ensure_resource",
-		Help:      "number of successful 'ensure' operations on a resource performed by the controller.",
+		Name:      "ensure_resource_total",
+		Help:      "number of 'ensure' operations on a resource performed by the controller.",
 	}, []string{"object_namespace", "object_name", "object_kind", "resource_name", "status"})
-
-	ensureResourceFailure := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: promControllerSubsystem,
-		Name:      "ensure_resource_failure",
-		Help:      "number of failed 'ensure' operations on a resource performed by the controller.",
-	}, []string{"object_namespace", "object_name", "object_kind", "resource_name"})
-
-	redisInstance := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Subsystem: promControllerSubsystem,
-		Name:      "redis_instance_info",
-		Help:      "redis instances discovered. IPs of redis instances, and Master/Slave role as indicators in the labels.",
-	}, []string{"IP", "MasterIP", "role"})
 
 	redisCheck := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "redis_check",
+		Name:      "redis_checks_total",
 		Help:      "indicates any error encountered in managed redis instance(s)",
 	}, []string{"namespace", "resource", "indicator", "instance", "status"})
 
 	sentinelCheck := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: promControllerSubsystem,
-		Name:      "sentinel_check",
+		Name:      "sentinel_checks_total",
 		Help:      "indicates any error encountered in managed sentinel instance(s)",
 	}, []string{"namespace", "resource", "indicator", "instance", "status"})
 
@@ -140,7 +128,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: promControllerSubsystem,
-			Name:      "redis_operations",
+			Name:      "redis_operations_total",
 			Help:      "number of operations performed on redis",
 		}, []string{"kind" /* redis/sentinel? */, "IP", "operation", "status", "err"})
 
@@ -148,19 +136,17 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: promControllerSubsystem,
-			Name:      "k8s_operations",
+			Name:      "k8s_operations_total",
 			Help:      "number of operations performed on k8s",
 		}, []string{"namespace", "kind", "object", "operation", "status", "err"})
 	// Create the instance.
 	r := recorder{
-		clusterOK:             clusterOK,
-		ensureResource:        ensureResource,
-		ensureResourceFailure: ensureResourceFailure,
-		redisInstance:         redisInstance,
-		redisCheck:            redisCheck,
-		sentinelCheck:         sentinelCheck,
-		k8sServiceOperations:  k8sServiceOperations,
-		redisOperations:       redisOperations,
+		clusterOK:            clusterOK,
+		ensureResource:       ensureResource,
+		redisCheck:           redisCheck,
+		sentinelCheck:        sentinelCheck,
+		k8sServiceOperations: k8sServiceOperations,
+		redisOperations:      redisOperations,
 		MetricsRecorder: kooperprometheus.New(kooperprometheus.Config{
 			Registerer: reg,
 		}),
@@ -170,8 +156,6 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 	reg.MustRegister(
 		r.clusterOK,
 		r.ensureResource,
-		r.ensureResourceFailure,
-		r.redisInstance,
 		r.redisCheck,
 		r.sentinelCheck,
 		r.k8sServiceOperations,
@@ -194,10 +178,6 @@ func (r recorder) SetClusterError(namespace string, name string) {
 // DeleteCluster set the cluster status to Error
 func (r recorder) DeleteCluster(namespace string, name string) {
 	r.clusterOK.DeleteLabelValues(namespace, name)
-}
-
-func (r recorder) SetRedisInstance(IP string, masterIP string, role string) {
-	r.redisInstance.WithLabelValues(IP, masterIP, role).Set(1)
 }
 
 func (r recorder) RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string) {
