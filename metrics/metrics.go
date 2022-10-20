@@ -57,11 +57,6 @@ const (
 	SLAVE_IS_READY              = "CHECK_IF_SLAVE_IS_READY"
 )
 
-var ( // Used for GCing stale metrics
-	trackedIPs       map[string]bool                       // IPs of either redis or sentinels that are being labelled every check and heal loop
-	trackedResources map[string]map[string]map[string]bool // namespace -> kind -> object
-)
-
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
 type Recorder interface {
 	koopercontroller.MetricsRecorder
