@@ -173,12 +173,12 @@ func (c *client) GetSlaveOf(ip, port, password string) (string, error) {
 	info, err := rClient.Info(context.TODO(), "replication").Result()
 	if err != nil {
 		c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.GET_SLAVE_OF, metrics.FAIL, getRedisError(err))
+		log.Errorf("error while getting masterIP : Failed to get info replication while querying redis instance %v", ip)
 		return "", err
 	}
 	match := redisMasterHostRE.FindStringSubmatch(info)
 	if len(match) == 0 {
-		c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.GET_SLAVE_OF, metrics.FAIL, metrics.REGEX_NOT_FOUND)
-		log.Errorf("error while getting masterIP : No match for for %v while querying redis instance %v for replication info", redisMasterHostREString, ip)
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.GET_SLAVE_OF, metrics.SUCCESS, metrics.NOT_APPLICABLE)
 		return "", nil
 	}
 	c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.GET_SLAVE_OF, metrics.SUCCESS, metrics.NOT_APPLICABLE)
