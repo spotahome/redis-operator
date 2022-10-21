@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 
@@ -46,7 +47,7 @@ func TestSecretServiceGet(t *testing.T) {
 		assert.NoError(err)
 
 		// test getting the secret
-		service := NewSecretService(mcli, log.Dummy)
+		service := NewSecretService(mcli, log.Dummy, metrics.Dummy)
 		ss, err := service.GetSecret(secret.ObjectMeta.Namespace, secret.ObjectMeta.Name)
 		assert.NotNil(ss)
 		assert.NoError(err)

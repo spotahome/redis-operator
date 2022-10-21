@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // ConfigMap the ServiceAccount service that knows how to interact with k8s to manage them
@@ -23,21 +24,24 @@ type ConfigMap interface {
 
 // ConfigMapService is the configMap service implementation using API calls to kubernetes.
 type ConfigMapService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewConfigMapService returns a new ConfigMap KubeService.
-func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger) *ConfigMapService {
+func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ConfigMapService {
 	logger = logger.With("service", "k8s.configMap")
 	return &ConfigMapService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *ConfigMapService) GetConfigMap(namespace string, name string) (*corev1.ConfigMap, error) {
 	configMap, err := p.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "ConfigMap", name, "GET", err, p.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +50,7 @@ func (p *ConfigMapService) GetConfigMap(namespace string, name string) (*corev1.
 
 func (p *ConfigMapService) CreateConfigMap(namespace string, configMap *corev1.ConfigMap) error {
 	_, err := p.kubeClient.CoreV1().ConfigMaps(namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	recordMetrics(namespace, "ConfigMap", configMap.GetName(), "CREATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -54,6 +59,7 @@ func (p *ConfigMapService) CreateConfigMap(namespace string, configMap *corev1.C
 }
 func (p *ConfigMapService) UpdateConfigMap(namespace string, configMap *corev1.ConfigMap) error {
 	_, err := p.kubeClient.CoreV1().ConfigMaps(namespace).Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	recordMetrics(namespace, "ConfigMap", configMap.GetName(), "UPDATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -79,9 +85,13 @@ func (p *ConfigMapService) CreateOrUpdateConfigMap(namespace string, configMap *
 }
 
 func (p *ConfigMapService) DeleteConfigMap(namespace string, name string) error {
-	return p.kubeClient.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err := p.kubeClient.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	recordMetrics(namespace, "ConfigMap", name, "DELETE", err, p.metricsRecorder)
+	return err
 }
 
 func (p *ConfigMapService) ListConfigMaps(namespace string) (*corev1.ConfigMapList, error) {
-	return p.kubeClient.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{})
+	objects, err := p.kubeClient.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{})
+	recordMetrics(namespace, "ConfigMap", metrics.NOT_APPLICABLE, "LIST", err, p.metricsRecorder)
+	return objects, err
 }

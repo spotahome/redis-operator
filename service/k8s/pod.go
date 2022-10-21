@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // Pod the ServiceAccount service that knows how to interact with k8s to manage them
@@ -27,21 +28,24 @@ type Pod interface {
 
 // PodService is the pod service implementation using API calls to kubernetes.
 type PodService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewPodService returns a new Pod KubeService.
-func NewPodService(kubeClient kubernetes.Interface, logger log.Logger) *PodService {
+func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodService {
 	logger = logger.With("service", "k8s.pod")
 	return &PodService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *PodService) GetPod(namespace string, name string) (*corev1.Pod, error) {
 	pod, err := p.kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "Pod", name, "GET", err, p.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +54,7 @@ func (p *PodService) GetPod(namespace string, name string) (*corev1.Pod, error) 
 
 func (p *PodService) CreatePod(namespace string, pod *corev1.Pod) error {
 	_, err := p.kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+	recordMetrics(namespace, "Pod", pod.GetName(), "CREATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -58,6 +63,7 @@ func (p *PodService) CreatePod(namespace string, pod *corev1.Pod) error {
 }
 func (p *PodService) UpdatePod(namespace string, pod *corev1.Pod) error {
 	_, err := p.kubeClient.CoreV1().Pods(namespace).Update(context.TODO(), pod, metav1.UpdateOptions{})
+	recordMetrics(namespace, "Pod", pod.GetName(), "UPDATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -83,14 +89,18 @@ func (p *PodService) CreateOrUpdatePod(namespace string, pod *corev1.Pod) error 
 }
 
 func (p *PodService) DeletePod(namespace string, name string) error {
-	return p.kubeClient.CoreV1().Pods(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err := p.kubeClient.CoreV1().Pods(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	recordMetrics(namespace, "Pod", name, "DELETE", err, p.metricsRecorder)
+	return err
 }
 
 func (p *PodService) ListPods(namespace string) (*corev1.PodList, error) {
-	return p.kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := p.kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	recordMetrics(namespace, "Pod", metrics.NOT_APPLICABLE, "LIST", err, p.metricsRecorder)
+	return pods, err
 }
 
-//PatchStringValue specifies a patch operation for a string.
+// PatchStringValue specifies a patch operation for a string.
 type PatchStringValue struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
@@ -112,6 +122,7 @@ func (p *PodService) UpdatePodLabels(namespace, podName string, labels map[strin
 	payloadBytes, _ := json.Marshal(payloads)
 
 	_, err := p.kubeClient.CoreV1().Pods(namespace).Patch(context.TODO(), podName, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	recordMetrics(namespace, "Pod", podName, "PATCH", err, p.metricsRecorder)
 	if err != nil {
 		p.logger.Errorf("Update pod labels failed, namespace: %s, pod name: %s, error: %v", namespace, podName, err)
 	}
