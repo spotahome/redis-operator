@@ -82,12 +82,12 @@ func (s *ServiceService) UpdateService(namespace string, service *corev1.Service
 }
 func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1.Service) error {
 	storedService, err := s.GetService(namespace, service.Name)
-	log.Errorf("Error while getting service %v in %v namespace : %v", service.GetName(), namespace, err)
 	if err != nil {
 		// If no resource we need to create.
 		if errors.IsNotFound(err) {
 			return s.CreateService(namespace, service)
 		}
+		log.Errorf("Error while updating service %v in %v namespace : %v", service.GetName(), namespace, err)
 		return err
 	}
 
