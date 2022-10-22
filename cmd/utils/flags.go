@@ -11,11 +11,13 @@ import (
 // CMDFlags are the flags used by the cmd
 // TODO: improve flags.
 type CMDFlags struct {
-	KubeConfig  string
-	Development bool
-	Debug       bool
-	ListenAddr  string
-	MetricsPath string
+	KubeConfig          string
+	Development         bool
+	Debug               bool
+	ListenAddr          string
+	MetricsPath         string
+	K8sQueriesPerSecond int
+	K8sQueriesBurstable int
 }
 
 // Init initializes and parse the flags
@@ -27,7 +29,8 @@ func (c *CMDFlags) Init() {
 	flag.BoolVar(&c.Debug, "debug", false, "enable debug mode")
 	flag.StringVar(&c.ListenAddr, "listen-address", ":9710", "Address to listen on for metrics.")
 	flag.StringVar(&c.MetricsPath, "metrics-path", "/metrics", "Path to serve the metrics.")
-
+	flag.IntVar(&c.K8sQueriesPerSecond, "k8s-cli-qps-limit", 100, "Number of allowed queries per second by kubernetes client without client side throttling")
+	flag.IntVar(&c.K8sQueriesPerSecond, "k8s-cli-burstable-limit", 100, "Number of allowed burst requests by kubernetes client without client side throttling")
 	// Parse flags
 	flag.Parse()
 }
