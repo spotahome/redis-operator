@@ -6,7 +6,7 @@
 image:
   repository: quay.io/spotahome/redis-operator
   pullPolicy: IfNotPresent
-  tag: v1.2.1
+  tag: v1.2.2
 
 imageCredentials:
   create: false
@@ -20,6 +20,8 @@ imageCredentials:
 
 updateStrategy:
   type: RollingUpdate
+
+replicas: 1
 
 # A name in place of the chart name for `app:` labels.
 nameOverride: ""

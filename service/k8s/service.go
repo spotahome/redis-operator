@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // Service the ServiceAccount service that knows how to interact with k8s to manage them
@@ -24,22 +25,26 @@ type Service interface {
 
 // ServiceService is the service service implementation using API calls to kubernetes.
 type ServiceService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewServiceService returns a new Service KubeService.
-func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger) *ServiceService {
+func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ServiceService {
 	logger = logger.With("service", "k8s.service")
 	return &ServiceService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (s *ServiceService) GetService(namespace string, name string) (*corev1.Service, error) {
 	service, err := s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "Service", name, "GET", err, s.metricsRecorder)
 	if err != nil {
+		log.Errorf("Error while getting service %v in %v namespace : %v", name, namespace, err)
 		return nil, err
 	}
 	return service, err
@@ -47,6 +52,7 @@ func (s *ServiceService) GetService(namespace string, name string) (*corev1.Serv
 
 func (s *ServiceService) CreateService(namespace string, service *corev1.Service) error {
 	_, err := s.kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+	recordMetrics(namespace, "Service", service.GetName(), "CREATE", err, s.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -67,6 +73,7 @@ func (s *ServiceService) CreateIfNotExistsService(namespace string, service *cor
 
 func (s *ServiceService) UpdateService(namespace string, service *corev1.Service) error {
 	_, err := s.kubeClient.CoreV1().Services(namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
+	recordMetrics(namespace, "Service", service.GetName(), "UPDATE", err, s.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -80,6 +87,7 @@ func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1
 		if errors.IsNotFound(err) {
 			return s.CreateService(namespace, service)
 		}
+		log.Errorf("Error while updating service %v in %v namespace : %v", service.GetName(), namespace, err)
 		return err
 	}
 
@@ -93,9 +101,13 @@ func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1
 
 func (s *ServiceService) DeleteService(namespace string, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return s.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	err := s.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	recordMetrics(namespace, "Service", name, "DELETE", err, s.metricsRecorder)
+	return err
 }
 
 func (s *ServiceService) ListServices(namespace string) (*corev1.ServiceList, error) {
-	return s.kubeClient.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	serviceList, err := s.kubeClient.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	recordMetrics(namespace, "Service", metrics.NOT_APPLICABLE, "LIST", err, s.metricsRecorder)
+	return serviceList, err
 }

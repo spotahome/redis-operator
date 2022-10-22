@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // StatefulSet the StatefulSet service that knows how to interact with k8s to manage them
@@ -27,22 +28,25 @@ type StatefulSet interface {
 
 // StatefulSetService is the service account service implementation using API calls to kubernetes.
 type StatefulSetService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewStatefulSetService returns a new StatefulSet KubeService.
-func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger) *StatefulSetService {
+func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *StatefulSetService {
 	logger = logger.With("service", "k8s.statefulSet")
 	return &StatefulSetService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 // GetStatefulSet will retrieve the requested statefulset based on namespace and name
 func (s *StatefulSetService) GetStatefulSet(namespace, name string) (*appsv1.StatefulSet, error) {
 	statefulSet, err := s.kubeClient.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "StatefulSet", name, "GET", err, s.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +70,7 @@ func (s *StatefulSetService) GetStatefulSetPods(namespace, name string) (*corev1
 // CreateStatefulSet will create the given statefulset
 func (s *StatefulSetService) CreateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
 	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Create(context.TODO(), statefulSet, metav1.CreateOptions{})
+	recordMetrics(namespace, "StatefulSet", statefulSet.GetName(), "CREATE", err, s.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -76,6 +81,7 @@ func (s *StatefulSetService) CreateStatefulSet(namespace string, statefulSet *ap
 // UpdateStatefulSet will update the given statefulset
 func (s *StatefulSetService) UpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
 	_, err := s.kubeClient.AppsV1().StatefulSets(namespace).Update(context.TODO(), statefulSet, metav1.UpdateOptions{})
+	recordMetrics(namespace, "StatefulSet", statefulSet.GetName(), "UPDATE", err, s.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -105,10 +111,14 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 // DeleteStatefulSet will delete the statefulset
 func (s *StatefulSetService) DeleteStatefulSet(namespace, name string) error {
 	propagation := metav1.DeletePropagationForeground
-	return s.kubeClient.AppsV1().StatefulSets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	err := s.kubeClient.AppsV1().StatefulSets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &propagation})
+	recordMetrics(namespace, "StatefulSet", name, "DELETE", err, s.metricsRecorder)
+	return err
 }
 
 // ListStatefulSets will retrieve a list of statefulset in the given namespace
 func (s *StatefulSetService) ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error) {
-	return s.kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	stsList, err := s.kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+	recordMetrics(namespace, "StatefulSet", metrics.NOT_APPLICABLE, "LIST", err, s.metricsRecorder)
+	return stsList, err
 }

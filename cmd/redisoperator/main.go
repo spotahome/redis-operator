@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -82,10 +83,10 @@ func (m *Main) Run() error {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger, metricsRecorder)
 
 	// Create the redis clients
-	redisClient := redis.New()
+	redisClient := redis.New(metricsRecorder)
 
 	// Get lease lock resource namespace
 	lockNamespace := getNamespace()

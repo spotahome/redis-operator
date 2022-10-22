@@ -6,9 +6,12 @@ package redisfailover_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"path/filepath"
 	"testing"
 	"time"
+
+	rediscli "github.com/go-redis/redis/v8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +84,7 @@ func TestRedisFailover(t *testing.T) {
 	require.NoError(err)
 
 	// Create the redis clients
-	redisClient := redis.New()
+	redisClient := redis.New(metrics.Dummy)
 
 	clients := clients{
 		k8sClient:   k8sClient,
@@ -91,7 +94,7 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy, metrics.Dummy)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
@@ -137,6 +140,9 @@ func TestRedisFailover(t *testing.T) {
 	// Verify that auth is set and actually working
 	t.Run("Check that auth is set in sentinel and redis configs", clients.testAuth)
 
+	// Check custom config is set
+	t.Run("Check that custom config is behave expected", clients.testCustomConfig)
+
 	// Check that a Redis Statefulset is created and the size of it is the one defined by the
 	// Redis Failover definition created before.
 	t.Run("Check Redis Statefulset existing and size", clients.testRedisStatefulSet)
@@ -168,6 +174,7 @@ func (c *clients) testCRCreation(t *testing.T) {
 				Exporter: redisfailoverv1.Exporter{
 					Enabled: true,
 				},
+				CustomConfig: []string{`save ""`},
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: sentinelSize,
@@ -273,4 +280,33 @@ func (c *clients) testAuth(t *testing.T) {
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].Name, "REDIS_PASSWORD")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].ValueFrom.SecretKeyRef.Key, "password")
 	assert.Equal(redisSS.Spec.Template.Spec.Containers[1].Env[4].ValueFrom.SecretKeyRef.LocalObjectReference.Name, authSecretPath)
+}
+
+func (c *clients) testCustomConfig(t *testing.T) {
+	assert := assert.New(t)
+
+	redisSS, err := c.k8sClient.AppsV1().StatefulSets(namespace).Get(context.Background(), fmt.Sprintf("rfr-%s", name), metav1.GetOptions{})
+	assert.NoError(err)
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.FormatLabels(redisSS.Spec.Selector.MatchLabels),
+	}
+	redisPodList, err := c.k8sClient.CoreV1().Pods(namespace).List(context.Background(), listOptions)
+	assert.NoError(err)
+
+	rClient := rediscli.NewClient(&rediscli.Options{
+		Addr:     net.JoinHostPort(redisPodList.Items[0].Status.PodIP, "6379"),
+		Password: testPass,
+		DB:       0,
+	})
+	defer rClient.Close()
+
+	result := rClient.ConfigGet(context.TODO(), "save")
+	assert.NoError(result.Err())
+
+	values, err := result.Result()
+	assert.NoError(err)
+
+	assert.Len(values, 2)
+	assert.Empty(values[1])
 }

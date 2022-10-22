@@ -30,8 +30,8 @@ const (
 // to create redis failovers.
 func New(cfg Config, k8sService k8s.Services, k8sClient kubernetes.Interface, lockNamespace string, redisClient redis.Client, kooperMetricsRecorder metrics.Recorder, logger log.Logger) (controller.Controller, error) {
 	// Create internal services.
-	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger)
-	rfChecker := rfservice.NewRedisFailoverChecker(k8sService, redisClient, logger)
+	rfService := rfservice.NewRedisFailoverKubeClient(k8sService, logger, kooperMetricsRecorder)
+	rfChecker := rfservice.NewRedisFailoverChecker(k8sService, redisClient, logger, kooperMetricsRecorder)
 	rfHealer := rfservice.NewRedisFailoverHealer(k8sService, redisClient, logger)
 
 	// Create the handlers.
@@ -47,13 +47,14 @@ func New(cfg Config, k8sService k8s.Services, k8sClient kubernetes.Interface, lo
 
 	// Create our controller.
 	return controller.New(&controller.Config{
-		Handler:         rfHandler,
-		Retriever:       rfRetriever,
-		LeaderElector:   leSVC,
-		MetricsRecorder: kooperMetricsRecorder,
-		Logger:          kooperLogger,
-		Name:            "redisfailover",
-		ResyncInterval:  resync,
+		Handler:           rfHandler,
+		Retriever:         rfRetriever,
+		LeaderElector:     leSVC,
+		MetricsRecorder:   kooperMetricsRecorder,
+		Logger:            kooperLogger,
+		Name:              "redisfailover",
+		ResyncInterval:    resync,
+		ConcurrentWorkers: cfg.Concurrency,
 	})
 }
 
