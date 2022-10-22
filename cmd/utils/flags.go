@@ -16,6 +16,7 @@ type CMDFlags struct {
 	Debug       bool
 	ListenAddr  string
 	MetricsPath string
+	Concurrency int
 }
 
 // Init initializes and parse the flags
@@ -27,7 +28,7 @@ func (c *CMDFlags) Init() {
 	flag.BoolVar(&c.Debug, "debug", false, "enable debug mode")
 	flag.StringVar(&c.ListenAddr, "listen-address", ":9710", "Address to listen on for metrics.")
 	flag.StringVar(&c.MetricsPath, "metrics-path", "/metrics", "Path to serve the metrics.")
-
+	flag.IntVar(&c.Concurrency, "concurrency", 3, "Number of conccurent workers meant to process events")
 	// Parse flags
 	flag.Parse()
 }
@@ -37,5 +38,6 @@ func (c *CMDFlags) ToRedisOperatorConfig() redisfailover.Config {
 	return redisfailover.Config{
 		ListenAddress: c.ListenAddr,
 		MetricsPath:   c.MetricsPath,
+		Concurrency:   c.Concurrency,
 	}
 }
