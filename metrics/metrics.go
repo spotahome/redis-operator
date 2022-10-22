@@ -233,13 +233,11 @@ func updateInstanceMetricLastUpdatedTracker(IP string) {
 
 // Garbage collection
 func RemoveStaleMetrics() {
-
 	log.Infof("initializing stale metrics remover.")
 	for {
 		metricsDeletedCount := 0
 		kubernetesResourceBasedLabels, customResourceBasedLabels, ipBasedLabels := getLabelsOfStaleMetrics()
 		for _, recorder := range recorders {
-
 			for _, label := range kubernetesResourceBasedLabels {
 				metricsDeletedCount += recorder.ensureResource.DeletePartialMatch(label)
 				metricsDeletedCount += recorder.k8sServiceOperations.DeletePartialMatch(label)
@@ -261,22 +259,20 @@ func RemoveStaleMetrics() {
 	}
 }
 
-// Garbage collection
 func getLabelsOfStaleMetrics() (kubernetesResourceBasedLabels []prometheus.Labels, customResourceBasedLabels []prometheus.Labels, ipBasedLabels []prometheus.Labels) {
+
 	kubernetesResourceBasedLabels = []prometheus.Labels{}
 	customResourceBasedLabels = []prometheus.Labels{}
 	ipBasedLabels = []prometheus.Labels{}
 
 	for key, value := range resourceMetricLastUpdated {
-
-		if value.Before(time.Now().Add(-5 * time.Minute)) { // if the key is stale
+		// if the key is stale
+		if value.Before(time.Now().Add(-5 * time.Minute)) {
 			// extract resource identifiers
 			ids := strings.Split(key, "/")
 			namespace := ids[0]
 			kind := ids[1]
 			resource := ids[2]
-
-			// for ensure operation metrics
 			kubernetesResourceBasedLabels = append(kubernetesResourceBasedLabels,
 				prometheus.Labels{
 					"namespace": namespace,
@@ -293,7 +289,7 @@ func getLabelsOfStaleMetrics() (kubernetesResourceBasedLabels []prometheus.Label
 		}
 	}
 	for IP, value := range instanceMetricLastUpdated {
-		if value.Before(time.Now().Add(-metricsGCIntervalMinutes * time.Minute)) { // if the key is stale
+		if value.Before(time.Now().Add(-metricsGCIntervalMinutes * time.Minute)) {
 			ipBasedLabels = append(ipBasedLabels,
 				prometheus.Labels{
 					"IP": IP,
@@ -301,6 +297,5 @@ func getLabelsOfStaleMetrics() (kubernetesResourceBasedLabels []prometheus.Label
 			)
 		}
 	}
-
 	return kubernetesResourceBasedLabels, customResourceBasedLabels, ipBasedLabels
 }
