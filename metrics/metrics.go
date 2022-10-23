@@ -269,7 +269,7 @@ func getLabelsOfStaleMetrics() (kubernetesResourceBasedLabels []prometheus.Label
 	for key, value := range resourceMetricLastUpdated {
 		// if the key is stale
 		if value.Before(time.Now().Add(-metricsGCIntervalMinutes * time.Minute)) {
-			// extract labels and create labels
+			// extract keys and create labels
 			ids := strings.Split(key, "/")
 			namespace := ids[0]
 			kind := ids[1]
