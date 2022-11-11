@@ -55,12 +55,9 @@ func (m *Main) Run() error {
 	errC := make(chan error)
 
 	// Set correct logging.
-	if m.flags.Debug {
-		err := m.logger.Set("debug")
-		if err != nil {
-			return err
-		}
-		m.logger.Debugf("debug mode activated")
+	err := m.logger.Set(log.Level(strings.ToLower(m.flags.LogLevel)))
+	if err != nil {
+		return err
 	}
 
 	// Create the metrics client.

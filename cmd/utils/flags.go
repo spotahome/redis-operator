@@ -13,9 +13,9 @@ import (
 type CMDFlags struct {
 	KubeConfig  string
 	Development bool
-	Debug       bool
 	ListenAddr  string
 	MetricsPath string
+	LogLevel    string
 }
 
 // Init initializes and parse the flags
@@ -24,10 +24,9 @@ func (c *CMDFlags) Init() {
 	// register flags
 	flag.StringVar(&c.KubeConfig, "kubeconfig", kubehome, "kubernetes configuration path, only used when development mode enabled")
 	flag.BoolVar(&c.Development, "development", false, "development flag will allow to run the operator outside a kubernetes cluster")
-	flag.BoolVar(&c.Debug, "debug", false, "enable debug mode")
 	flag.StringVar(&c.ListenAddr, "listen-address", ":9710", "Address to listen on for metrics.")
 	flag.StringVar(&c.MetricsPath, "metrics-path", "/metrics", "Path to serve the metrics.")
-
+	flag.StringVar(&c.LogLevel, "log-level", "info", "set log level")
 	// Parse flags
 	flag.Parse()
 }
