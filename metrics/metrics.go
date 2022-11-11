@@ -1,14 +1,25 @@
 package metrics
 
 import (
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	koopercontroller "github.com/spotahome/kooper/v2/controller"
 	kooperprometheus "github.com/spotahome/kooper/v2/metrics/prometheus"
+	"github.com/spotahome/redis-operator/log"
 )
 
 const (
-	promControllerSubsystem = "controller"
+	promControllerSubsystem  = "controller"
+	metricsGCIntervalMinutes = 5
 )
+
+func init() {
+	go removeStaleMetrics()
+}
 
 // variables for setting various indicator labels
 const (
@@ -57,6 +68,13 @@ const (
 	SLAVE_IS_READY              = "CHECK_IF_SLAVE_IS_READY"
 )
 
+var ( // used for grabage collection of metrics
+	mutex                     sync.Mutex
+	recorders                 = []recorder{}
+	instanceMetricLastUpdated = map[string]time.Time{}
+	resourceMetricLastUpdated = map[string]time.Time{}
+)
+
 // Instrumenter is the interface that will collect the metrics and has ability to send/expose those metrics.
 type Recorder interface {
 	koopercontroller.MetricsRecorder
@@ -72,7 +90,7 @@ type Recorder interface {
 	RecordRedisCheck(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string, status string)
 	RecordSentinelCheck(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string, status string)
 
-	RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string)
+	RecordK8sOperation(namespace string, kind string, name string, operation string, status string, err string)
 	RecordRedisOperation(kind string, IP string, operation string, status string, err string)
 }
 
@@ -103,7 +121,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		Subsystem: promControllerSubsystem,
 		Name:      "ensure_resource_total",
 		Help:      "number of 'ensure' operations on a resource performed by the controller.",
-	}, []string{"object_namespace", "object_name", "object_kind", "resource_name", "status"})
+	}, []string{"namespace", "name", "kind", "resource_name", "status"})
 
 	redisCheck := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
@@ -133,7 +151,8 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 			Subsystem: promControllerSubsystem,
 			Name:      "k8s_operations_total",
 			Help:      "number of operations performed on k8s",
-		}, []string{"namespace", "kind", "object", "operation", "status", "err"})
+		}, []string{"namespace", "kind", "name", "operation", "status", "err"})
+
 	// Create the instance.
 	r := recorder{
 		clusterOK:            clusterOK,
@@ -156,7 +175,7 @@ func NewRecorder(namespace string, reg prometheus.Registerer) Recorder {
 		r.k8sServiceOperations,
 		r.redisOperations,
 	)
-
+	recorders = append(recorders, r)
 	return r
 }
 
@@ -177,20 +196,118 @@ func (r recorder) DeleteCluster(namespace string, name string) {
 
 func (r recorder) RecordEnsureOperation(objectNamespace string, objectName string, objectKind string, resourceName string, status string) {
 	r.ensureResource.WithLabelValues(objectNamespace, objectName, objectKind, resourceName, status).Add(1)
+	updateResourceMetricLastUpdatedTracker(objectNamespace, objectKind, objectName)
 }
 
 func (r recorder) RecordRedisCheck(namespace string, resource string, indicator /* aspect of redis that is unhealthy */ string, instance string, status string) {
 	r.redisCheck.WithLabelValues(namespace, resource, indicator, instance, status).Add(1)
+	updateResourceMetricLastUpdatedTracker(namespace, "redisfailover", resource)
 }
 
 func (r recorder) RecordSentinelCheck(namespace string, resource string, indicator /* aspect of sentinel that is unhealthy */ string, instance string, status string) {
 	r.sentinelCheck.WithLabelValues(namespace, resource, indicator, instance, status).Add(1)
+	updateResourceMetricLastUpdatedTracker(namespace, "redisfailover", resource)
 }
 
-func (r recorder) RecordK8sOperation(namespace string, kind string, object string, operation string, status string, err string) {
-	r.k8sServiceOperations.WithLabelValues(namespace, kind, object, operation, status, err).Add(1)
+func (r recorder) RecordK8sOperation(namespace string, kind string, name string, operation string, status string, err string) {
+	r.k8sServiceOperations.WithLabelValues(namespace, kind, name, operation, status, err).Add(1)
+	updateResourceMetricLastUpdatedTracker(namespace, kind, name)
 }
 
 func (r recorder) RecordRedisOperation(kind /*redis/sentinel? */ string, IP string, operation string, status string, err string) {
 	r.redisOperations.WithLabelValues(kind, IP, operation, status, err).Add(1)
+	updateInstanceMetricLastUpdatedTracker(IP)
+}
+
+func updateResourceMetricLastUpdatedTracker(namespace string, kind string, name string) {
+	mutex.Lock()
+	resourceMetricLastUpdated[fmt.Sprintf("%v/%v/%v", namespace, kind, name)] = time.Now()
+	mutex.Unlock()
+}
+
+func updateInstanceMetricLastUpdatedTracker(IP string) {
+	mutex.Lock()
+	instanceMetricLastUpdated[IP] = time.Now()
+	mutex.Unlock()
+}
+
+// Garbage collection
+func removeStaleMetrics() {
+	// Runs every `metricsGCIntervalMinutes`. It keeps track of recently updated metrics
+	// And every metric that was not updated after `metricsGCIntervalMinutes` gets deleted
+	for {
+		metricsDeletedCount := 0
+		kubernetesResourceBasedLabels, customResourceBasedLabels, ipBasedLabels := getLabelsOfStaleMetrics()
+		for _, recorder := range recorders {
+			for _, label := range kubernetesResourceBasedLabels {
+				metricsDeletedCount += recorder.ensureResource.DeletePartialMatch(label)
+				metricsDeletedCount += recorder.k8sServiceOperations.DeletePartialMatch(label)
+			}
+			for _, label := range customResourceBasedLabels {
+				metricsDeletedCount += recorder.redisCheck.DeletePartialMatch(label)
+				metricsDeletedCount += recorder.sentinelCheck.DeletePartialMatch(label)
+				labelWithName := label
+				labelWithName["name"] = labelWithName["resource"]
+				delete(labelWithName, "resource")
+				metricsDeletedCount += recorder.clusterOK.DeletePartialMatch(label)
+			}
+			for _, label := range ipBasedLabels {
+				metricsDeletedCount += recorder.redisOperations.DeletePartialMatch(label)
+			}
+		}
+		log.Debugf("delete %v stale metrics", metricsDeletedCount)
+		time.Sleep(metricsGCIntervalMinutes * time.Minute)
+	}
+}
+
+func getLabelsOfStaleMetrics() (kubernetesResourceBasedLabels []prometheus.Labels, customResourceBasedLabels []prometheus.Labels, ipBasedLabels []prometheus.Labels) {
+
+	kubernetesResourceBasedLabels = []prometheus.Labels{}
+	customResourceBasedLabels = []prometheus.Labels{}
+	ipBasedLabels = []prometheus.Labels{}
+
+	for key, value := range resourceMetricLastUpdated {
+		// if the key is stale
+		if value.Before(time.Now().Add(-metricsGCIntervalMinutes * time.Minute)) {
+			// extract keys and create labels
+			ids := strings.Split(key, "/")
+			namespace := ids[0]
+			kind := ids[1]
+			resource := ids[2]
+			kubernetesResourceBasedLabels = append(kubernetesResourceBasedLabels,
+				prometheus.Labels{
+					"namespace": namespace,
+					"name":      resource,
+					"kind":      kind,
+				},
+			)
+			customResourceBasedLabels = append(customResourceBasedLabels,
+				prometheus.Labels{
+					"namespace": namespace,
+					"resource":  resource,
+				},
+			)
+			// once we have created labels out of the contents of the key,
+			// its not longer required - since it is known to be stale. remove it from the tracker.
+			mutex.Lock()
+			delete(resourceMetricLastUpdated, key)
+			mutex.Unlock()
+		}
+	}
+	for IP, value := range instanceMetricLastUpdated {
+		if value.Before(time.Now().Add(-metricsGCIntervalMinutes * time.Minute)) {
+			ipBasedLabels = append(ipBasedLabels,
+				prometheus.Labels{
+					"IP": IP,
+				},
+			)
+			// once we have created labels out of the contents of the key,
+			// its not longer required - since it is known to be stale. remove it from the tracker.
+			mutex.Lock()
+			delete(instanceMetricLastUpdated, IP)
+			mutex.Unlock()
+		}
+
+	}
+	return kubernetesResourceBasedLabels, customResourceBasedLabels, ipBasedLabels
 }
