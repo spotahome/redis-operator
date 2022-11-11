@@ -18,7 +18,7 @@ type CMDFlags struct {
 	K8sQueriesPerSecond int
 	K8sQueriesBurstable int
 	Concurrency         int
-	LogLevel    string
+	LogLevel            string
 }
 
 // Init initializes and parse the flags
