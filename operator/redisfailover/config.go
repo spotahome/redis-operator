@@ -4,4 +4,5 @@ package redisfailover
 type Config struct {
 	ListenAddress string
 	MetricsPath   string
+	Concurrency   int
 }

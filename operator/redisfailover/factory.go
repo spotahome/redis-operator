@@ -47,13 +47,14 @@ func New(cfg Config, k8sService k8s.Services, k8sClient kubernetes.Interface, lo
 
 	// Create our controller.
 	return controller.New(&controller.Config{
-		Handler:         rfHandler,
-		Retriever:       rfRetriever,
-		LeaderElector:   leSVC,
-		MetricsRecorder: kooperMetricsRecorder,
-		Logger:          kooperLogger,
-		Name:            "redisfailover",
-		ResyncInterval:  resync,
+		Handler:           rfHandler,
+		Retriever:         rfRetriever,
+		LeaderElector:     leSVC,
+		MetricsRecorder:   kooperMetricsRecorder,
+		Logger:            kooperLogger,
+		Name:              "redisfailover",
+		ResyncInterval:    resync,
+		ConcurrentWorkers: cfg.Concurrency,
 	})
 }
 
