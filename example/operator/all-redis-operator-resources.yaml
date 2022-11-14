@@ -18,7 +18,7 @@ spec:
     spec:
       serviceAccountName: redisoperator
       containers:
-        - image: quay.io/spotahome/redis-operator:v1.1.0
+        - image: quay.io/spotahome/redis-operator:v1.2.2
           imagePullPolicy: IfNotPresent
           name: app
           securityContext:
