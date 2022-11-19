@@ -42,7 +42,7 @@ const (
 	sentinelSize   = int32(3)
 	authSecretPath = "redis-auth"
 	testPass       = "test-pass"
-	redisAddr      = "redis://localhost:6379"
+	redisAddr      = "redis://127.0.0.1:6379"
 )
 
 type clients struct {
