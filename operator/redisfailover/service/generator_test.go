@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1635,5 +1636,144 @@ func TestSentinelExtraVolumeMounts(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(test.expectedVolumes[0], extraVolume)
 		assert.Equal(test.expectedVolumeMounts[0], extraVolumeMount)
+	}
+}
+
+func TestCustomPort(t *testing.T) {
+
+	default_port := int32(6379)
+	custom_port := int32(12345)
+	tests := []struct {
+		name                  string
+		port                  int32
+		expectedContainerPort []corev1.ContainerPort
+	}{
+		{
+			name: "Default port",
+			port: default_port,
+			expectedContainerPort: []corev1.ContainerPort{
+				{
+					Name:          "redis",
+					ContainerPort: default_port,
+					Protocol:      corev1.ProtocolTCP,
+				},
+			},
+		},
+		{
+			name: "Custom port",
+			port: custom_port,
+			expectedContainerPort: []corev1.ContainerPort{
+				{
+					Name:          "redis",
+					ContainerPort: custom_port,
+					Protocol:      corev1.ProtocolTCP,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var port corev1.ContainerPort
+
+		rf := generateRF()
+		rf.Spec.Redis.Port = test.port
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			port = s.Spec.Template.Spec.Containers[0].Ports[0]
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedContainerPort[0], port)
+	}
+}
+
+func TestRedisEnv(t *testing.T) {
+
+	default_port := int32(6379)
+	tests := []struct {
+		name             string
+		auth             string
+		expectedRedisEnv []corev1.EnvVar
+	}{
+		{
+			name: "without auth",
+			auth: "",
+			expectedRedisEnv: []corev1.EnvVar{
+				{
+					Name:  "REDIS_ADDR",
+					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+				},
+				{
+					Name:  "REDIS_PORT",
+					Value: fmt.Sprintf("%[1]v", default_port),
+				},
+				{
+					Name:  "REDIS_USER",
+					Value: "default",
+				},
+			},
+		},
+		{
+			name: "with auth",
+			auth: "redis-secret",
+			expectedRedisEnv: []corev1.EnvVar{
+				{
+					Name:  "REDIS_ADDR",
+					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+				},
+				{
+					Name:  "REDIS_PORT",
+					Value: fmt.Sprintf("%[1]v", default_port),
+				},
+				{
+					Name:  "REDIS_USER",
+					Value: "default",
+				},
+				{
+					Name: "REDIS_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "redis-secret",
+							},
+							Key: "password",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var env []corev1.EnvVar
+
+		rf := generateRF()
+		rf.Spec.Redis.Port = default_port
+		if test.auth != "" {
+			rf.Spec.Auth.SecretPath = test.auth
+		}
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			env = s.Spec.Template.Spec.Containers[0].Env
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedRedisEnv, env)
 	}
 }
