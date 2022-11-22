@@ -101,7 +101,7 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
 	// we will replace the current namespace state.
 	statefulSet.ResourceVersion = storedStatefulSet.ResourceVersion
-	statefulSet.Annotations = util.MergeLabels(statefulSet.Annotations, storedStatefulSet.Annotations)
+	statefulSet.Annotations = util.MergeAnnotations(statefulSet.Annotations, storedStatefulSet.Annotations)
 	return s.UpdateStatefulSet(namespace, statefulSet)
 }
 
