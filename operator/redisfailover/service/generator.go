@@ -636,7 +636,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 			Value: fmt.Sprintf("0.0.0.0:%[1]v", sentinelExporterPort),
 		}, corev1.EnvVar{
 			Name:  "REDIS_ADDR",
-			Value: "redis://localhost:26379",
+			Value: "redis://127.0.0.1:26379",
 		},
 		),
 		Ports: []corev1.ContainerPort{
@@ -950,7 +950,7 @@ func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
 
 	env = append(env, corev1.EnvVar{
 		Name:  "REDIS_ADDR",
-		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+		Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", rf.Spec.Redis.Port),
 	})
 
 	env = append(env, corev1.EnvVar{
