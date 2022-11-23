@@ -1488,7 +1488,6 @@ func TestSentinelImagePullPolicy(t *testing.T) {
 }
 
 func TestRedisExtraVolumeMounts(t *testing.T) {
-
 	mode := int32(755)
 	tests := []struct {
 		name                 string
@@ -1564,7 +1563,6 @@ func TestRedisExtraVolumeMounts(t *testing.T) {
 }
 
 func TestSentinelExtraVolumeMounts(t *testing.T) {
-
 	mode := int32(755)
 	tests := []struct {
 		name                 string
@@ -1640,7 +1638,6 @@ func TestSentinelExtraVolumeMounts(t *testing.T) {
 }
 
 func TestCustomPort(t *testing.T) {
-
 	default_port := int32(6379)
 	custom_port := int32(12345)
 	tests := []struct {
@@ -1696,7 +1693,6 @@ func TestCustomPort(t *testing.T) {
 }
 
 func TestRedisEnv(t *testing.T) {
-
 	default_port := int32(6379)
 	tests := []struct {
 		name             string
@@ -1709,7 +1705,7 @@ func TestRedisEnv(t *testing.T) {
 			expectedRedisEnv: []corev1.EnvVar{
 				{
 					Name:  "REDIS_ADDR",
-					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+					Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", default_port),
 				},
 				{
 					Name:  "REDIS_PORT",
@@ -1727,7 +1723,7 @@ func TestRedisEnv(t *testing.T) {
 			expectedRedisEnv: []corev1.EnvVar{
 				{
 					Name:  "REDIS_ADDR",
-					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+					Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", default_port),
 				},
 				{
 					Name:  "REDIS_PORT",
