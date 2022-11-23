@@ -187,7 +187,7 @@ if [ "$master" = "$(hostname -i)" ]; then
 fi
 cmd="redis-cli -p %[2]v"
 if [ ! -z "${REDIS_PASSWORD}" ]; then
-    cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+	export REDISCLI_AUTH=${REDIS_PASSWORD}
 fi
 save_command="${cmd} save"
 eval $save_command`, rfName, port)
@@ -219,7 +219,7 @@ NO_MASTER="master_host:127.0.0.1"
 
 cmd="redis-cli -p %[1]v"
 if [ ! -z "${REDIS_PASSWORD}" ]; then
-	cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+	export REDISCLI_AUTH=${REDIS_PASSWORD}
 fi
 
 cmd="${cmd} info replication"
