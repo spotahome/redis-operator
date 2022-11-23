@@ -45,6 +45,9 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: {{ include "chart.name" . }}
+{{- range $k, $v := .Values.labels }}
+{{ $k }}: {{ $v }}
+{{- end }}
 {{- end -}}
 
 {{/*
