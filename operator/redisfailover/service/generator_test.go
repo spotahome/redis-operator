@@ -1709,7 +1709,7 @@ func TestRedisEnv(t *testing.T) {
 			expectedRedisEnv: []corev1.EnvVar{
 				{
 					Name:  "REDIS_ADDR",
-					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+					Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", default_port),
 				},
 				{
 					Name:  "REDIS_PORT",
@@ -1727,7 +1727,7 @@ func TestRedisEnv(t *testing.T) {
 			expectedRedisEnv: []corev1.EnvVar{
 				{
 					Name:  "REDIS_ADDR",
-					Value: fmt.Sprintf("redis://localhost:%[1]v", default_port),
+					Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", default_port),
 				},
 				{
 					Name:  "REDIS_PORT",
