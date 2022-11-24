@@ -1,0 +1,16 @@
+# Ensure namesapce `redis-failover` is created before you run this
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+images:
+- name: quay.io/spotahome/redis-operator
+  newName: samof76/redis-operator
+  newTag: b9e55b20161f8355eaa5154b2b8a697fab853de4
+
+resources:
+- "rolebinding.yaml"
+- "roles.yaml"
+- "operator.yaml"
+- "serviceaccount.yaml"
+
+namespace: redis-failover
