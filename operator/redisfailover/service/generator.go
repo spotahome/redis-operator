@@ -187,7 +187,7 @@ if [ "$master" = "$(hostname -i)" ]; then
 fi
 cmd="redis-cli -p %[2]v"
 if [ ! -z "${REDIS_PASSWORD}" ]; then
-    cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+	export REDISCLI_AUTH=${REDIS_PASSWORD}
 fi
 save_command="${cmd} save"
 eval $save_command`, rfName, port)
@@ -219,7 +219,7 @@ NO_MASTER="master_host:127.0.0.1"
 
 cmd="redis-cli -p %[1]v"
 if [ ! -z "${REDIS_PASSWORD}" ]; then
-	cmd="${cmd} --no-auth-warning -a \"${REDIS_PASSWORD}\""
+	export REDISCLI_AUTH=${REDIS_PASSWORD}
 fi
 
 cmd="${cmd} info replication"
@@ -280,6 +280,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
+			Annotations:     rf.Annotations,
 			Name:            name,
 			Namespace:       namespace,
 			Labels:          labels,
@@ -406,19 +407,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		ss.Spec.Template.Spec.Containers = append(ss.Spec.Template.Spec.Containers, extraContainers...)
 	}
 
-	if rf.Spec.Auth.SecretPath != "" {
-		ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: "REDIS_PASSWORD",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: rf.Spec.Auth.SecretPath,
-					},
-					Key: "password",
-				},
-			},
-		})
-	}
+	redisEnv := getRedisEnv(rf)
+	ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, redisEnv...)
 
 	return ss
 }
@@ -647,7 +637,7 @@ func createSentinelExporterContainer(rf *redisfailoverv1.RedisFailover) corev1.C
 			Value: fmt.Sprintf("0.0.0.0:%[1]v", sentinelExporterPort),
 		}, corev1.EnvVar{
 			Name:  "REDIS_ADDR",
-			Value: "redis://localhost:26379",
+			Value: "redis://127.0.0.1:26379",
 		},
 		),
 		Ports: []corev1.ContainerPort{
@@ -961,7 +951,7 @@ func getRedisEnv(rf *redisfailoverv1.RedisFailover) []corev1.EnvVar {
 
 	env = append(env, corev1.EnvVar{
 		Name:  "REDIS_ADDR",
-		Value: fmt.Sprintf("redis://localhost:%[1]v", rf.Spec.Redis.Port),
+		Value: fmt.Sprintf("redis://127.0.0.1:%[1]v", rf.Spec.Redis.Port),
 	})
 
 	env = append(env, corev1.EnvVar{

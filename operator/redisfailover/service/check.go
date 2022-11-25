@@ -11,6 +11,7 @@ import (
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
 )
@@ -37,17 +38,19 @@ type RedisFailoverCheck interface {
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
 type RedisFailoverChecker struct {
-	k8sService  k8s.Services
-	redisClient redis.Client
-	logger      log.Logger
+	k8sService    k8s.Services
+	redisClient   redis.Client
+	logger        log.Logger
+	metricsClient metrics.Recorder
 }
 
 // NewRedisFailoverChecker creates an object of the RedisFailoverChecker struct
-func NewRedisFailoverChecker(k8sService k8s.Services, redisClient redis.Client, logger log.Logger) *RedisFailoverChecker {
+func NewRedisFailoverChecker(k8sService k8s.Services, redisClient redis.Client, logger log.Logger, metricsClient metrics.Recorder) *RedisFailoverChecker {
 	return &RedisFailoverChecker{
-		k8sService:  k8sService,
-		redisClient: redisClient,
-		logger:      logger,
+		k8sService:    k8sService,
+		redisClient:   redisClient,
+		logger:        logger,
+		metricsClient: metricsClient,
 	}
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
+	"github.com/spotahome/redis-operator/metrics"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // GetRedisPassword retreives password from kubernetes secret or, if
@@ -25,4 +27,18 @@ func GetRedisPassword(s Services, rf *redisfailoverv1.RedisFailover) (string, er
 	}
 
 	return "", fmt.Errorf("secret \"%s\" does not have a password field", rf.Spec.Auth.SecretPath)
+}
+
+func recordMetrics(namespace string, kind string, object string, operation string, err error, metricsRecorder metrics.Recorder) {
+	if nil == err {
+		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.SUCCESS, metrics.NOT_APPLICABLE)
+	} else if errors.IsForbidden(err) {
+		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_FORBIDDEN_ERR)
+	} else if errors.IsUnauthorized(err) {
+		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_UNAUTH)
+	} else if errors.IsNotFound(err) {
+		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_NOT_FOUND)
+	} else {
+		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_MISC)
+	}
 }

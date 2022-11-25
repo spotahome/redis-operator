@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -54,12 +55,9 @@ func (m *Main) Run() error {
 	errC := make(chan error)
 
 	// Set correct logging.
-	if m.flags.Debug {
-		err := m.logger.Set("debug")
-		if err != nil {
-			return err
-		}
-		m.logger.Debugf("debug mode activated")
+	err := m.logger.Set(log.Level(strings.ToLower(m.flags.LogLevel)))
+	if err != nil {
+		return err
 	}
 
 	// Create the metrics client.
@@ -82,10 +80,10 @@ func (m *Main) Run() error {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger, metricsRecorder)
 
 	// Create the redis clients
-	redisClient := redis.New()
+	redisClient := redis.New(metricsRecorder)
 
 	// Get lease lock resource namespace
 	lockNamespace := getNamespace()

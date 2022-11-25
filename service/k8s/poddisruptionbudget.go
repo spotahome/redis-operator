@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 )
 
 // PodDisruptionBudget the ServiceAccount service that knows how to interact with k8s to manage them
@@ -22,21 +23,24 @@ type PodDisruptionBudget interface {
 
 // PodDisruptionBudgetService is the podDisruptionBudget service implementation using API calls to kubernetes.
 type PodDisruptionBudgetService struct {
-	kubeClient kubernetes.Interface
-	logger     log.Logger
+	kubeClient      kubernetes.Interface
+	logger          log.Logger
+	metricsRecorder metrics.Recorder
 }
 
 // NewPodDisruptionBudgetService returns a new PodDisruptionBudget KubeService.
-func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.Logger) *PodDisruptionBudgetService {
+func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodDisruptionBudgetService {
 	logger = logger.With("service", "k8s.podDisruptionBudget")
 	return &PodDisruptionBudgetService{
-		kubeClient: kubeClient,
-		logger:     logger,
+		kubeClient:      kubeClient,
+		logger:          logger,
+		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *PodDisruptionBudgetService) GetPodDisruptionBudget(namespace string, name string) (*policyv1.PodDisruptionBudget, error) {
 	podDisruptionBudget, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	recordMetrics(namespace, "PodDisruptionBudget", name, "GET", err, p.metricsRecorder)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +49,7 @@ func (p *PodDisruptionBudgetService) GetPodDisruptionBudget(namespace string, na
 
 func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	_, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Create(context.TODO(), podDisruptionBudget, metav1.CreateOptions{})
+	recordMetrics(namespace, "PodDisruptionBudget", podDisruptionBudget.GetName(), "CREATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -54,6 +59,7 @@ func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string,
 
 func (p *PodDisruptionBudgetService) UpdatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
 	_, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Update(context.TODO(), podDisruptionBudget, metav1.UpdateOptions{})
+	recordMetrics(namespace, "PodDisruptionBudget", podDisruptionBudget.GetName(), "UPDATE", err, p.metricsRecorder)
 	if err != nil {
 		return err
 	}
@@ -80,5 +86,7 @@ func (p *PodDisruptionBudgetService) CreateOrUpdatePodDisruptionBudget(namespace
 }
 
 func (p *PodDisruptionBudgetService) DeletePodDisruptionBudget(namespace string, name string) error {
-	return p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	recordMetrics(namespace, "PodDisruptionBudget", name, "DELETE", err, p.metricsRecorder)
+	return err
 }
