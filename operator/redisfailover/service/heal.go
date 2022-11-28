@@ -203,7 +203,6 @@ func (r *RedisFailoverHealer) SetExternalMasterOnAll(masterIP, masterPort string
 
 // NewSentinelMonitor changes the master that Sentinel has to monitor
 func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
@@ -217,7 +216,6 @@ func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *
 
 // NewSentinelMonitorWithPort changes the master that Sentinel has to monitor by the provided IP and Port
 func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor string, monitorPort string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
@@ -230,13 +228,13 @@ func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor stri
 
 // RestoreSentinel clear the number of sentinels on memory
 func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
-	r.logger.Infof("Restoring sentinel %s...", ip)
+	r.logger.Debugf("Restoring sentinel %s", ip)
 	return r.redisClient.ResetSentinel(ip)
 }
 
 // SetSentinelCustomConfig will call sentinel to set the configuration given in config
 func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Setting the custom config on sentinel %s...", ip)
+	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Debugf("Setting the custom config on sentinel %s...", ip)
 	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
 }
 

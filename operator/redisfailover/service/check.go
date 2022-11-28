@@ -168,7 +168,7 @@ func (r *RedisFailoverChecker) CheckSentinelMonitor(sentinel string, monitor ...
 		return err
 	}
 	if actualMonitorIP != monitorIP || (monitorPort != "" && monitorPort != actualMonitorPort) {
-		return errors.New("the monitor on the sentinel config does not match with the expected one")
+		return fmt.Errorf("sentinel monitoring %s:%s instead %s:%s", actualMonitorIP, actualMonitorPort, monitorIP, monitorPort)
 	}
 	return nil
 }
@@ -209,11 +209,13 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 	nMasters := 0
 	rips, err := r.GetRedisesIPs(rf)
 	if err != nil {
+		r.logger.Errorf(err.Error())
 		return nMasters, err
 	}
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
 	if err != nil {
+		r.logger.Errorf("Error getting password: %s", err.Error())
 		return nMasters, err
 	}
 
@@ -274,7 +276,7 @@ func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisF
 		}
 		start := redisNode.Status.StartTime.Round(time.Second)
 		alive := time.Since(start)
-		r.logger.Debugf("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
+		r.logger.Infof("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
 		if alive < minTime {
 			minTime = alive
 		}
