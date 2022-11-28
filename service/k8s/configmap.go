@@ -54,7 +54,7 @@ func (p *ConfigMapService) CreateConfigMap(namespace string, configMap *corev1.C
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("configMap", configMap.Name).Infof("configMap created")
+	p.logger.WithField("namespace", namespace).WithField("configMap", configMap.Name).Debugf("configMap created")
 	return nil
 }
 func (p *ConfigMapService) UpdateConfigMap(namespace string, configMap *corev1.ConfigMap) error {
@@ -63,7 +63,7 @@ func (p *ConfigMapService) UpdateConfigMap(namespace string, configMap *corev1.C
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("configMap", configMap.Name).Infof("configMap updated")
+	p.logger.WithField("namespace", namespace).WithField("configMap", configMap.Name).Debugf("configMap updated")
 	return nil
 }
 func (p *ConfigMapService) CreateOrUpdateConfigMap(namespace string, configMap *corev1.ConfigMap) error {

@@ -66,7 +66,7 @@ func (r *RBACService) DeleteRole(namespace, name string) error {
 	if err != nil {
 		return err
 	}
-	r.logger.WithField("namespace", namespace).WithField("role", name).Infof("role deleted")
+	r.logger.WithField("namespace", namespace).WithField("role", name).Debugf("role deleted")
 	return nil
 }
 
@@ -76,7 +76,7 @@ func (r *RBACService) CreateRole(namespace string, role *rbacv1.Role) error {
 	if err != nil {
 		return err
 	}
-	r.logger.WithField("namespace", namespace).WithField("role", role.Name).Infof("role created")
+	r.logger.WithField("namespace", namespace).WithField("role", role.Name).Debugf("role created")
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (s *RBACService) UpdateRole(namespace string, role *rbacv1.Role) error {
 	if err != nil {
 		return err
 	}
-	s.logger.WithField("namespace", namespace).WithField("role", role.ObjectMeta.Name).Infof("role updated")
+	s.logger.WithField("namespace", namespace).WithField("role", role.ObjectMeta.Name).Debugf("role updated")
 	return err
 }
 
@@ -114,7 +114,7 @@ func (r *RBACService) DeleteRoleBinding(namespace, name string) error {
 	if err != nil {
 		return err
 	}
-	r.logger.WithField("namespace", namespace).WithField("binding", name).Infof("role binding deleted")
+	r.logger.WithField("namespace", namespace).WithField("binding", name).Debugf("role binding deleted")
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (r *RBACService) CreateRoleBinding(namespace string, binding *rbacv1.RoleBi
 	if err != nil {
 		return err
 	}
-	r.logger.WithField("namespace", namespace).WithField("binding", binding.Name).Infof("role binding created")
+	r.logger.WithField("namespace", namespace).WithField("binding", binding.Name).Debugf("role binding created")
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (r *RBACService) UpdateRoleBinding(namespace string, binding *rbacv1.RoleBi
 	if err != nil {
 		return err
 	}
-	r.logger.WithField("namespace", namespace).WithField("binding", binding.Name).Infof("role binding updated")
+	r.logger.WithField("namespace", namespace).WithField("binding", binding.Name).Debugf("role binding updated")
 	return nil
 }
 

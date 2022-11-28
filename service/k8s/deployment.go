@@ -75,7 +75,7 @@ func (d *DeploymentService) CreateDeployment(namespace string, deployment *appsv
 	if err != nil {
 		return err
 	}
-	d.logger.WithField("namespace", namespace).WithField("deployment", deployment.ObjectMeta.Name).Infof("deployment created")
+	d.logger.WithField("namespace", namespace).WithField("deployment", deployment.ObjectMeta.Name).Debugf("deployment created")
 	return err
 }
 
@@ -86,7 +86,7 @@ func (d *DeploymentService) UpdateDeployment(namespace string, deployment *appsv
 	if err != nil {
 		return err
 	}
-	d.logger.WithField("namespace", namespace).WithField("deployment", deployment.ObjectMeta.Name).Infof("deployment updated")
+	d.logger.WithField("namespace", namespace).WithField("deployment", deployment.ObjectMeta.Name).Debugf("deployment updated")
 	return err
 }
 
