@@ -34,6 +34,9 @@ type RedisFailoverCheck interface {
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetRedisRevisionHash(podName string, rFailover *redisfailoverv1.RedisFailover) (string, error)
 	CheckRedisSlavesReady(slaveIP string, rFailover *redisfailoverv1.RedisFailover) (bool, error)
+	IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool
+	IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool
+	IsClusterRunning(rFailover *redisfailoverv1.RedisFailover) bool
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -385,6 +388,32 @@ func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redis
 	return r.redisClient.SlaveIsReady(ip, port, password)
 }
 
+// IsRedisRunning returns true if all the pods are Running
+func (r *RedisFailoverChecker) IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool {
+	dp, err := r.k8sService.GetStatefulSetPods(rFailover.Namespace, GetRedisName(rFailover))
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+}
+
+// IsSentinelRunning returns true if all the pods are Running
+func (r *RedisFailoverChecker) IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool {
+	dp, err := r.k8sService.GetDeploymentPods(rFailover.Namespace, GetSentinelName(rFailover))
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+}
+
+// IsClusterRunning returns true if all the pods in the given redisfailover are Running
+func (r *RedisFailoverChecker) IsClusterRunning(rFailover *redisfailoverv1.RedisFailover) bool {
+	return r.IsSentinelRunning(rFailover) && r.IsRedisRunning(rFailover)
+}
+
 func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
+}
+
+func AreAllRunning(pods *corev1.PodList) bool {
+	for _, pod := range pods.Items {
+		if pod.Status.Phase != corev1.PodRunning || pod.DeletionTimestamp != nil {
+			return false
+		}
+	}
+	return true
 }

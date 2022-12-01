@@ -869,3 +869,90 @@ func TestGetRedisRevisionHash(t *testing.T) {
 	}
 
 }
+
+func TestClusterRunning(t *testing.T) {
+	assert := assert.New(t)
+
+	rf := generateRF()
+
+	allRunning := &corev1.PodList{
+		Items: []corev1.Pod{
+			{
+				Status: corev1.PodStatus{
+					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
+				},
+			},
+			{
+				Status: corev1.PodStatus{
+					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
+				},
+			},
+			{
+				Status: corev1.PodStatus{
+					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
+				},
+			},
+		},
+	}
+
+	notAllRunning := &corev1.PodList{
+		Items: []corev1.Pod{
+			{
+				Status: corev1.PodStatus{
+					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
+				},
+			},
+			{
+				Status: corev1.PodStatus{
+					PodIP: "1.1.1.1",
+					Phase: corev1.PodPending,
+				},
+			},
+			{
+				Status: corev1.PodStatus{
+					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
+				},
+			},
+		},
+	}
+
+	notAllReplicas := &corev1.PodList{
+		Items: []corev1.Pod{
+			{
+				Status: corev1.PodStatus{
+					PodIP: "0.0.0.0",
+					Phase: corev1.PodRunning,
+				},
+			},
+			{
+				Status: corev1.PodStatus{
+					PodIP: "1.1.1.1",
+					Phase: corev1.PodRunning,
+				},
+			},
+		},
+	}
+
+	ms := &mK8SService.Services{}
+	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(allRunning, nil)
+	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(allRunning, nil)
+	mr := &mRedisService.Client{}
+
+	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
+
+	assert.True(checker.IsClusterRunning(rf))
+
+	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(allRunning, nil)
+	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(notAllReplicas, nil)
+	assert.False(checker.IsClusterRunning(rf))
+
+	ms.On("GetDeploymentPods", namespace, rfservice.GetSentinelName(rf)).Once().Return(notAllRunning, nil)
+	ms.On("GetStatefulSetPods", namespace, rfservice.GetRedisName(rf)).Once().Return(allRunning, nil)
+	assert.False(checker.IsClusterRunning(rf))
+
+}
