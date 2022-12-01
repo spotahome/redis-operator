@@ -265,14 +265,14 @@ func TestCheckAndHeal(t *testing.T) {
 			mrfh := &mRFService.RedisFailoverHeal{}
 
 			if test.redisCheckNumberOK {
-				mrfc.On("CheckRedisNumber", rf).Once().Return(nil)
+				mrfc.On("IsRedisRunning", rf).Once().Return(true)
 			} else {
 				continueTests = false
-				mrfc.On("CheckRedisNumber", rf).Once().Return(errors.New(""))
+				mrfc.On("IsRedisRunning", rf).Once().Return(false)
 			}
 
 			if allowSentinels {
-				mrfc.On("CheckSentinelNumber", rf).Once().Return(nil)
+				mrfc.On("IsSentinelRunning", rf).Once().Return(true)
 			}
 
 			if bootstrappingTests && continueTests {

@@ -58,7 +58,7 @@ func (p *PodService) CreatePod(namespace string, pod *corev1.Pod) error {
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("pod", pod.Name).Infof("pod created")
+	p.logger.WithField("namespace", namespace).WithField("pod", pod.Name).Debugf("pod created")
 	return nil
 }
 func (p *PodService) UpdatePod(namespace string, pod *corev1.Pod) error {
@@ -67,7 +67,7 @@ func (p *PodService) UpdatePod(namespace string, pod *corev1.Pod) error {
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("pod", pod.Name).Infof("pod updated")
+	p.logger.WithField("namespace", namespace).WithField("pod", pod.Name).Debugf("pod updated")
 	return nil
 }
 func (p *PodService) CreateOrUpdatePod(namespace string, pod *corev1.Pod) error {
