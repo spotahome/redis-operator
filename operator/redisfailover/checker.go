@@ -9,10 +9,6 @@ import (
 	"github.com/spotahome/redis-operator/metrics"
 )
 
-const (
-	timeToPrepare = 2 * time.Minute
-)
-
 // UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
@@ -120,32 +116,34 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	}
 	switch nMasters {
 	case 0:
+		//During the First boot(New deployment or all pods of the statefulsets have restarted),
+		//Sentinesl will not be able to choose the master , so operator should select a master
+		//Also in scenarios where Sentinels is not in a position to choose a master like , No quorum reached
+		//Operator can choose a master , all the abobe scenarios can be checked by asking the all the sentinels
+		//if its in a postion to choose a master.
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("Number of Masters running is 0")
 		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, errors.New("no masters detected"))
-		redisesIP, err := r.rfChecker.GetRedisesIPs(rf)
-		if err != nil {
-			return err
-		}
-		if len(redisesIP) == 1 {
-			if err := r.rfHealer.MakeMaster(redisesIP[0], rf); err != nil {
-				return err
-			}
-			break
-		}
-		minTime, err2 := r.rfChecker.GetMinimumRedisPodTime(rf)
+		maxUptime, err2 := r.rfChecker.GetMaxRedisPodTime(rf)
 		if err2 != nil {
 			return err2
 		}
-		if minTime > timeToPrepare {
-			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
-			// We can consider there's an error
-			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
-				return err2
+
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("No master avaiable but max pod up time is : %f", maxUptime.Round(time.Second).Seconds())
+		//Check If Sentinel can choose a master
+		unHealthySentinels, err2 := r.rfChecker.CheckSentinelQuorum(rf)
+		if err2 != nil {
+			// Sentinels are not in a situation to choose a master we pick one
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("Quorum not available for sentinel to choose master,estimated unhealthy sentinels :%d , Operator to step-in", unHealthySentinels)
+			if err3 := r.rfHealer.SetOldestAsMaster(rf); err3 != nil {
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Error in Setting oldest Pod as master")
+				return err3
 			}
 		} else {
 			// We'll wait until failover is done
-			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("No master found, wait until failover")
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("No master found, wait until failover")
 			return nil
 		}
+
 	case 1:
 		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, nil)
 	default:

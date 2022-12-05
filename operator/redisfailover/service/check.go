@@ -23,12 +23,13 @@ type RedisFailoverCheck interface {
 	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
+	CheckSentinelQuorum(rFailover *redisfailoverv1.RedisFailover) (int, error)
 	CheckSentinelMonitor(sentinel string, monitor ...string) error
 	GetMasterIP(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetNumberMasters(rFailover *redisfailoverv1.RedisFailover) (int, error)
 	GetRedisesIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetSentinelsIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
-	GetMinimumRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
+	GetMaxRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 	GetRedisesSlavesPods(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetRedisesMasterPod(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
@@ -146,6 +147,40 @@ func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *
 		return errors.New("sentinels in memory mismatch")
 	}
 	return nil
+}
+
+// This function will call the sentinel client apis to check with sentinel if the sentinel is in a state
+// to heal the redis system
+func (r *RedisFailoverChecker) CheckSentinelQuorum(rFailover *redisfailoverv1.RedisFailover) (int, error) {
+
+	var unhealthyCnt int = -1
+
+	sentinels, err := r.GetSentinelsIPs(rFailover)
+	if err != nil {
+		r.logger.Errorf("CheckSentinelQuorum Error in getting sentinel Ip's")
+		return unhealthyCnt, err
+	}
+	if len(sentinels) < int(getQuorum(rFailover)) {
+		unhealthyCnt = int(getQuorum(rFailover)) - len(sentinels)
+		r.logger.Errorf("insufficnet sentinel to reach Quorum - Unhealthy count: %d", unhealthyCnt)
+		return unhealthyCnt, errors.New("insufficnet sentinel to reach Quorum")
+	}
+
+	unhealthyCnt = 0
+	for _, sip := range sentinels {
+		err = r.redisClient.SentinelCheckQuorum(sip, "mymaster")
+		if err != nil {
+			unhealthyCnt += 1
+		} else {
+			continue
+		}
+	}
+	if unhealthyCnt < int(getQuorum(rFailover)) {
+		return unhealthyCnt, nil
+	} else {
+		r.logger.Errorf("insufficnet sentinel to reach Quorum - Unhealthy count: %d", unhealthyCnt)
+		return unhealthyCnt, errors.New("insufficnet sentinel to reach Quorum")
+	}
 }
 
 // CheckSentinelSlavesNumberInMemory controls that the provided sentinel has only the expected slaves number.
@@ -266,12 +301,12 @@ func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1.RedisFailover
 	return sentinels, nil
 }
 
-// GetMinimumRedisPodTime returns the minimum time a pod is alive
-func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
-	minTime := 100000 * time.Hour // More than ten years
+// GetMaxRedisPodTime returns the MAX uptime among the active Pods
+func (r *RedisFailoverChecker) GetMaxRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
+	maxTime := 0 * time.Hour
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
-		return minTime, err
+		return maxTime, err
 	}
 	for _, redisNode := range rps.Items {
 		if redisNode.Status.StartTime == nil {
@@ -279,12 +314,12 @@ func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisF
 		}
 		start := redisNode.Status.StartTime.Round(time.Second)
 		alive := time.Since(start)
-		r.logger.Infof("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
-		if alive < minTime {
-			minTime = alive
+		r.logger.Debugf("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
+		if alive > maxTime {
+			maxTime = alive
 		}
 	}
-	return minTime, nil
+	return maxTime, nil
 }
 
 // GetRedisesSlavesPods returns pods names of the Redis slave nodes

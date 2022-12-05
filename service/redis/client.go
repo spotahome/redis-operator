@@ -30,6 +30,7 @@ type Client interface {
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
 	SlaveIsReady(ip, port, password string) (bool, error)
+	SentinelCheckQuorum(ip string, master string) error
 }
 
 type client struct {
@@ -327,6 +328,45 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return nil
 }
 
+func (c *client) SentinelCheckQuorum(ip string, master string) error {
+
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, sentinelPort),
+		Password: "",
+		DB:       0,
+	}
+	rClient := rediscli.NewSentinelClient(options)
+	defer rClient.Close()
+	cmd := rClient.CkQuorum(context.TODO(), master)
+	res, err := cmd.Result()
+	if err != nil {
+		log.Errorf("Unable to get result for CKQUORUM comand")
+		return err
+	}
+
+	log.Errorf("CKQUORUM OUTPUT IS:%s", res)
+
+	s := strings.Split(res, " ")
+	status := s[0]
+	quorum := s[1]
+
+	if status == "" {
+		log.Errorf("quorum command result unexpected output")
+		return fmt.Errorf("quorum command result unexpected output")
+	}
+	if status == "(error)" && quorum == "NOQUORUM" {
+		log.Errorf("quorum command result - NOQUORUM")
+		return fmt.Errorf("quorum Not available")
+
+	} else if status == "OK" {
+		log.Errorf("quorum command result - QUORUM")
+		return nil
+	} else {
+		log.Errorf("quorum command result unexpected !!!")
+		return fmt.Errorf("quorum result unexpected %s", status)
+	}
+
+}
 func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
