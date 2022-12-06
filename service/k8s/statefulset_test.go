@@ -4,6 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -114,6 +118,106 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 				// Check calls to kubernetes.
 				assert.Equal(test.expActions, mcli.Actions())
 			}
+		})
+	}
+	// test resize pvc
+	{
+		t.Run("test_Resize_Pvc", func(t *testing.T) {
+			assert := assert.New(t)
+			beforeSts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "teststatefulSet1",
+					ResourceVersion: "10",
+				},
+				Spec: appsv1.StatefulSetSpec{
+					VolumeClaimTemplates: []v1.PersistentVolumeClaim{
+						{
+							Spec: v1.PersistentVolumeClaimSpec{
+								Resources: v1.ResourceRequirements{
+									Requests: v1.ResourceList{
+										v1.ResourceStorage: resource.MustParse("0.5Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			afterSts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "teststatefulSet1",
+					ResourceVersion: "10",
+				},
+				Spec: appsv1.StatefulSetSpec{
+					VolumeClaimTemplates: []v1.PersistentVolumeClaim{
+						{
+							Spec: v1.PersistentVolumeClaimSpec{
+								Resources: v1.ResourceRequirements{
+									Requests: v1.ResourceList{
+										v1.ResourceStorage: resource.MustParse("1Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			pvcList := &v1.PersistentVolumeClaimList{
+				Items: []v1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"app.kubernetes.io/component": "redis",
+								"app.kubernetes.io/name":      "teststatefulSet1",
+								"app.kubernetes.io/part-of":   "redis-failover",
+							},
+						},
+						Spec: v1.PersistentVolumeClaimSpec{
+							VolumeName: "vol-1",
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									v1.ResourceStorage: resource.MustParse("0.5Gi"),
+								},
+							},
+						},
+					},
+					// resized already
+					{
+						Spec: v1.PersistentVolumeClaimSpec{
+							VolumeName: "vol-2",
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									v1.ResourceStorage: resource.MustParse("1Gi"),
+								},
+							},
+						},
+					},
+				},
+			}
+			// Mock.
+			mcli := &kubernetes.Clientset{}
+			mcli.AddReactor("get", "statefulsets", func(action kubetesting.Action) (bool, runtime.Object, error) {
+				return true, beforeSts, nil
+			})
+			mcli.AddReactor("list", "persistentvolumeclaims", func(action kubetesting.Action) (handled bool, ret runtime.Object, err error) {
+				return true, pvcList, nil
+			})
+			mcli.AddReactor("update", "persistentvolumeclaims", func(action kubetesting.Action) (handled bool, ret runtime.Object, err error) {
+				// update pvc[0]
+				pvcList.Items[0] = *action.(kubetesting.UpdateActionImpl).Object.(*v1.PersistentVolumeClaim)
+				return true, action.(kubetesting.UpdateActionImpl).Object, nil
+			})
+			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
+			err := service.CreateOrUpdateStatefulSet(testns, afterSts)
+			assert.NoError(err)
+			assert.Equal(pvcList.Items[0].Spec.Resources, pvcList.Items[1].Spec.Resources)
+			// should not call update
+			mcli.AddReactor("update", "persistentvolumeclaims", func(action kubetesting.Action) (handled bool, ret runtime.Object, err error) {
+				panic("shouldn't call update")
+			})
+			service = k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
+			err = service.CreateOrUpdateStatefulSet(testns, afterSts)
+			assert.NoError(err)
 		})
 	}
 }
