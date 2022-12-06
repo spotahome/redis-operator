@@ -205,6 +205,20 @@ func (_m *Client) ResetSentinel(ip string) error {
 	return r0
 }
 
+// SentinelCheckQuorum provides a mock function with given fields: ip
+func (_m *Client) SentinelCheckQuorum(ip string) error {
+	ret := _m.Called(ip)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(ip)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetCustomRedisConfig provides a mock function with given fields: ip, port, configs, password
 func (_m *Client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
 	ret := _m.Called(ip, port, configs, password)

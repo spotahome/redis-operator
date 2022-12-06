@@ -156,6 +156,7 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, pod := range ssp.Items {
+		//During this configuration process if there is a new master selected , bailout
 		isMaster, err := r.redisClient.IsMaster(masterIP, port, password)
 		if err != nil || !isMaster {
 			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("check master failed maybe this node is not ready(ip changed), or sentinel made a switch: %s", masterIP)

@@ -30,7 +30,7 @@ type Client interface {
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
 	SlaveIsReady(ip, port, password string) (bool, error)
-	SentinelCheckQuorum(ip string, master string) error
+	SentinelCheckQuorum(ip string) error
 }
 
 type client struct {
@@ -328,7 +328,7 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return nil
 }
 
-func (c *client) SentinelCheckQuorum(ip string, master string) error {
+func (c *client) SentinelCheckQuorum(ip string) error {
 
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, sentinelPort),
@@ -337,7 +337,7 @@ func (c *client) SentinelCheckQuorum(ip string, master string) error {
 	}
 	rClient := rediscli.NewSentinelClient(options)
 	defer rClient.Close()
-	cmd := rClient.CkQuorum(context.TODO(), master)
+	cmd := rClient.CkQuorum(context.TODO(), masterName)
 	res, err := cmd.Result()
 	if err != nil {
 		log.Errorf("Unable to get result for CKQUORUM comand")
