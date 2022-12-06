@@ -53,7 +53,7 @@ func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string,
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("podDisruptionBudget", podDisruptionBudget.Name).Infof("podDisruptionBudget created")
+	p.logger.WithField("namespace", namespace).WithField("podDisruptionBudget", podDisruptionBudget.Name).Debugf("podDisruptionBudget created")
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (p *PodDisruptionBudgetService) UpdatePodDisruptionBudget(namespace string,
 	if err != nil {
 		return err
 	}
-	p.logger.WithField("namespace", namespace).WithField("podDisruptionBudget", podDisruptionBudget.Name).Infof("podDisruptionBudget updated")
+	p.logger.WithField("namespace", namespace).WithField("podDisruptionBudget", podDisruptionBudget.Name).Debugf("podDisruptionBudget updated")
 	return nil
 }
 

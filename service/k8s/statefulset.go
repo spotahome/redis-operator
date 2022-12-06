@@ -79,7 +79,7 @@ func (s *StatefulSetService) CreateStatefulSet(namespace string, statefulSet *ap
 	if err != nil {
 		return err
 	}
-	s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.ObjectMeta.Name).Infof("statefulSet created")
+	s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.ObjectMeta.Name).Debugf("statefulSet created")
 	return err
 }
 
@@ -90,7 +90,7 @@ func (s *StatefulSetService) UpdateStatefulSet(namespace string, statefulSet *ap
 	if err != nil {
 		return err
 	}
-	s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.ObjectMeta.Name).Infof("statefulSet updated")
+	s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.ObjectMeta.Name).Debugf("statefulSet updated")
 	return err
 }
 

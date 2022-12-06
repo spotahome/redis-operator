@@ -35,6 +35,7 @@ type RedisFailoverHealer struct {
 
 // NewRedisFailoverHealer creates an object of the RedisFailoverChecker struct
 func NewRedisFailoverHealer(k8sService k8s.Services, redisClient redis.Client, logger log.Logger) *RedisFailoverHealer {
+	logger = logger.With("service", "redis.healer")
 	return &RedisFailoverHealer{
 		k8sService:  k8sService,
 		redisClient: redisClient,
@@ -109,9 +110,9 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 	for _, pod := range ssp.Items {
 		if newMasterIP == "" {
 			newMasterIP = pod.Status.PodIP
-			r.logger.Debugf("New master is %s with ip %s", pod.Name, newMasterIP)
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("New master is %s with ip %s", pod.Name, newMasterIP)
 			if err := r.redisClient.MakeMaster(newMasterIP, port, password); err != nil {
-				r.logger.Errorf("Make new master failed, master ip: %s, error: %v", pod.Status.PodIP, err)
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Make new master failed, master ip: %s, error: %v", pod.Status.PodIP, err)
 				continue
 			}
 
@@ -122,9 +123,9 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 
 			newMasterIP = pod.Status.PodIP
 		} else {
-			r.logger.Debugf("Making pod %s slave of %s", pod.Name, newMasterIP)
+			r.logger.Infof("Making pod %s slave of %s", pod.Name, newMasterIP)
 			if err := r.redisClient.MakeSlaveOfWithPort(pod.Status.PodIP, newMasterIP, port, password); err != nil {
-				r.logger.Errorf("Make slave failed, slave pod ip: %s, master ip: %s, error: %v", pod.Status.PodIP, newMasterIP, err)
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Make slave failed, slave pod ip: %s, master ip: %s, error: %v", pod.Status.PodIP, newMasterIP, err)
 			}
 
 			err = r.setSlaveLabelIfNecessary(rf.Namespace, pod)
@@ -151,9 +152,9 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 	port := getRedisPort(rf.Spec.Redis.Port)
 	for _, pod := range ssp.Items {
 		if pod.Status.PodIP == masterIP {
-			r.logger.Debugf("Ensure pod %s is master", pod.Name)
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Ensure pod %s is master", pod.Name)
 			if err := r.redisClient.MakeMaster(masterIP, port, password); err != nil {
-				r.logger.Errorf("Make master failed, master ip: %s, error: %v", masterIP, err)
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Make master failed, master ip: %s, error: %v", masterIP, err)
 				return err
 			}
 
@@ -162,9 +163,9 @@ func (r *RedisFailoverHealer) SetMasterOnAll(masterIP string, rf *redisfailoverv
 				return err
 			}
 		} else {
-			r.logger.Debugf("Making pod %s slave of %s", pod.Name, masterIP)
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Making pod %s slave of %s", pod.Name, masterIP)
 			if err := r.redisClient.MakeSlaveOfWithPort(pod.Status.PodIP, masterIP, port, password); err != nil {
-				r.logger.Errorf("Make slave failed, slave ip: %s, master ip: %s, error: %v", pod.Status.PodIP, masterIP, err)
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Make slave failed, slave ip: %s, master ip: %s, error: %v", pod.Status.PodIP, masterIP, err)
 				return err
 			}
 
@@ -191,7 +192,7 @@ func (r *RedisFailoverHealer) SetExternalMasterOnAll(masterIP, masterPort string
 	}
 
 	for _, pod := range ssp.Items {
-		r.logger.Debugf("Making pod %s slave of %s:%s", pod.Name, masterIP, masterPort)
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Making pod %s slave of %s:%s", pod.Name, masterIP, masterPort)
 		if err := r.redisClient.MakeSlaveOfWithPort(pod.Status.PodIP, masterIP, masterPort, password); err != nil {
 			return err
 		}
@@ -202,7 +203,6 @@ func (r *RedisFailoverHealer) SetExternalMasterOnAll(masterIP, masterPort string
 
 // NewSentinelMonitor changes the master that Sentinel has to monitor
 func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
@@ -216,7 +216,6 @@ func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *
 
 // NewSentinelMonitorWithPort changes the master that Sentinel has to monitor by the provided IP and Port
 func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor string, monitorPort string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.Debug("Sentinel is not monitoring the correct master, changing...")
 	quorum := strconv.Itoa(int(getQuorum(rf)))
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
@@ -229,19 +228,19 @@ func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor stri
 
 // RestoreSentinel clear the number of sentinels on memory
 func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
-	r.logger.Debugf("Restoring sentinel %s...", ip)
+	r.logger.Debugf("Restoring sentinel %s", ip)
 	return r.redisClient.ResetSentinel(ip)
 }
 
 // SetSentinelCustomConfig will call sentinel to set the configuration given in config
 func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.Debugf("Setting the custom config on sentinel %s...", ip)
+	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Debugf("Setting the custom config on sentinel %s...", ip)
 	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
 }
 
 // SetRedisCustomConfig will call redis to set the configuration given in config
 func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
-	r.logger.Debugf("Setting the custom config on redis %s...", ip)
+	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Debugf("Setting the custom config on redis %s...", ip)
 
 	password, err := k8s.GetRedisPassword(r.k8sService, rf)
 	if err != nil {
@@ -252,8 +251,8 @@ func (r *RedisFailoverHealer) SetRedisCustomConfig(ip string, rf *redisfailoverv
 	return r.redisClient.SetCustomRedisConfig(ip, port, rf.Spec.Redis.CustomConfig, password)
 }
 
-//DeletePod delete a failing pod so kubernetes relaunch it again
+// DeletePod delete a failing pod so kubernetes relaunch it again
 func (r *RedisFailoverHealer) DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error {
-	r.logger.Debugf("Deleting pods %s...", podName)
+	r.logger.WithField("redisfailover", rFailover.ObjectMeta.Name).WithField("namespace", rFailover.ObjectMeta.Namespace).Infof("Deleting pods %s...", podName)
 	return r.k8sService.DeletePod(rFailover.Namespace, podName)
 }

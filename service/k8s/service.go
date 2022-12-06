@@ -56,7 +56,7 @@ func (s *ServiceService) CreateService(namespace string, service *corev1.Service
 	if err != nil {
 		return err
 	}
-	s.logger.WithField("namespace", namespace).WithField("serviceName", service.Name).Infof("service created")
+	s.logger.WithField("namespace", namespace).WithField("serviceName", service.Name).Debugf("service created")
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (s *ServiceService) UpdateService(namespace string, service *corev1.Service
 	if err != nil {
 		return err
 	}
-	s.logger.WithField("namespace", namespace).WithField("serviceName", service.Name).Infof("service updated")
+	s.logger.WithField("namespace", namespace).WithField("serviceName", service.Name).Debugf("service updated")
 	return nil
 }
 func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1.Service) error {

@@ -322,6 +322,48 @@ func (_m *RedisFailoverCheck) GetStatefulSetUpdateRevision(rFailover *v1.RedisFa
 	return r0, r1
 }
 
+// IsClusterRunning provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) IsClusterRunning(rFailover *v1.RedisFailover) bool {
+	ret := _m.Called(rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) bool); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// IsRedisRunning provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) IsRedisRunning(rFailover *v1.RedisFailover) bool {
+	ret := _m.Called(rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) bool); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// IsSentinelRunning provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) IsSentinelRunning(rFailover *v1.RedisFailover) bool {
+	ret := _m.Called(rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) bool); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewRedisFailoverCheck interface {
 	mock.TestingT
 	Cleanup(func())
