@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,7 +24,9 @@ func TestCheckAndHeal(t *testing.T) {
 		name                           string
 		nMasters                       int
 		nRedis                         int
-		forceNewMaster                 bool
+		forceNewMasterNoQrm            bool
+		forceNewMasterFirstBoot        bool
+		singleMasterTest               bool
 		slavesOK                       bool
 		sentinelMonitorOK              bool
 		sentinelNumberInMemoryOK       bool
@@ -39,7 +40,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Everything ok, no need to heal",
 			nMasters:                       1,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -53,7 +56,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Multiple masters",
 			nMasters:                       2,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -67,7 +72,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "No masters but wait",
 			nMasters:                       0,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -81,7 +88,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "No masters, only one redis available, make master",
 			nMasters:                       0,
 			nRedis:                         1,
-			forceNewMaster:                 false,
+			singleMasterTest:               true,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -92,10 +101,27 @@ func TestCheckAndHeal(t *testing.T) {
 			allowSentinels:                 false,
 		},
 		{
-			name:                           "No masters, set random",
+			name:                           "No masters,No sentinel quorum set random",
 			nMasters:                       0,
 			nRedis:                         3,
-			forceNewMaster:                 true,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            true,
+			forceNewMasterFirstBoot:        false,
+			slavesOK:                       true,
+			sentinelMonitorOK:              true,
+			sentinelNumberInMemoryOK:       true,
+			redisCheckNumberOK:             true,
+			redisSetMasterOnAllOK:          true,
+			sentinelSlavesNumberInMemoryOK: true,
+			allowSentinels:                 false,
+		},
+		{
+			name:                           "No masters,Sentinel Quorum but slave of local host set random",
+			nMasters:                       0,
+			nRedis:                         3,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        true,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -108,7 +134,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Slaves from master wrong",
 			nMasters:                       1,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       false,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -122,7 +150,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Sentinels not pointing correct monitor",
 			nMasters:                       1,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              false,
 			sentinelNumberInMemoryOK:       true,
@@ -136,7 +166,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Sentinels with wrong number of sentinels",
 			nMasters:                       1,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       false,
@@ -150,7 +182,9 @@ func TestCheckAndHeal(t *testing.T) {
 			name:                           "Sentinels with wrong number of slaves",
 			nMasters:                       1,
 			nRedis:                         3,
-			forceNewMaster:                 false,
+			singleMasterTest:               false,
+			forceNewMasterNoQrm:            false,
+			forceNewMasterFirstBoot:        false,
 			slavesOK:                       true,
 			sentinelMonitorOK:              true,
 			sentinelNumberInMemoryOK:       true,
@@ -251,6 +285,9 @@ func TestCheckAndHeal(t *testing.T) {
 				allowSentinels = test.allowSentinels
 				rf.Spec.BootstrapNode.AllowSentinels = allowSentinels
 			}
+			if test.singleMasterTest {
+				rf.Spec.Redis.Replicas = 1
+			}
 
 			expErr := false
 			continueTests := true
@@ -297,18 +334,26 @@ func TestCheckAndHeal(t *testing.T) {
 				mrfc.On("GetNumberMasters", rf).Once().Return(test.nMasters, nil)
 				switch test.nMasters {
 				case 0:
-					mrfc.On("GetRedisesIPs", rf).Once().Return(make([]string, test.nRedis), nil)
-					if test.nRedis == 1 {
-						mrfh.On("MakeMaster", mock.Anything, rf).Once().Return(nil)
+					//mrfc.On("GetRedisesIPs", rf).Once().Return(make([]string, test.nRedis), nil)
+					if rf.Spec.Redis.Replicas == 1 {
+						mrfh.On("SetOldestAsMaster", rf).Once().Return(nil)
+						continueTests = false
 						break
 					}
-					if test.forceNewMaster {
-						mrfc.On("GetMinimumRedisPodTime", rf).Once().Return(1*time.Hour, nil)
+					mrfc.On("GetMaxRedisPodTime", rf).Once().Return(1*time.Hour, nil)
+					if test.forceNewMasterNoQrm {
+						mrfc.On("CheckSentinelQuorum", rf).Once().Return(1, errors.New(""))
+						mrfh.On("SetOldestAsMaster", rf).Once().Return(nil)
+					} else if test.forceNewMasterFirstBoot {
+						mrfc.On("CheckSentinelQuorum", rf).Once().Return(3, nil)
+						mrfc.On("CheckIfMasterLocalhost", rf).Once().Return(true, nil)
 						mrfh.On("SetOldestAsMaster", rf).Once().Return(nil)
 					} else {
-						mrfc.On("GetMinimumRedisPodTime", rf).Once().Return(1*time.Second, nil)
+						mrfc.On("CheckSentinelQuorum", rf).Once().Return(3, nil)
+						mrfc.On("CheckIfMasterLocalhost", rf).Once().Return(false, nil)
 						continueTests = false
 					}
+
 				case 1:
 					break
 				default:
