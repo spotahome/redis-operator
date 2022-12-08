@@ -658,7 +658,7 @@ func TestGetNumberMastersTwo(t *testing.T) {
 	assert.Equal(2, masterNumber, "the master number should be ok")
 }
 
-func TestGetMinimumRedisPodTimeGetStatefulSetPodsError(t *testing.T) {
+func TestGetMaxRedisPodTimeGetStatefulSetPodsError(t *testing.T) {
 	assert := assert.New(t)
 
 	rf := generateRF()
@@ -669,11 +669,11 @@ func TestGetMinimumRedisPodTimeGetStatefulSetPodsError(t *testing.T) {
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	_, err := checker.GetMinimumRedisPodTime(rf)
+	_, err := checker.GetMaxRedisPodTime(rf)
 	assert.Error(err)
 }
 
-func TestGetMinimumRedisPodTime(t *testing.T) {
+func TestGetMaxRedisPodTime(t *testing.T) {
 	assert := assert.New(t)
 
 	rf := generateRF()
@@ -707,11 +707,11 @@ func TestGetMinimumRedisPodTime(t *testing.T) {
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	minTime, err := checker.GetMinimumRedisPodTime(rf)
+	maxTime, err := checker.GetMaxRedisPodTime(rf)
 	assert.NoError(err)
 
-	expected := now.Sub(oneMinute).Round(time.Second)
-	assert.Equal(expected, minTime.Round(time.Second), "the closest time should be given")
+	expected := now.Sub(oneHour).Round(time.Second)
+	assert.Equal(expected, maxTime.Round(time.Second), "the closest time should be given")
 }
 
 func TestGetRedisPodsNames(t *testing.T) {

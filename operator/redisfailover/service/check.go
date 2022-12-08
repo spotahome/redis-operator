@@ -30,7 +30,6 @@ type RedisFailoverCheck interface {
 	GetNumberMasters(rFailover *redisfailoverv1.RedisFailover) (int, error)
 	GetRedisesIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetSentinelsIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
-	GetMinimumRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 	GetMaxRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 	GetRedisesSlavesPods(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetRedisesMasterPod(rFailover *redisfailoverv1.RedisFailover) (string, error)
@@ -342,27 +341,6 @@ func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1.RedisFailover
 		}
 	}
 	return sentinels, nil
-}
-
-// GetMinimumRedisPodTime returns the minimum time a pod is alive
-func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
-	minTime := 100000 * time.Hour // More than ten years
-	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
-	if err != nil {
-		return minTime, err
-	}
-	for _, redisNode := range rps.Items {
-		if redisNode.Status.StartTime == nil {
-			continue
-		}
-		start := redisNode.Status.StartTime.Round(time.Second)
-		alive := time.Since(start)
-		r.logger.Infof("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
-		if alive < minTime {
-			minTime = alive
-		}
-	}
-	return minTime, nil
 }
 
 // GetMaxRedisPodTime returns the MAX uptime among the active Pods
