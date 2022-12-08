@@ -51,6 +51,27 @@ func (_m *Client) GetNumberSentinelsInMemory(ip string) (int32, error) {
 	return r0, r1
 }
 
+// GetReplOffsetInMemory provides a mock function with given fields: ip, password
+func (_m *Client) GetReplOffsetInMemory(ip string, password string) (int, error) {
+	ret := _m.Called(ip, password)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(string, string) int); ok {
+		r0 = rf(ip, password)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(ip, password)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSentinelMonitor provides a mock function with given fields: ip
 func (_m *Client) GetSentinelMonitor(ip string) (string, string, error) {
 	ret := _m.Called(ip)

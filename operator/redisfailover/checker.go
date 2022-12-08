@@ -138,8 +138,11 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		if minTime > timeToPrepare {
 			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
 			// We can consider there's an error
-			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
-				return err2
+			if err2 := r.rfHealer.SetMaximumOffsetAsMaster(rf); err2 != nil {
+				r.logger.Debugf("SetMaximumOffsetAsMaster err: %s", err.Error())
+				if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
+					return err2
+				}
 			}
 		} else {
 			// We'll wait until failover is done

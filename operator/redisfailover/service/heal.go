@@ -16,6 +16,7 @@ import (
 type RedisFailoverHeal interface {
 	MakeMaster(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetOldestAsMaster(rFailover *redisfailoverv1.RedisFailover) error
+	SetMaximumOffsetAsMaster(rFailover *redisfailoverv1.RedisFailover) error
 	SetMasterOnAll(masterIP string, rFailover *redisfailoverv1.RedisFailover) error
 	SetExternalMasterOnAll(masterIP string, masterPort string, rFailover *redisfailoverv1.RedisFailover) error
 	NewSentinelMonitor(ip string, monitor string, rFailover *redisfailoverv1.RedisFailover) error
@@ -24,6 +25,11 @@ type RedisFailoverHeal interface {
 	SetSentinelCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	SetRedisCustomConfig(ip string, rFailover *redisfailoverv1.RedisFailover) error
 	DeletePod(podName string, rFailover *redisfailoverv1.RedisFailover) error
+}
+
+type IPOffset struct {
+	IP     string
+	Offset int
 }
 
 // RedisFailoverHealer is our implementation of RedisFailoverCheck interface
@@ -85,6 +91,49 @@ func (r *RedisFailoverHealer) MakeMaster(ip string, rf *redisfailoverv1.RedisFai
 	return nil
 }
 
+func (r *RedisFailoverHealer) SetMaximumOffsetAsMaster(rf *redisfailoverv1.RedisFailover) error {
+	var ipOffsetSlice []IPOffset
+	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if len(ssp.Items) < 1 {
+		return errors.New("number of redis pods are 0")
+	}
+	for _, pod := range ssp.Items {
+		offset, err := r.redisClient.GetReplOffsetInMemory(pod.Status.PodIP, password)
+		if err != nil {
+			return err
+		}
+		ipOffsetSlice = append(ipOffsetSlice, IPOffset{IP: pod.Status.PodIP, Offset: offset})
+	}
+	sort.Slice(ipOffsetSlice, func(i, j int) bool {
+		return ipOffsetSlice[i].Offset > ipOffsetSlice[j].Offset
+	})
+	if ipOffsetSlice[0].Offset == 0 {
+		return errors.New("biggest repl offset is 0")
+	}
+
+	newMasterIP := ""
+	for _, ipOffset := range ipOffsetSlice {
+		if newMasterIP == "" {
+			newMasterIP = ipOffset.IP
+			if err := r.redisClient.MakeMaster(newMasterIP, password); err != nil {
+				return err
+			}
+		} else {
+			if err := r.redisClient.MakeSlaveOf(ipOffset.IP, newMasterIP, password); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // SetOldestAsMaster puts all redis to the same master, choosen by order of appearance
 func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailover) error {
 	ssp, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
@@ -95,7 +144,7 @@ func (r *RedisFailoverHealer) SetOldestAsMaster(rf *redisfailoverv1.RedisFailove
 		return errors.New("number of redis pods are 0")
 	}
 
-	// Order the pods so we start by the oldest one
+	// Order the pods so we start by the offset
 	sort.Slice(ssp.Items, func(i, j int) bool {
 		return ssp.Items[i].CreationTimestamp.Before(&ssp.Items[j].CreationTimestamp)
 	})
