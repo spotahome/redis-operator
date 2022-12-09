@@ -40,7 +40,7 @@ jobs:
           go-version: 1.19
       - name: Install conntrack
         run: sudo apt-get install -y conntrack
-      - uses: medyagh/setup-minikube@v0.0.8
+      - uses: medyagh/setup-minikube@v0.0.9
         with:
           kubernetes-version: ${{ matrix.kubernetes }}
           driver: none
