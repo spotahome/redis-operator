@@ -356,18 +356,16 @@ func (c *client) SentinelCheckQuorum(ip string) error {
 		return fmt.Errorf("quorum command result unexpected output")
 	}
 	if status == "(error)" && quorum == "NOQUORUM" {
-		log.Warnf("quorum command result - NOQUORUM")
 		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "NOQUORUM")
 		return fmt.Errorf("quorum Not available")
 
 	} else if status == "OK" {
-		log.Infof("quorum command result - QUORUM")
 		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "QUORUM")
 		return nil
 	} else {
-		log.Errorf("quorum command result unexpected !!!")
-		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command result unexpected output")
-		return fmt.Errorf("quorum result unexpected %s", status)
+		log.Errorf("quorum command status unexpected !!!")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command status unexpected output")
+		return fmt.Errorf("quorum status unexpected %s", status)
 	}
 
 }
