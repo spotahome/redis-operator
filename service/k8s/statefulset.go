@@ -163,7 +163,7 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 				annotations["storageCapacity"] = fmt.Sprintf("%d", stateCapacity)
 				storedStatefulSet.Annotations = annotations
 				if realUpdate {
-					s.logger.WithField("namespace", namespace).WithField("pvc", rfName).Infof("resize pvc will resize from %d to %d Success", storedCapacity, stateCapacity)
+					s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.Name).Infof("resize statefulset pvcs from %d to %d Success", storedCapacity, stateCapacity)
 				} else {
 					s.logger.WithField("namespace", namespace).WithField("pvc", rfName).Warningf("set annotations,resize nothing")
 				}
