@@ -339,30 +339,34 @@ func (c *client) SentinelCheckQuorum(ip string) error {
 	defer rClient.Close()
 	cmd := rClient.CkQuorum(context.TODO(), masterName)
 	res, err := cmd.Result()
+
 	if err != nil {
-		log.Errorf("Unable to get result for CKQUORUM comand")
+		log.Warnf("Unable to get result for CKQUORUM comand")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, getRedisError(err))
 		return err
 	}
-
-	log.Errorf("CKQUORUM OUTPUT IS:%s", res)
-
+	log.Debugf("SentinelCheckQuorum cmd result: %s", res)
 	s := strings.Split(res, " ")
 	status := s[0]
 	quorum := s[1]
 
 	if status == "" {
 		log.Errorf("quorum command result unexpected output")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command result unexpected output")
 		return fmt.Errorf("quorum command result unexpected output")
 	}
 	if status == "(error)" && quorum == "NOQUORUM" {
-		log.Errorf("quorum command result - NOQUORUM")
+		log.Warnf("quorum command result - NOQUORUM")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "NOQUORUM")
 		return fmt.Errorf("quorum Not available")
 
 	} else if status == "OK" {
-		log.Errorf("quorum command result - QUORUM")
+		log.Infof("quorum command result - QUORUM")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "QUORUM")
 		return nil
 	} else {
 		log.Errorf("quorum command result unexpected !!!")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command result unexpected output")
 		return fmt.Errorf("quorum result unexpected %s", status)
 	}
 
