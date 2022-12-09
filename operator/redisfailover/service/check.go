@@ -23,12 +23,14 @@ type RedisFailoverCheck interface {
 	CheckAllSlavesFromMaster(master string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
 	CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *redisfailoverv1.RedisFailover) error
+	CheckSentinelQuorum(rFailover *redisfailoverv1.RedisFailover) (int, error)
+	CheckIfMasterLocalhost(rFailover *redisfailoverv1.RedisFailover) (bool, error)
 	CheckSentinelMonitor(sentinel string, monitor ...string) error
 	GetMasterIP(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetNumberMasters(rFailover *redisfailoverv1.RedisFailover) (int, error)
 	GetRedisesIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetSentinelsIPs(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
-	GetMinimumRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
+	GetMaxRedisPodTime(rFailover *redisfailoverv1.RedisFailover) (time.Duration, error)
 	GetRedisesSlavesPods(rFailover *redisfailoverv1.RedisFailover) ([]string, error)
 	GetRedisesMasterPod(rFailover *redisfailoverv1.RedisFailover) (string, error)
 	GetStatefulSetUpdateRevision(rFailover *redisfailoverv1.RedisFailover) (string, error)
@@ -148,15 +150,99 @@ func (r *RedisFailoverChecker) CheckSentinelNumberInMemory(sentinel string, rf *
 	return nil
 }
 
+// This function will check if the local host ip is set as the master for all currently available pods
+// This  can be used to detect the fresh boot of all the redis pods
+// This function returns true if it all available pods have local host ip as master,
+// false if atleast one of the ip is not local hostip
+// false and error if any function fails
+func (r *RedisFailoverChecker) CheckIfMasterLocalhost(rFailover *redisfailoverv1.RedisFailover) (bool, error) {
+
+	var lhmaster int = 0
+	redisIps, err := r.GetRedisesIPs(rFailover)
+	if len(redisIps) == 0 || err != nil {
+		r.logger.Warningf("CheckIfMasterLocalhost GetRedisesIPs Failed- unable to fetch any redis Ips Currently")
+		return false, errors.New("unable to fetch any redis Ips Currently")
+	}
+	password, err := k8s.GetRedisPassword(r.k8sService, rFailover)
+	if err != nil {
+		r.logger.Errorf("CheckIfMasterLocalhost -- GetRedisPassword Failed")
+		return false, err
+	}
+	rport := getRedisPort(rFailover.Spec.Redis.Port)
+	for _, sip := range redisIps {
+		master, err := r.redisClient.GetSlaveOf(sip, rport, password)
+		if err != nil {
+			r.logger.Warningf("CheckIfMasterLocalhost -- GetSlaveOf Failed")
+			return false, err
+		} else if master == "" {
+			r.logger.Warningf("CheckIfMasterLocalhost -- Master already available ?? check manually")
+			return false, errors.New("unexpected master state, fix manually")
+		} else {
+			if master == "127.0.0.1" {
+				lhmaster++
+			}
+		}
+	}
+	if lhmaster == len(redisIps) {
+		r.logger.Infof("all available redis configured localhost as master , opertor must heal")
+		return true, nil
+	}
+	r.logger.Infof("atleast one pod does not have localhost as master , opertor should not heal")
+	return false, nil
+}
+
+// This function will call the sentinel client apis to check with sentinel if the sentinel is in a state
+// to heal the redis system
+func (r *RedisFailoverChecker) CheckSentinelQuorum(rFailover *redisfailoverv1.RedisFailover) (int, error) {
+
+	var unhealthyCnt int = -1
+
+	sentinels, err := r.GetSentinelsIPs(rFailover)
+	if err != nil {
+		r.logger.Warningf("CheckSentinelQuorum Error in getting sentinel Ip's")
+		return unhealthyCnt, err
+	}
+	if len(sentinels) < int(getQuorum(rFailover)) {
+		unhealthyCnt = int(getQuorum(rFailover)) - len(sentinels)
+		r.logger.Warningf("insufficnet sentinel to reach Quorum - Unhealthy count: %d", unhealthyCnt)
+		return unhealthyCnt, errors.New("insufficnet sentinel to reach Quorum")
+	}
+
+	unhealthyCnt = 0
+	for _, sip := range sentinels {
+		err = r.redisClient.SentinelCheckQuorum(sip)
+		if err != nil {
+			unhealthyCnt += 1
+		} else {
+			continue
+		}
+	}
+	if unhealthyCnt < int(getQuorum(rFailover)) {
+		return unhealthyCnt, nil
+	} else {
+		r.logger.Errorf("insufficnet sentinel to reach Quorum - Unhealthy count: %d", unhealthyCnt)
+		return unhealthyCnt, errors.New("insufficnet sentinel to reach Quorum")
+	}
+}
+
 // CheckSentinelSlavesNumberInMemory controls that the provided sentinel has only the expected slaves number.
 func (r *RedisFailoverChecker) CheckSentinelSlavesNumberInMemory(sentinel string, rf *redisfailoverv1.RedisFailover) error {
 	nSlaves, err := r.redisClient.GetNumberSentinelSlavesInMemory(sentinel)
 	if err != nil {
 		return err
-	} else if nSlaves != rf.Spec.Redis.Replicas-1 {
-		return errors.New("redis slaves in sentinel memory mismatch")
+	} else {
+		if rf.Bootstrapping() {
+			if nSlaves != rf.Spec.Redis.Replicas {
+				return errors.New("redis slaves in sentinel memory mismatch")
+			}
+		} else {
+			if nSlaves != rf.Spec.Redis.Replicas-1 {
+				return errors.New("redis slaves in sentinel memory mismatch")
+			}
+		}
 	}
 	return nil
+
 }
 
 // CheckSentinelMonitor controls if the sentinels are monitoring the expected master
@@ -266,12 +352,12 @@ func (r *RedisFailoverChecker) GetSentinelsIPs(rf *redisfailoverv1.RedisFailover
 	return sentinels, nil
 }
 
-// GetMinimumRedisPodTime returns the minimum time a pod is alive
-func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
-	minTime := 100000 * time.Hour // More than ten years
+// GetMaxRedisPodTime returns the MAX uptime among the active Pods
+func (r *RedisFailoverChecker) GetMaxRedisPodTime(rf *redisfailoverv1.RedisFailover) (time.Duration, error) {
+	maxTime := 0 * time.Hour
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
 	if err != nil {
-		return minTime, err
+		return maxTime, err
 	}
 	for _, redisNode := range rps.Items {
 		if redisNode.Status.StartTime == nil {
@@ -279,12 +365,12 @@ func (r *RedisFailoverChecker) GetMinimumRedisPodTime(rf *redisfailoverv1.RedisF
 		}
 		start := redisNode.Status.StartTime.Round(time.Second)
 		alive := time.Since(start)
-		r.logger.Infof("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
-		if alive < minTime {
-			minTime = alive
+		r.logger.Debugf("Pod %s has been alive for %.f seconds", redisNode.Status.PodIP, alive.Seconds())
+		if alive > maxTime {
+			maxTime = alive
 		}
 	}
-	return minTime, nil
+	return maxTime, nil
 }
 
 // GetRedisesSlavesPods returns pods names of the Redis slave nodes

@@ -172,7 +172,7 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	}
 	// set stored.volumeClaimTemplates
 	statefulSet.Spec.VolumeClaimTemplates = storedStatefulSet.Spec.VolumeClaimTemplates
-	statefulSet.Annotations = util.MergeAnnotations(statefulSet.Annotations, storedStatefulSet.Annotations)
+	statefulSet.Annotations = util.MergeAnnotations(storedStatefulSet.Annotations, statefulSet.Annotations)
 	return s.UpdateStatefulSet(namespace, statefulSet)
 }
 

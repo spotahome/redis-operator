@@ -30,6 +30,7 @@ type Client interface {
 	SetCustomSentinelConfig(ip string, configs []string) error
 	SetCustomRedisConfig(ip string, port string, configs []string, password string) error
 	SlaveIsReady(ip, port, password string) (bool, error)
+	SentinelCheckQuorum(ip string) error
 }
 
 type client struct {
@@ -238,6 +239,7 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 		}
 		_, err = cmd.Result()
 		if err != nil {
+			c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MONITOR_REDIS_WITH_PORT, metrics.FAIL, getRedisError(err))
 			return err
 		}
 	}
@@ -257,7 +259,7 @@ func (c *client) MakeMaster(ip string, port string, password string) error {
 		c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.FAIL, getRedisError(res.Err()))
 		return res.Err()
 	}
-	c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.FAIL, metrics.NOT_APPLICABLE)
+	c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.SUCCESS, metrics.NOT_APPLICABLE)
 	return nil
 }
 
@@ -327,6 +329,47 @@ func (c *client) SetCustomSentinelConfig(ip string, configs []string) error {
 	return nil
 }
 
+func (c *client) SentinelCheckQuorum(ip string) error {
+
+	options := &rediscli.Options{
+		Addr:     net.JoinHostPort(ip, sentinelPort),
+		Password: "",
+		DB:       0,
+	}
+	rClient := rediscli.NewSentinelClient(options)
+	defer rClient.Close()
+	cmd := rClient.CkQuorum(context.TODO(), masterName)
+	res, err := cmd.Result()
+
+	if err != nil {
+		log.Warnf("Unable to get result for CKQUORUM comand")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, getRedisError(err))
+		return err
+	}
+	log.Debugf("SentinelCheckQuorum cmd result: %s", res)
+	s := strings.Split(res, " ")
+	status := s[0]
+	quorum := s[1]
+
+	if status == "" {
+		log.Errorf("quorum command result unexpected output")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command result unexpected output")
+		return fmt.Errorf("quorum command result unexpected output")
+	}
+	if status == "(error)" && quorum == "NOQUORUM" {
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "NOQUORUM")
+		return fmt.Errorf("quorum Not available")
+
+	} else if status == "OK" {
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.SUCCESS, "QUORUM")
+		return nil
+	} else {
+		log.Errorf("quorum command status unexpected !!!")
+		c.metricsRecorder.RecordRedisOperation(metrics.KIND_SENTINEL, ip, metrics.CHECK_SENTINEL_QUORUM, metrics.FAIL, "quorum command status unexpected output")
+		return fmt.Errorf("quorum status unexpected %s", status)
+	}
+
+}
 func (c *client) SetCustomRedisConfig(ip string, port string, configs []string, password string) error {
 	options := &rediscli.Options{
 		Addr:     net.JoinHostPort(ip, port),
