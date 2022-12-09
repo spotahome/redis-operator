@@ -239,6 +239,7 @@ func (c *client) MonitorRedisWithPort(ip, monitor, port, quorum, password string
 		}
 		_, err = cmd.Result()
 		if err != nil {
+			c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MONITOR_REDIS_WITH_PORT, metrics.FAIL, getRedisError(err))
 			return err
 		}
 	}
@@ -258,7 +259,7 @@ func (c *client) MakeMaster(ip string, port string, password string) error {
 		c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.FAIL, getRedisError(res.Err()))
 		return res.Err()
 	}
-	c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.FAIL, metrics.NOT_APPLICABLE)
+	c.metricsRecorder.RecordRedisOperation(metrics.KIND_REDIS, ip, metrics.MAKE_MASTER, metrics.SUCCESS, metrics.NOT_APPLICABLE)
 	return nil
 }
 
