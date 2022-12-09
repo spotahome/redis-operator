@@ -29,6 +29,27 @@ func (_m *RedisFailoverCheck) CheckAllSlavesFromMaster(master string, rFailover 
 	return r0
 }
 
+// CheckIfMasterLocalhost provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) CheckIfMasterLocalhost(rFailover *v1.RedisFailover) (bool, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) bool); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CheckRedisNumber provides a mock function with given fields: rFailover
 func (_m *RedisFailoverCheck) CheckRedisNumber(rFailover *v1.RedisFailover) error {
 	ret := _m.Called(rFailover)
@@ -113,6 +134,27 @@ func (_m *RedisFailoverCheck) CheckSentinelNumberInMemory(sentinel string, rFail
 	return r0
 }
 
+// CheckSentinelQuorum provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) CheckSentinelQuorum(rFailover *v1.RedisFailover) (int, error) {
+	ret := _m.Called(rFailover)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(*v1.RedisFailover) int); ok {
+		r0 = rf(rFailover)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*v1.RedisFailover) error); ok {
+		r1 = rf(rFailover)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CheckSentinelSlavesNumberInMemory provides a mock function with given fields: sentinel, rFailover
 func (_m *RedisFailoverCheck) CheckSentinelSlavesNumberInMemory(sentinel string, rFailover *v1.RedisFailover) error {
 	ret := _m.Called(sentinel, rFailover)
@@ -148,8 +190,8 @@ func (_m *RedisFailoverCheck) GetMasterIP(rFailover *v1.RedisFailover) (string, 
 	return r0, r1
 }
 
-// GetMinimumRedisPodTime provides a mock function with given fields: rFailover
-func (_m *RedisFailoverCheck) GetMinimumRedisPodTime(rFailover *v1.RedisFailover) (time.Duration, error) {
+// GetMaxRedisPodTime provides a mock function with given fields: rFailover
+func (_m *RedisFailoverCheck) GetMaxRedisPodTime(rFailover *v1.RedisFailover) (time.Duration, error) {
 	ret := _m.Called(rFailover)
 
 	var r0 time.Duration

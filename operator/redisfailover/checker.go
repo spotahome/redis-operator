@@ -9,10 +9,6 @@ import (
 	"github.com/spotahome/redis-operator/metrics"
 )
 
-const (
-	timeToPrepare = 2 * time.Minute
-)
-
 // UpdateRedisesPods if the running version of pods are equal to the statefulset one
 func (r *RedisFailoverHandler) UpdateRedisesPods(rf *redisfailoverv1.RedisFailover) error {
 	redises, err := r.rfChecker.GetRedisesIPs(rf)
@@ -118,34 +114,71 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 	if err != nil {
 		return err
 	}
+
 	switch nMasters {
 	case 0:
-		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, errors.New("no masters detected"))
-		redisesIP, err := r.rfChecker.GetRedisesIPs(rf)
+		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, errors.New("no masters detected"))
+		//when number of redis replicas is 1 , the redis is configured for standalone master mode
+		//Configure to master
+		if rf.Spec.Redis.Replicas == 1 {
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("Resource spec with standalone master - operator will set the master")
+			err = r.rfHealer.SetOldestAsMaster(rf)
+			setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, err)
+			if err != nil {
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Error in Setting oldest Pod as master")
+				return err
+			}
+			return nil
+		}
+		//During the First boot(New deployment or all pods of the statefulsets have restarted),
+		//Sentinesl will not be able to choose the master , so operator should select a master
+		//Also in scenarios where Sentinels is not in a position to choose a master like , No quorum reached
+		//Operator can choose a master , These scenarios can be checked by asking the all the sentinels
+		//if its in a postion to choose a master also check if the redis is configured with local host IP as master.
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("Number of Masters running is 0")
+		maxUptime, err := r.rfChecker.GetMaxRedisPodTime(rf)
 		if err != nil {
 			return err
 		}
-		if len(redisesIP) == 1 {
-			if err := r.rfHealer.MakeMaster(redisesIP[0], rf); err != nil {
-				return err
-			}
-			break
-		}
-		minTime, err2 := r.rfChecker.GetMinimumRedisPodTime(rf)
-		if err2 != nil {
-			return err2
-		}
-		if minTime > timeToPrepare {
-			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("time %.f more than expected. Not even one master, fixing...", minTime.Round(time.Second).Seconds())
-			// We can consider there's an error
-			if err2 := r.rfHealer.SetOldestAsMaster(rf); err2 != nil {
+
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("No master avaiable but max pod up time is : %f", maxUptime.Round(time.Second).Seconds())
+		//Check If Sentinel has quorum to take a failover decision
+		noqrm_cnt, err := r.rfChecker.CheckSentinelQuorum(rf)
+		if err != nil {
+			// Sentinels are not in a situation to choose a master we pick one
+			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("Quorum not available for sentinel to choose master,estimated unhealthy sentinels :%d , Operator to step-in", noqrm_cnt)
+			err2 := r.rfHealer.SetOldestAsMaster(rf)
+			setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, err2)
+			if err2 != nil {
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Error in Setting oldest Pod as master")
 				return err2
 			}
 		} else {
-			// We'll wait until failover is done
-			r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Warningf("No master found, wait until failover")
-			return nil
+			//sentinels are having a quorum to make a failover , but check if redis are not having local hostip (first boot) as master
+			status, err2 := r.rfChecker.CheckIfMasterLocalhost(rf)
+			if err2 != nil {
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("CheckIfMasterLocalhost failed retry later")
+				return err2
+			} else if status {
+				// all avaialable redis pods have local host ip as master
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("all available redis is having local loop back as master , operator initiates master selection")
+				err3 := r.rfHealer.SetOldestAsMaster(rf)
+				setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, err3)
+				if err3 != nil {
+					r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Error in Setting oldest Pod as master")
+					return err3
+				}
+
+			} else {
+
+				// We'll wait until failover is done
+				r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("no master found, wait until failover or fix manually")
+				setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, errors.New("no master not fixed, wait until failover or fix manually"))
+				return nil
+			}
+
 		}
+
 	case 1:
 		setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NUMBER_OF_MASTERS, metrics.NOT_APPLICABLE, nil)
 	default:
