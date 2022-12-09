@@ -155,7 +155,7 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 						if !updateFailed {
 							updateFailed = true
 						}
-						s.logger.WithField("namespace", namespace).WithField("pvc", rfName).Warningf("resize pvc failed:%s", err.Error())
+						s.logger.WithField("namespace", namespace).WithField("pvc", pvc.Name).Warningf("resize pvc failed:%s", err.Error())
 					}
 				}
 			}
