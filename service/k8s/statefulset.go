@@ -3,7 +3,10 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 
@@ -107,6 +110,66 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
 	// we will replace the current namespace state.
 	statefulSet.ResourceVersion = storedStatefulSet.ResourceVersion
+	// resize pvc
+	// 1.Get the data already stored internally
+	// 2.Get the desired data
+	// 3.Start querying the pvc list when you find data inconsistencies
+	// 3.1 Comparison using real pvc capacity and desired data
+	// 3.1.1 Update if you find inconsistencies
+	// 3.2 Writing successful updates to internal
+	// 4. Set to old VolumeClaimTemplates to update.Prevent update error reporting
+	// 5. Set to old annotations to update
+	annotations := storedStatefulSet.Annotations
+	if annotations == nil {
+		annotations = map[string]string{
+			"storageCapacity": "0",
+		}
+	}
+	storedCapacity, _ := strconv.ParseInt(annotations["storageCapacity"], 0, 64)
+	if len(statefulSet.Spec.VolumeClaimTemplates) != 0 {
+		stateCapacity := statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage().Value()
+		if storedCapacity != stateCapacity {
+			rfName := strings.TrimPrefix(storedStatefulSet.Name, "rfr-")
+			listOpt := metav1.ListOptions{
+				LabelSelector: labels.FormatLabels(
+					map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      strings.TrimPrefix(storedStatefulSet.Name, "rfr-"),
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+				),
+			}
+			pvcs, err := s.kubeClient.CoreV1().PersistentVolumeClaims(storedStatefulSet.Namespace).List(context.Background(), listOpt)
+			if err != nil {
+				return err
+			}
+			updateFailed := false
+			realUpdate := false
+			for _, pvc := range pvcs.Items {
+				realCapacity := pvc.Spec.Resources.Requests.Storage().Value()
+				if realCapacity != stateCapacity {
+					realUpdate = true
+					pvc.Spec.Resources.Requests = statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests
+					_, err = s.kubeClient.CoreV1().PersistentVolumeClaims(storedStatefulSet.Namespace).Update(context.Background(), &pvc, metav1.UpdateOptions{})
+					if err != nil {
+						updateFailed = true
+						s.logger.WithField("namespace", namespace).WithField("pvc", pvc.Name).Warningf("resize pvc failed:%s", err.Error())
+					}
+				}
+			}
+			if !updateFailed && len(pvcs.Items) != 0 {
+				annotations["storageCapacity"] = fmt.Sprintf("%d", stateCapacity)
+				storedStatefulSet.Annotations = annotations
+				if realUpdate {
+					s.logger.WithField("namespace", namespace).WithField("statefulSet", statefulSet.Name).Infof("resize statefulset pvcs from %d to %d Success", storedCapacity, stateCapacity)
+				} else {
+					s.logger.WithField("namespace", namespace).WithField("pvc", rfName).Warningf("set annotations,resize nothing")
+				}
+			}
+		}
+	}
+	// set stored.volumeClaimTemplates
+	statefulSet.Spec.VolumeClaimTemplates = storedStatefulSet.Spec.VolumeClaimTemplates
 	statefulSet.Annotations = util.MergeAnnotations(storedStatefulSet.Annotations, statefulSet.Annotations)
 	return s.UpdateStatefulSet(namespace, statefulSet)
 }
