@@ -152,9 +152,7 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 					pvc.Spec.Resources.Requests = statefulSet.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests
 					_, err = s.kubeClient.CoreV1().PersistentVolumeClaims(storedStatefulSet.Namespace).Update(context.Background(), &pvc, metav1.UpdateOptions{})
 					if err != nil {
-						if !updateFailed {
-							updateFailed = true
-						}
+						updateFailed = true
 						s.logger.WithField("namespace", namespace).WithField("pvc", pvc.Name).Warningf("resize pvc failed:%s", err.Error())
 					}
 				}
