@@ -348,7 +348,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 										Command: []string{
 											"sh",
 											"-c",
-											fmt.Sprintf("redis-cli -h 127.0.0.1 -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
+											fmt.Sprintf("redis-cli -h ${hostname} -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
 										},
 									},
 								},
