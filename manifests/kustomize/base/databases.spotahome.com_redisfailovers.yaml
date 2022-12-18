@@ -5785,6 +5785,8 @@ spec:
                     type: object
                   shutdownConfigMap:
                     type: string
+                  startupConfigMap:
+                    type: string
                   storage:
                     description: RedisStorage defines the structure used to store
                       the Redis Data
@@ -12205,6 +12207,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  startupConfigMap:
+                    type: string
                   tolerations:
                     items:
                       description: The pod this Toleration is attached to tolerates

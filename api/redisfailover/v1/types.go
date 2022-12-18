@@ -46,6 +46,7 @@ type RedisSettings struct {
 	CustomCommandRenames          []RedisCommandRename              `json:"customCommandRenames,omitempty"`
 	Command                       []string                          `json:"command,omitempty"`
 	ShutdownConfigMap             string                            `json:"shutdownConfigMap,omitempty"`
+	StartupConfigMap              string                            `json:"startupConfigMap,omitempty"`
 	Storage                       RedisStorage                      `json:"storage,omitempty"`
 	InitContainers                []corev1.Container                `json:"initContainers,omitempty"`
 	Exporter                      Exporter                          `json:"exporter,omitempty"`
@@ -76,6 +77,7 @@ type SentinelSettings struct {
 	Resources                 corev1.ResourceRequirements       `json:"resources,omitempty"`
 	CustomConfig              []string                          `json:"customConfig,omitempty"`
 	Command                   []string                          `json:"command,omitempty"`
+	StartupConfigMap          string                            `json:"startupConfigMap,omitempty"`
 	Affinity                  *corev1.Affinity                  `json:"affinity,omitempty"`
 	SecurityContext           *corev1.PodSecurityContext        `json:"securityContext,omitempty"`
 	ContainerSecurityContext  *corev1.SecurityContext           `json:"containerSecurityContext,omitempty"`

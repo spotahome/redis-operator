@@ -37,6 +37,7 @@ sentinel failover-timeout mymaster 3000
 sentinel parallel-syncs mymaster 2`
 
 	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
+	redisStartupConfigurationVolumeName  = "redis-startup-config"
 	redisReadinessVolumeName             = "redis-readiness-config"
 	redisStorageVolumeName               = "redis-data"
 
@@ -347,7 +348,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 										Command: []string{
 											"sh",
 											"-c",
-											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
+											fmt.Sprintf("redis-cli -h 127.0.0.1 -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
 										},
 									},
 								},
@@ -389,6 +390,20 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		}
 		ss.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 			pvc,
+		}
+	}
+
+	if rf.Spec.Redis.StartupConfigMap != "" {
+		ss.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			FailureThreshold:    6,
+			PeriodSeconds:       15,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "/redis-startup/startup.sh"},
+				},
+			},
 		}
 	}
 
@@ -751,6 +766,15 @@ func getRedisVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeMoun
 		},
 	}
 
+	if rf.Spec.Redis.StartupConfigMap != "" {
+		startupVolumeMount := corev1.VolumeMount{
+			Name:      redisStartupConfigurationVolumeName,
+			MountPath: "/redis-startup",
+		}
+
+		volumeMounts = append(volumeMounts, startupVolumeMount)
+	}
+
 	if rf.Spec.Redis.ExtraVolumeMounts != nil {
 		volumeMounts = append(volumeMounts, rf.Spec.Redis.ExtraVolumeMounts...)
 	}
@@ -812,6 +836,22 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 				},
 			},
 		},
+	}
+
+	if rf.Spec.Redis.StartupConfigMap != "" {
+		startupVolumeName := rf.Spec.Redis.StartupConfigMap
+		startupVolume := corev1.Volume{
+			Name: redisStartupConfigurationVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: startupVolumeName,
+					},
+					DefaultMode: &executeMode,
+				},
+			},
+		}
+		volumes = append(volumes, startupVolume)
 	}
 
 	if rf.Spec.Redis.ExtraVolumes != nil {
