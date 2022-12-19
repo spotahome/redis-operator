@@ -36,10 +36,11 @@ sentinel down-after-milliseconds mymaster 1000
 sentinel failover-timeout mymaster 3000
 sentinel parallel-syncs mymaster 2`
 
-	redisShutdownConfigurationVolumeName = "redis-shutdown-config"
-	redisStartupConfigurationVolumeName  = "redis-startup-config"
-	redisReadinessVolumeName             = "redis-readiness-config"
-	redisStorageVolumeName               = "redis-data"
+	redisShutdownConfigurationVolumeName   = "redis-shutdown-config"
+	redisStartupConfigurationVolumeName    = "redis-startup-config"
+	redisReadinessVolumeName               = "redis-readiness-config"
+	redisStorageVolumeName                 = "redis-data"
+	sentinelStartupConfigurationVolumeName = "sentinel-startup-config"
 
 	graceTime = 30
 )
@@ -550,6 +551,21 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 			},
 		},
 	}
+
+	if rf.Spec.Sentinel.StartupConfigMap != "" {
+		sd.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			FailureThreshold:    6,
+			PeriodSeconds:       15,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "/sentinel-startup/startup.sh"},
+				},
+			},
+		}
+	}
+
 	if rf.Spec.Sentinel.Exporter.Enabled {
 		exporter := createSentinelExporterContainer(rf)
 		sd.Spec.Template.Spec.Containers = append(sd.Spec.Template.Spec.Containers, exporter)
@@ -790,6 +806,13 @@ func getSentinelVolumeMounts(rf *redisfailoverv1.RedisFailover) []corev1.VolumeM
 		},
 	}
 
+	if rf.Spec.Sentinel.StartupConfigMap != "" {
+		startupVolumeMount := corev1.VolumeMount{
+			Name:      "sentinel-startup-config",
+			MountPath: "/sentinel-startup",
+		}
+		volumeMounts = append(volumeMounts, startupVolumeMount)
+	}
 	if rf.Spec.Sentinel.ExtraVolumeMounts != nil {
 		volumeMounts = append(volumeMounts, rf.Spec.Sentinel.ExtraVolumeMounts...)
 	}
@@ -867,6 +890,8 @@ func getRedisVolumes(rf *redisfailoverv1.RedisFailover) []corev1.Volume {
 }
 
 func getSentinelVolumes(rf *redisfailoverv1.RedisFailover, configMapName string) []corev1.Volume {
+	executeMode := int32(0744)
+
 	volumes := []corev1.Volume{
 		{
 			Name: "sentinel-config",
@@ -884,6 +909,22 @@ func getSentinelVolumes(rf *redisfailoverv1.RedisFailover, configMapName string)
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
+	}
+
+	if rf.Spec.Sentinel.StartupConfigMap != "" {
+		startupVolumeName := rf.Spec.Sentinel.StartupConfigMap
+		startupVolume := corev1.Volume{
+			Name: sentinelStartupConfigurationVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: startupVolumeName,
+					},
+					DefaultMode: &executeMode,
+				},
+			},
+		}
+		volumes = append(volumes, startupVolume)
 	}
 
 	if rf.Spec.Sentinel.ExtraVolumes != nil {

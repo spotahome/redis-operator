@@ -1773,3 +1773,109 @@ func TestRedisEnv(t *testing.T) {
 		assert.Equal(test.expectedRedisEnv, env)
 	}
 }
+
+func TestRedisStartupProbe(t *testing.T) {
+	mode := int32(0744)
+	tests := []struct {
+		name                string
+		expectedVolume      corev1.Volume
+		expectedVolumeMount corev1.VolumeMount
+	}{
+		{
+			name: "startup_config",
+			expectedVolume: corev1.Volume{
+				Name: "redis-startup-config",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "startup_config",
+						},
+						DefaultMode: &mode,
+					},
+				},
+			},
+			expectedVolumeMount: corev1.VolumeMount{
+				Name:      "redis-startup-config",
+				MountPath: "/redis-startup",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupVolumes []corev1.Volume
+		var startupVolumeMounts []corev1.VolumeMount
+
+		rf := generateRF()
+		rf.Spec.Redis.StartupConfigMap = test.name
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			startupVolumes = s.Spec.Template.Spec.Volumes
+			startupVolumeMounts = s.Spec.Template.Spec.Containers[0].VolumeMounts
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Contains(startupVolumes, test.expectedVolume)
+		assert.Contains(startupVolumeMounts, test.expectedVolumeMount)
+	}
+}
+
+func TestSentinelStartupProbe(t *testing.T) {
+	mode := int32(0744)
+	tests := []struct {
+		name                string
+		expectedVolume      corev1.Volume
+		expectedVolumeMount corev1.VolumeMount
+	}{
+		{
+			name: "startup_config",
+			expectedVolume: corev1.Volume{
+				Name: "sentinel-startup-config",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "startup_config",
+						},
+						DefaultMode: &mode,
+					},
+				},
+			},
+			expectedVolumeMount: corev1.VolumeMount{
+				Name:      "sentinel-startup-config",
+				MountPath: "/sentinel-startup",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupVolumes []corev1.Volume
+		var startupVolumeMounts []corev1.VolumeMount
+
+		rf := generateRF()
+		rf.Spec.Sentinel.StartupConfigMap = test.name
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			startupVolumes = d.Spec.Template.Spec.Volumes
+			startupVolumeMounts = d.Spec.Template.Spec.Containers[0].VolumeMounts
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Contains(startupVolumes, test.expectedVolume)
+		assert.Contains(startupVolumeMounts, test.expectedVolumeMount)
+	}
+}
