@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: startup-config
+data:
+  startup.sh: |
+    #!/bin/bash
+    redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+  redis:
+    replicas: 3
+    startupConfigMap: startup-config
+    resources:
+      requests:
+        cpu: 100m
+        memory: 200Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
