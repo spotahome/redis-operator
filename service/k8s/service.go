@@ -44,7 +44,6 @@ func (s *ServiceService) GetService(namespace string, name string) (*corev1.Serv
 	service, err := s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	recordMetrics(namespace, "Service", name, "GET", err, s.metricsRecorder)
 	if err != nil {
-		log.Errorf("Error while getting service %v in %v namespace : %v", name, namespace, err)
 		return nil, err
 	}
 	return service, err
