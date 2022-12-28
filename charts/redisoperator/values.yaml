@@ -6,7 +6,7 @@
 image:
   repository: quay.io/spotahome/redis-operator
   pullPolicy: IfNotPresent
-  tag: v1.2.3
+  tag: v1.2.4
 
 imageCredentials:
   create: false
@@ -16,7 +16,7 @@ imageCredentials:
   email: someone@example.com
   # Use exists secrets in namespace
   existsSecrets:
-  - registrysecret
+    - registrysecret
 
 updateStrategy:
   type: RollingUpdate

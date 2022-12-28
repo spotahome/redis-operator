@@ -33,7 +33,7 @@ helm install redis-operator redis-operator/redis-operator
 Helm chart only manage the creation of CRD in the first install. In order to update the CRD you will need to apply directly.
 
 ```
-REDIS_OPERATOR_VERSION=v1.2.3
+REDIS_OPERATOR_VERSION=v1.2.4
 kubectl replace -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/manifests/databases.spotahome.com_redisfailovers.yaml
 ```
 
@@ -45,7 +45,7 @@ helm upgrade redis-operator redis-operator/redis-operator
 To create the operator, you can directly create it with kubectl:
 
 ```
-REDIS_OPERATOR_VERSION=v1.2.3
+REDIS_OPERATOR_VERSION=v1.2.4
 kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/manifests/databases.spotahome.com_redisfailovers.yaml
 kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/example/operator/all-redis-operator-resources.yaml
 ```
@@ -70,7 +70,7 @@ Finally, you can install the `full` overlay if you want everything this operator
 It's always a good practice to pin the version of the operator in your configuration to make sure you are not surprised by changes on the latest development branch:
 
 ```shell
-kustomize build github.com/spotahome/redis-operator/manifests/kustomize/overlays/default?ref=v1.2.3
+kustomize build github.com/spotahome/redis-operator/manifests/kustomize/overlays/default?ref=v1.2.4
 ```
 
 You can easily create your own config by creating a `kustomization.yaml` file
@@ -98,7 +98,7 @@ Once the operator is deployed inside a Kubernetes cluster, a new API will be acc
 In order to deploy a new redis-failover a [specification](example/redisfailover/basic.yaml) has to be created:
 
 ```
-REDIS_OPERATOR_VERSION=v1.2.3
+REDIS_OPERATOR_VERSION=v1.2.4
 kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/${REDIS_OPERATOR_VERSION}/example/redisfailover/basic.yaml
 ```
 

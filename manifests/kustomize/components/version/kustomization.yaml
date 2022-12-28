@@ -3,8 +3,8 @@ kind: Component
 
 labels:
   - pairs:
-      app.kubernetes.io/version: 1.2.3
+      app.kubernetes.io/version: 1.2.4
 
 images:
   - name: quay.io/spotahome/redis-operator
-    newTag: v1.2.3
+    newTag: v1.2.4
