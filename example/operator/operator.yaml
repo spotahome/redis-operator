@@ -24,7 +24,7 @@ spec:
         securityContext:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 65534
         resources:
           limits:
             cpu: 100m
