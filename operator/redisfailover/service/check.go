@@ -483,7 +483,7 @@ func (r *RedisFailoverChecker) IsRedisRunning(rFailover *redisfailoverv1.RedisFa
 // IsSentinelRunning returns true if all the pods are Running
 func (r *RedisFailoverChecker) IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool {
 	dp, err := r.k8sService.GetDeploymentPods(rFailover.Namespace, GetSentinelName(rFailover))
-	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Sentinel.Replicas-1) && AreAllRunning(dp)
 }
 
 // IsClusterRunning returns true if all the pods in the given redisfailover are Running
