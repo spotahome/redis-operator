@@ -517,7 +517,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							},
 							VolumeMounts: volumeMounts,
 							Command:      sentinelCommand,
-              // Readiness Probe fails when sentinel is monitoring localhost as master
+              						// Readiness Probe fails when sentinel is monitoring localhost as master
 							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: graceTime,
 								TimeoutSeconds:      5,
