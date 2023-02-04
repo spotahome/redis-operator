@@ -1123,6 +1123,456 @@ spec:
                     items:
                       type: string
                     type: array
+                  customLivenessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  customReadinessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  customStartupProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
                   dnsPolicy:
                     description: DNSPolicy defines how a pod's DNS will be configured.
                     type: string
@@ -1436,6 +1886,26 @@ spec:
                         description: ResourceRequirements describes the compute resource
                           requirements.
                         properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: set
                           limits:
                             additionalProperties:
                               anyOf:
@@ -2024,13 +2494,13 @@ spec:
                           type: string
                         ports:
                           description: List of ports to expose from the container.
-                            Exposing a port here gives the system additional information
-                            about the network connections a container uses, but is
-                            primarily informational. Not specifying a port here DOES
-                            NOT prevent that port from being exposed. Any port which
-                            is listening on the default "0.0.0.0" address inside a
-                            container will be accessible from the network. Cannot
-                            be updated.
+                            Not specifying a port here DOES NOT prevent that port
+                            from being exposed. Any port which is listening on the
+                            default "0.0.0.0" address inside a container will be accessible
+                            from the network. Modifying this array with strategic
+                            merge patch may corrupt the data. For more information
+                            See https://github.com/kubernetes/kubernetes/issues/108255.
+                            Cannot be updated.
                           items:
                             description: ContainerPort represents a network port in
                               a single container.
@@ -2229,6 +2699,27 @@ spec:
                           description: 'Compute Resources required by this container.
                             Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                           properties:
+                            claims:
+                              description: "Claims lists the names of resources, defined
+                                in spec.resourceClaims, that are used by this container.
+                                \n This is an alpha field and requires enabling the
+                                DynamicResourceAllocation feature gate. \n This field
+                                is immutable."
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: Name must match the name of one entry
+                                      in pod.spec.resourceClaims of the Pod where
+                                      this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: set
                             limits:
                               additionalProperties:
                                 anyOf:
@@ -3214,10 +3705,13 @@ spec:
                                         If the provisioner or an external controller
                                         can support the specified data source, it
                                         will create a new volume based on the contents
-                                        of the specified data source. If the AnyVolumeDataSource
-                                        feature gate is enabled, this field will always
-                                        have the same contents as the DataSourceRef
-                                        field.'
+                                        of the specified data source. When the AnyVolumeDataSource
+                                        feature gate is enabled, dataSource contents
+                                        will be copied to dataSourceRef, and dataSourceRef
+                                        contents will be copied to dataSource when
+                                        dataSourceRef.namespace is not specified.
+                                        If the namespace is specified, then dataSourceRef
+                                        will not be copied to dataSource.'
                                       properties:
                                         apiGroup:
                                           description: APIGroup is the group for the
@@ -3242,29 +3736,38 @@ spec:
                                       description: 'dataSourceRef specifies the object
                                         from which to populate the volume with data,
                                         if a non-empty volume is desired. This may
-                                        be any local object from a non-empty API group
-                                        (non core object) or a PersistentVolumeClaim
-                                        object. When this field is specified, volume
-                                        binding will only succeed if the type of the
-                                        specified object matches some installed volume
-                                        populator or dynamic provisioner. This field
-                                        will replace the functionality of the DataSource
-                                        field and as such if both fields are non-empty,
+                                        be any object from a non-empty API group (non
+                                        core object) or a PersistentVolumeClaim object.
+                                        When this field is specified, volume binding
+                                        will only succeed if the type of the specified
+                                        object matches some installed volume populator
+                                        or dynamic provisioner. This field will replace
+                                        the functionality of the dataSource field
+                                        and as such if both fields are non-empty,
                                         they must have the same value. For backwards
-                                        compatibility, both fields (DataSource and
-                                        DataSourceRef) will be set to the same value
-                                        automatically if one of them is empty and
-                                        the other is non-empty. There are two important
-                                        differences between DataSource and DataSourceRef:
-                                        * While DataSource only allows two specific
-                                        types of objects, DataSourceRef   allows any
-                                        non-core object, as well as PersistentVolumeClaim
-                                        objects. * While DataSource ignores disallowed
-                                        values (dropping them), DataSourceRef   preserves
+                                        compatibility, when namespace isn''t specified
+                                        in dataSourceRef, both fields (dataSource
+                                        and dataSourceRef) will be set to the same
+                                        value automatically if one of them is empty
+                                        and the other is non-empty. When namespace
+                                        is specified in dataSourceRef, dataSource
+                                        isn''t set to the same value and must be empty.
+                                        There are three important differences between
+                                        dataSource and dataSourceRef: * While dataSource
+                                        only allows two specific types of objects,
+                                        dataSourceRef   allows any non-core object,
+                                        as well as PersistentVolumeClaim objects.
+                                        * While dataSource ignores disallowed values
+                                        (dropping them), dataSourceRef   preserves
                                         all values, and generates an error if a disallowed
-                                        value is   specified. (Beta) Using this field
-                                        requires the AnyVolumeDataSource feature gate
-                                        to be enabled.'
+                                        value is   specified. * While dataSource only
+                                        allows local objects, dataSourceRef allows
+                                        objects   in any namespaces. (Beta) Using
+                                        this field requires the AnyVolumeDataSource
+                                        feature gate to be enabled. (Alpha) Using
+                                        the namespace field of dataSourceRef requires
+                                        the CrossNamespaceVolumeDataSource feature
+                                        gate to be enabled.'
                                       properties:
                                         apiGroup:
                                           description: APIGroup is the group for the
@@ -3281,6 +3784,17 @@ spec:
                                           description: Name is the name of resource
                                             being referenced
                                           type: string
+                                        namespace:
+                                          description: Namespace is the namespace
+                                            of resource being referenced Note that
+                                            when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant
+                                            object is required in the referent namespace
+                                            to allow that namespace's owner to accept
+                                            the reference. See the ReferenceGrant
+                                            documentation for details. (Alpha) This
+                                            field requires the CrossNamespaceVolumeDataSource
+                                            feature gate to be enabled.
+                                          type: string
                                       required:
                                       - kind
                                       - name
@@ -3294,6 +3808,29 @@ spec:
                                         capacity recorded in the status field of the
                                         claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources'
                                       properties:
+                                        claims:
+                                          description: "Claims lists the names of
+                                            resources, defined in spec.resourceClaims,
+                                            that are used by this container. \n This
+                                            is an alpha field and requires enabling
+                                            the DynamicResourceAllocation feature
+                                            gate. \n This field is immutable."
+                                          items:
+                                            description: ResourceClaim references
+                                              one entry in PodSpec.ResourceClaims.
+                                            properties:
+                                              name:
+                                                description: Name must match the name
+                                                  of one entry in pod.spec.resourceClaims
+                                                  of the Pod where this field is used.
+                                                  It makes that resource available
+                                                  inside a container.
+                                                type: string
+                                            required:
+                                            - name
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: set
                                         limits:
                                           additionalProperties:
                                             anyOf:
@@ -4880,13 +5417,13 @@ spec:
                           type: string
                         ports:
                           description: List of ports to expose from the container.
-                            Exposing a port here gives the system additional information
-                            about the network connections a container uses, but is
-                            primarily informational. Not specifying a port here DOES
-                            NOT prevent that port from being exposed. Any port which
-                            is listening on the default "0.0.0.0" address inside a
-                            container will be accessible from the network. Cannot
-                            be updated.
+                            Not specifying a port here DOES NOT prevent that port
+                            from being exposed. Any port which is listening on the
+                            default "0.0.0.0" address inside a container will be accessible
+                            from the network. Modifying this array with strategic
+                            merge patch may corrupt the data. For more information
+                            See https://github.com/kubernetes/kubernetes/issues/108255.
+                            Cannot be updated.
                           items:
                             description: ContainerPort represents a network port in
                               a single container.
@@ -5085,6 +5622,27 @@ spec:
                           description: 'Compute Resources required by this container.
                             Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                           properties:
+                            claims:
+                              description: "Claims lists the names of resources, defined
+                                in spec.resourceClaims, that are used by this container.
+                                \n This is an alpha field and requires enabling the
+                                DynamicResourceAllocation feature gate. \n This field
+                                is immutable."
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: Name must match the name of one entry
+                                      in pod.spec.resourceClaims of the Pod where
+                                      this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: set
                             limits:
                               additionalProperties:
                                 anyOf:
@@ -5581,6 +6139,25 @@ spec:
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: set
                       limits:
                         additionalProperties:
                           anyOf:
@@ -5711,9 +6288,13 @@ spec:
                       supplementalGroups:
                         description: A list of groups applied to the first process
                           run in each container, in addition to the container's primary
-                          GID.  If unspecified, no groups will be added to any container.
-                          Note that this field cannot be set when spec.os.name is
-                          windows.
+                          GID, the fsGroup (if specified), and group memberships defined
+                          in the container image for the uid of the container process.
+                          If unspecified, no additional groups are added to any container.
+                          Note that group memberships defined in the container image
+                          for the uid of the container process are still effective,
+                          even if they are not included in this list. Note that this
+                          field cannot be set when spec.os.name is windows.
                         items:
                           format: int64
                           type: integer
@@ -5883,9 +6464,12 @@ spec:
                                   provisioner or an external controller can support
                                   the specified data source, it will create a new
                                   volume based on the contents of the specified data
-                                  source. If the AnyVolumeDataSource feature gate
-                                  is enabled, this field will always have the same
-                                  contents as the DataSourceRef field.'
+                                  source. When the AnyVolumeDataSource feature gate
+                                  is enabled, dataSource contents will be copied to
+                                  dataSourceRef, and dataSourceRef contents will be
+                                  copied to dataSource when dataSourceRef.namespace
+                                  is not specified. If the namespace is specified,
+                                  then dataSourceRef will not be copied to dataSource.'
                                 properties:
                                   apiGroup:
                                     description: APIGroup is the group for the resource
@@ -5909,26 +6493,32 @@ spec:
                               dataSourceRef:
                                 description: 'dataSourceRef specifies the object from
                                   which to populate the volume with data, if a non-empty
-                                  volume is desired. This may be any local object
-                                  from a non-empty API group (non core object) or
-                                  a PersistentVolumeClaim object. When this field
-                                  is specified, volume binding will only succeed if
-                                  the type of the specified object matches some installed
-                                  volume populator or dynamic provisioner. This field
-                                  will replace the functionality of the DataSource
-                                  field and as such if both fields are non-empty,
-                                  they must have the same value. For backwards compatibility,
-                                  both fields (DataSource and DataSourceRef) will
-                                  be set to the same value automatically if one of
-                                  them is empty and the other is non-empty. There
-                                  are two important differences between DataSource
-                                  and DataSourceRef: * While DataSource only allows
-                                  two specific types of objects, DataSourceRef   allows
+                                  volume is desired. This may be any object from a
+                                  non-empty API group (non core object) or a PersistentVolumeClaim
+                                  object. When this field is specified, volume binding
+                                  will only succeed if the type of the specified object
+                                  matches some installed volume populator or dynamic
+                                  provisioner. This field will replace the functionality
+                                  of the dataSource field and as such if both fields
+                                  are non-empty, they must have the same value. For
+                                  backwards compatibility, when namespace isn''t specified
+                                  in dataSourceRef, both fields (dataSource and dataSourceRef)
+                                  will be set to the same value automatically if one
+                                  of them is empty and the other is non-empty. When
+                                  namespace is specified in dataSourceRef, dataSource
+                                  isn''t set to the same value and must be empty.
+                                  There are three important differences between dataSource
+                                  and dataSourceRef: * While dataSource only allows
+                                  two specific types of objects, dataSourceRef   allows
                                   any non-core object, as well as PersistentVolumeClaim
-                                  objects. * While DataSource ignores disallowed values
-                                  (dropping them), DataSourceRef   preserves all values,
+                                  objects. * While dataSource ignores disallowed values
+                                  (dropping them), dataSourceRef   preserves all values,
                                   and generates an error if a disallowed value is   specified.
-                                  (Beta) Using this field requires the AnyVolumeDataSource
+                                  * While dataSource only allows local objects, dataSourceRef
+                                  allows objects   in any namespaces. (Beta) Using
+                                  this field requires the AnyVolumeDataSource feature
+                                  gate to be enabled. (Alpha) Using the namespace
+                                  field of dataSourceRef requires the CrossNamespaceVolumeDataSource
                                   feature gate to be enabled.'
                                 properties:
                                   apiGroup:
@@ -5946,6 +6536,17 @@ spec:
                                     description: Name is the name of resource being
                                       referenced
                                     type: string
+                                  namespace:
+                                    description: Namespace is the namespace of resource
+                                      being referenced Note that when a namespace
+                                      is specified, a gateway.networking.k8s.io/ReferenceGrant
+                                      object is required in the referent namespace
+                                      to allow that namespace's owner to accept the
+                                      reference. See the ReferenceGrant documentation
+                                      for details. (Alpha) This field requires the
+                                      CrossNamespaceVolumeDataSource feature gate
+                                      to be enabled.
+                                    type: string
                                 required:
                                 - kind
                                 - name
@@ -5958,6 +6559,27 @@ spec:
                                   value but must still be higher than capacity recorded
                                   in the status field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources'
                                 properties:
+                                  claims:
+                                    description: "Claims lists the names of resources,
+                                      defined in spec.resourceClaims, that are used
+                                      by this container. \n This is an alpha field
+                                      and requires enabling the DynamicResourceAllocation
+                                      feature gate. \n This field is immutable."
+                                    items:
+                                      description: ResourceClaim references one entry
+                                        in PodSpec.ResourceClaims.
+                                      properties:
+                                        name:
+                                          description: Name must match the name of
+                                            one entry in pod.spec.resourceClaims of
+                                            the Pod where this field is used. It makes
+                                            that resource available inside a container.
+                                          type: string
+                                      required:
+                                      - name
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: set
                                   limits:
                                     additionalProperties:
                                       anyOf:
@@ -6242,6 +6864,19 @@ spec:
                                 contains only "value". The requirements are ANDed.
                               type: object
                           type: object
+                        matchLabelKeys:
+                          description: MatchLabelKeys is a set of pod label keys to
+                            select the pods over which spreading will be calculated.
+                            The keys are used to lookup values from the incoming pod
+                            labels, those key-value labels are ANDed with labelSelector
+                            to select the group of existing pods over which spreading
+                            will be calculated for the incoming pod. Keys that don't
+                            exist in the incoming pod labels will be ignored. A null
+                            or empty list means only match against labelSelector.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
                         maxSkew:
                           description: 'MaxSkew describes the degree to which pods
                             may be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
@@ -6284,11 +6919,33 @@ spec:
                             as 0. In this situation, new pod with the same labelSelector
                             cannot be scheduled, because computed skew will be 3(3
                             - 0) if new Pod is scheduled to any of the three zones,
-                            it will violate MaxSkew. \n This is an alpha field and
-                            requires enabling MinDomainsInPodTopologySpread feature
-                            gate."
+                            it will violate MaxSkew. \n This is a beta field and requires
+                            the MinDomainsInPodTopologySpread feature gate to be enabled
+                            (enabled by default)."
                           format: int32
                           type: integer
+                        nodeAffinityPolicy:
+                          description: "NodeAffinityPolicy indicates how we will treat
+                            Pod's nodeAffinity/nodeSelector when calculating pod topology
+                            spread skew. Options are: - Honor: only nodes matching
+                            nodeAffinity/nodeSelector are included in the calculations.
+                            - Ignore: nodeAffinity/nodeSelector are ignored. All nodes
+                            are included in the calculations. \n If this value is
+                            nil, the behavior is equivalent to the Honor policy. This
+                            is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
+                        nodeTaintsPolicy:
+                          description: "NodeTaintsPolicy indicates how we will treat
+                            node taints when calculating pod topology spread skew.
+                            Options are: - Honor: nodes without taints, along with
+                            tainted nodes for which the incoming pod has a toleration,
+                            are included. - Ignore: node taints are ignored. All nodes
+                            are included. \n If this value is nil, the behavior is
+                            equivalent to the Ignore policy. This is a beta-level
+                            feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
                         topologyKey:
                           description: TopologyKey is the key of node labels. Nodes
                             that have a label with this key and identical values are
@@ -6296,11 +6953,11 @@ spec:
                             <key, value> as a "bucket", and try to put balanced number
                             of pods into each bucket. We define a domain as a particular
                             instance of a topology. Also, we define an eligible domain
-                            as a domain whose nodes match the node selector. e.g.
-                            If TopologyKey is "kubernetes.io/hostname", each Node
-                            is a domain of that topology. And, if TopologyKey is "topology.kubernetes.io/zone",
-                            each zone is a domain of that topology. It's a required
-                            field.
+                            as a domain whose nodes meet the requirements of nodeAffinityPolicy
+                            and nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname",
+                            each Node is a domain of that topology. And, if TopologyKey
+                            is "topology.kubernetes.io/zone", each zone is a domain
+                            of that topology. It's a required field.
                           type: string
                         whenUnsatisfiable:
                           description: 'WhenUnsatisfiable indicates how to deal with
@@ -7550,6 +8207,456 @@ spec:
                     items:
                       type: string
                     type: array
+                  customLivenessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  customReadinessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  customStartupProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      grpc:
+                        description: GRPC specifies an action involving a GRPC port.
+                          This is a beta field and requires enabling GRPCContainerProbe
+                          feature gate.
+                        properties:
+                          port:
+                            description: Port number of the gRPC service. Number must
+                              be in the range 1 to 65535.
+                            format: int32
+                            type: integer
+                          service:
+                            description: "Service is the name of the service to place
+                              in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+                              \n If this is not specified, the default behavior is
+                              defined by gRPC."
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: TCPSocket specifies an action involving a TCP
+                          port.
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - port
+                        type: object
+                      terminationGracePeriodSeconds:
+                        description: Optional duration in seconds the pod needs to
+                          terminate gracefully upon probe failure. The grace period
+                          is the duration in seconds after the processes running in
+                          the pod are sent a termination signal and the time when
+                          the processes are forcibly halted with a kill signal. Set
+                          this value longer than the expected cleanup time for your
+                          process. If this value is nil, the pod's terminationGracePeriodSeconds
+                          will be used. Otherwise, this value overrides the value
+                          provided by the pod spec. Value must be non-negative integer.
+                          The value zero indicates stop immediately via the kill signal
+                          (no opportunity to shut down). This is a beta field and
+                          requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
+                        format: int64
+                        type: integer
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
                   dnsPolicy:
                     description: DNSPolicy defines how a pod's DNS will be configured.
                     type: string
@@ -7863,6 +8970,26 @@ spec:
                         description: ResourceRequirements describes the compute resource
                           requirements.
                         properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: set
                           limits:
                             additionalProperties:
                               anyOf:
@@ -8451,13 +9578,13 @@ spec:
                           type: string
                         ports:
                           description: List of ports to expose from the container.
-                            Exposing a port here gives the system additional information
-                            about the network connections a container uses, but is
-                            primarily informational. Not specifying a port here DOES
-                            NOT prevent that port from being exposed. Any port which
-                            is listening on the default "0.0.0.0" address inside a
-                            container will be accessible from the network. Cannot
-                            be updated.
+                            Not specifying a port here DOES NOT prevent that port
+                            from being exposed. Any port which is listening on the
+                            default "0.0.0.0" address inside a container will be accessible
+                            from the network. Modifying this array with strategic
+                            merge patch may corrupt the data. For more information
+                            See https://github.com/kubernetes/kubernetes/issues/108255.
+                            Cannot be updated.
                           items:
                             description: ContainerPort represents a network port in
                               a single container.
@@ -8656,6 +9783,27 @@ spec:
                           description: 'Compute Resources required by this container.
                             Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                           properties:
+                            claims:
+                              description: "Claims lists the names of resources, defined
+                                in spec.resourceClaims, that are used by this container.
+                                \n This is an alpha field and requires enabling the
+                                DynamicResourceAllocation feature gate. \n This field
+                                is immutable."
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: Name must match the name of one entry
+                                      in pod.spec.resourceClaims of the Pod where
+                                      this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: set
                             limits:
                               additionalProperties:
                                 anyOf:
@@ -9641,10 +10789,13 @@ spec:
                                         If the provisioner or an external controller
                                         can support the specified data source, it
                                         will create a new volume based on the contents
-                                        of the specified data source. If the AnyVolumeDataSource
-                                        feature gate is enabled, this field will always
-                                        have the same contents as the DataSourceRef
-                                        field.'
+                                        of the specified data source. When the AnyVolumeDataSource
+                                        feature gate is enabled, dataSource contents
+                                        will be copied to dataSourceRef, and dataSourceRef
+                                        contents will be copied to dataSource when
+                                        dataSourceRef.namespace is not specified.
+                                        If the namespace is specified, then dataSourceRef
+                                        will not be copied to dataSource.'
                                       properties:
                                         apiGroup:
                                           description: APIGroup is the group for the
@@ -9669,29 +10820,38 @@ spec:
                                       description: 'dataSourceRef specifies the object
                                         from which to populate the volume with data,
                                         if a non-empty volume is desired. This may
-                                        be any local object from a non-empty API group
-                                        (non core object) or a PersistentVolumeClaim
-                                        object. When this field is specified, volume
-                                        binding will only succeed if the type of the
-                                        specified object matches some installed volume
-                                        populator or dynamic provisioner. This field
-                                        will replace the functionality of the DataSource
-                                        field and as such if both fields are non-empty,
+                                        be any object from a non-empty API group (non
+                                        core object) or a PersistentVolumeClaim object.
+                                        When this field is specified, volume binding
+                                        will only succeed if the type of the specified
+                                        object matches some installed volume populator
+                                        or dynamic provisioner. This field will replace
+                                        the functionality of the dataSource field
+                                        and as such if both fields are non-empty,
                                         they must have the same value. For backwards
-                                        compatibility, both fields (DataSource and
-                                        DataSourceRef) will be set to the same value
-                                        automatically if one of them is empty and
-                                        the other is non-empty. There are two important
-                                        differences between DataSource and DataSourceRef:
-                                        * While DataSource only allows two specific
-                                        types of objects, DataSourceRef   allows any
-                                        non-core object, as well as PersistentVolumeClaim
-                                        objects. * While DataSource ignores disallowed
-                                        values (dropping them), DataSourceRef   preserves
+                                        compatibility, when namespace isn''t specified
+                                        in dataSourceRef, both fields (dataSource
+                                        and dataSourceRef) will be set to the same
+                                        value automatically if one of them is empty
+                                        and the other is non-empty. When namespace
+                                        is specified in dataSourceRef, dataSource
+                                        isn''t set to the same value and must be empty.
+                                        There are three important differences between
+                                        dataSource and dataSourceRef: * While dataSource
+                                        only allows two specific types of objects,
+                                        dataSourceRef   allows any non-core object,
+                                        as well as PersistentVolumeClaim objects.
+                                        * While dataSource ignores disallowed values
+                                        (dropping them), dataSourceRef   preserves
                                         all values, and generates an error if a disallowed
-                                        value is   specified. (Beta) Using this field
-                                        requires the AnyVolumeDataSource feature gate
-                                        to be enabled.'
+                                        value is   specified. * While dataSource only
+                                        allows local objects, dataSourceRef allows
+                                        objects   in any namespaces. (Beta) Using
+                                        this field requires the AnyVolumeDataSource
+                                        feature gate to be enabled. (Alpha) Using
+                                        the namespace field of dataSourceRef requires
+                                        the CrossNamespaceVolumeDataSource feature
+                                        gate to be enabled.'
                                       properties:
                                         apiGroup:
                                           description: APIGroup is the group for the
@@ -9708,6 +10868,17 @@ spec:
                                           description: Name is the name of resource
                                             being referenced
                                           type: string
+                                        namespace:
+                                          description: Namespace is the namespace
+                                            of resource being referenced Note that
+                                            when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant
+                                            object is required in the referent namespace
+                                            to allow that namespace's owner to accept
+                                            the reference. See the ReferenceGrant
+                                            documentation for details. (Alpha) This
+                                            field requires the CrossNamespaceVolumeDataSource
+                                            feature gate to be enabled.
+                                          type: string
                                       required:
                                       - kind
                                       - name
@@ -9721,6 +10892,29 @@ spec:
                                         capacity recorded in the status field of the
                                         claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources'
                                       properties:
+                                        claims:
+                                          description: "Claims lists the names of
+                                            resources, defined in spec.resourceClaims,
+                                            that are used by this container. \n This
+                                            is an alpha field and requires enabling
+                                            the DynamicResourceAllocation feature
+                                            gate. \n This field is immutable."
+                                          items:
+                                            description: ResourceClaim references
+                                              one entry in PodSpec.ResourceClaims.
+                                            properties:
+                                              name:
+                                                description: Name must match the name
+                                                  of one entry in pod.spec.resourceClaims
+                                                  of the Pod where this field is used.
+                                                  It makes that resource available
+                                                  inside a container.
+                                                type: string
+                                            required:
+                                            - name
+                                            type: object
+                                          type: array
+                                          x-kubernetes-list-type: set
                                         limits:
                                           additionalProperties:
                                             anyOf:
@@ -11307,13 +12501,13 @@ spec:
                           type: string
                         ports:
                           description: List of ports to expose from the container.
-                            Exposing a port here gives the system additional information
-                            about the network connections a container uses, but is
-                            primarily informational. Not specifying a port here DOES
-                            NOT prevent that port from being exposed. Any port which
-                            is listening on the default "0.0.0.0" address inside a
-                            container will be accessible from the network. Cannot
-                            be updated.
+                            Not specifying a port here DOES NOT prevent that port
+                            from being exposed. Any port which is listening on the
+                            default "0.0.0.0" address inside a container will be accessible
+                            from the network. Modifying this array with strategic
+                            merge patch may corrupt the data. For more information
+                            See https://github.com/kubernetes/kubernetes/issues/108255.
+                            Cannot be updated.
                           items:
                             description: ContainerPort represents a network port in
                               a single container.
@@ -11512,6 +12706,27 @@ spec:
                           description: 'Compute Resources required by this container.
                             Cannot be updated. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                           properties:
+                            claims:
+                              description: "Claims lists the names of resources, defined
+                                in spec.resourceClaims, that are used by this container.
+                                \n This is an alpha field and requires enabling the
+                                DynamicResourceAllocation feature gate. \n This field
+                                is immutable."
+                              items:
+                                description: ResourceClaim references one entry in
+                                  PodSpec.ResourceClaims.
+                                properties:
+                                  name:
+                                    description: Name must match the name of one entry
+                                      in pod.spec.resourceClaims of the Pod where
+                                      this field is used. It makes that resource available
+                                      inside a container.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: set
                             limits:
                               additionalProperties:
                                 anyOf:
@@ -12005,6 +13220,25 @@ spec:
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: set
                       limits:
                         additionalProperties:
                           anyOf:
@@ -12135,9 +13369,13 @@ spec:
                       supplementalGroups:
                         description: A list of groups applied to the first process
                           run in each container, in addition to the container's primary
-                          GID.  If unspecified, no groups will be added to any container.
-                          Note that this field cannot be set when spec.os.name is
-                          windows.
+                          GID, the fsGroup (if specified), and group memberships defined
+                          in the container image for the uid of the container process.
+                          If unspecified, no additional groups are added to any container.
+                          Note that group memberships defined in the container image
+                          for the uid of the container process are still effective,
+                          even if they are not included in this list. Note that this
+                          field cannot be set when spec.os.name is windows.
                         items:
                           format: int64
                           type: integer
@@ -12301,6 +13539,19 @@ spec:
                                 contains only "value". The requirements are ANDed.
                               type: object
                           type: object
+                        matchLabelKeys:
+                          description: MatchLabelKeys is a set of pod label keys to
+                            select the pods over which spreading will be calculated.
+                            The keys are used to lookup values from the incoming pod
+                            labels, those key-value labels are ANDed with labelSelector
+                            to select the group of existing pods over which spreading
+                            will be calculated for the incoming pod. Keys that don't
+                            exist in the incoming pod labels will be ignored. A null
+                            or empty list means only match against labelSelector.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
                         maxSkew:
                           description: 'MaxSkew describes the degree to which pods
                             may be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
@@ -12343,11 +13594,33 @@ spec:
                             as 0. In this situation, new pod with the same labelSelector
                             cannot be scheduled, because computed skew will be 3(3
                             - 0) if new Pod is scheduled to any of the three zones,
-                            it will violate MaxSkew. \n This is an alpha field and
-                            requires enabling MinDomainsInPodTopologySpread feature
-                            gate."
+                            it will violate MaxSkew. \n This is a beta field and requires
+                            the MinDomainsInPodTopologySpread feature gate to be enabled
+                            (enabled by default)."
                           format: int32
                           type: integer
+                        nodeAffinityPolicy:
+                          description: "NodeAffinityPolicy indicates how we will treat
+                            Pod's nodeAffinity/nodeSelector when calculating pod topology
+                            spread skew. Options are: - Honor: only nodes matching
+                            nodeAffinity/nodeSelector are included in the calculations.
+                            - Ignore: nodeAffinity/nodeSelector are ignored. All nodes
+                            are included in the calculations. \n If this value is
+                            nil, the behavior is equivalent to the Honor policy. This
+                            is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
+                        nodeTaintsPolicy:
+                          description: "NodeTaintsPolicy indicates how we will treat
+                            node taints when calculating pod topology spread skew.
+                            Options are: - Honor: nodes without taints, along with
+                            tainted nodes for which the incoming pod has a toleration,
+                            are included. - Ignore: node taints are ignored. All nodes
+                            are included. \n If this value is nil, the behavior is
+                            equivalent to the Ignore policy. This is a beta-level
+                            feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
                         topologyKey:
                           description: TopologyKey is the key of node labels. Nodes
                             that have a label with this key and identical values are
@@ -12355,11 +13628,11 @@ spec:
                             <key, value> as a "bucket", and try to put balanced number
                             of pods into each bucket. We define a domain as a particular
                             instance of a topology. Also, we define an eligible domain
-                            as a domain whose nodes match the node selector. e.g.
-                            If TopologyKey is "kubernetes.io/hostname", each Node
-                            is a domain of that topology. And, if TopologyKey is "topology.kubernetes.io/zone",
-                            each zone is a domain of that topology. It's a required
-                            field.
+                            as a domain whose nodes meet the requirements of nodeAffinityPolicy
+                            and nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname",
+                            each Node is a domain of that topology. And, if TopologyKey
+                            is "topology.kubernetes.io/zone", each zone is a domain
+                            of that topology. It's a required field.
                           type: string
                         whenUnsatisfiable:
                           description: 'WhenUnsatisfiable indicates how to deal with
