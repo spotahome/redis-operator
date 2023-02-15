@@ -43,7 +43,7 @@ jobs:
       - uses: medyagh/setup-minikube@v0.0.11
         with:
           kubernetes-version: ${{ matrix.kubernetes }}
-          driver: none
+          driver: docker
       - name: Add redisfailover CRD
         run: kubectl create -f manifests/databases.spotahome.com_redisfailovers.yaml
       - run: make ci-integration-test
