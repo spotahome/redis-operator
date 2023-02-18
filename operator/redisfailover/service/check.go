@@ -39,6 +39,7 @@ type RedisFailoverCheck interface {
 	IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool
 	IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool
 	IsClusterRunning(rFailover *redisfailoverv1.RedisFailover) bool
+	CheckReplication(rf *redisfailoverv1.RedisFailover) (RedisFailoverReplicationStatus, error)
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -47,6 +48,42 @@ type RedisFailoverChecker struct {
 	redisClient   redis.Client
 	logger        log.Logger
 	metricsClient metrics.Recorder
+}
+
+type RedisFailoverReplicationStatus struct {
+	// IP of redis server is key, for indexing and search purposes.
+	replicationInfos map[string]RedisReplicationInfo
+}
+
+type RedisReplicationInfo struct {
+	isMaster bool
+	selfIP   string
+	slaveOf  string
+}
+
+func (rrs *RedisFailoverReplicationStatus) NumberOfMasters() int {
+	masterCount := 0
+	for _, replicationInfo := range rrs.replicationInfos {
+		if replicationInfo.isMaster {
+			masterCount++
+		}
+	}
+	return masterCount
+}
+
+// if atleast one of the redis server is replicating a master
+// which does not belong to the redisFailover, returns true;
+// else returns false
+func (rrs *RedisFailoverReplicationStatus) HasUnknownMasters() bool {
+	for _, replicationInfo := range rrs.replicationInfos {
+		if replicationInfo.isMaster {
+			continue
+		}
+		if _, ok := rrs.replicationInfos[replicationInfo.slaveOf]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 // NewRedisFailoverChecker creates an object of the RedisFailoverChecker struct
@@ -320,6 +357,42 @@ func (r *RedisFailoverChecker) GetNumberMasters(rf *redisfailoverv1.RedisFailove
 		}
 	}
 	return nMasters, nil
+}
+
+func (r *RedisFailoverChecker) CheckReplication(rf *redisfailoverv1.RedisFailover) (RedisFailoverReplicationStatus, error) {
+	var rrs RedisFailoverReplicationStatus
+	replicationInfos := map[string]RedisReplicationInfo{}
+	rips, err := r.GetRedisesIPs(rf)
+	if err != nil {
+		r.logger.Errorf(err.Error())
+		return rrs, err
+	}
+
+	password, err := k8s.GetRedisPassword(r.k8sService, rf)
+	if err != nil {
+		r.logger.Errorf("Error getting password: %s", err.Error())
+		return rrs, err
+	}
+
+	rport := getRedisPort(rf.Spec.Redis.Port)
+
+	for _, rip := range rips {
+		var rri RedisReplicationInfo
+		rri.selfIP = rip
+
+		slaveOf, err := r.redisClient.GetSlaveOf(rip, rport, password)
+		if err != nil {
+			return rrs, fmt.Errorf("unable to get master of redis server %s : %v", rip, err.Error())
+		}
+		if slaveOf == "" {
+			rri.isMaster = true
+		} else {
+			rri.slaveOf = slaveOf
+		}
+		replicationInfos[rip] = rri
+	}
+	rrs.replicationInfos = replicationInfos
+	return rrs, nil
 }
 
 // GetRedisesIPs returns the IPs of the Redis nodes

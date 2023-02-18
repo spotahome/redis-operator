@@ -2,6 +2,7 @@ package redisfailover
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -110,9 +111,22 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		return nil
 	}
 
-	nMasters, err := r.rfChecker.GetNumberMasters(rf)
+	redisFailoverReplicationStatus, err := r.rfChecker.CheckReplication(rf)
+	nMasters := redisFailoverReplicationStatus.NumberOfMasters()
 	if err != nil {
 		return err
+	}
+
+	if redisFailoverReplicationStatus.HasUnknownMasters() {
+		// reset replication in the cluster, if pods are replicating from unknown source.
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("atleast one redis servers are following unknown masters, resetting redisfailover")
+
+		err := r.resetRedisFailoverReplication(rf)
+		if err != nil {
+
+			return fmt.Errorf("failed to reset redisfailover: %v", err)
+		}
+		return nil
 	}
 
 	switch nMasters {
@@ -228,6 +242,29 @@ func (r *RedisFailoverHandler) CheckAndHeal(rf *redisfailoverv1.RedisFailover) e
 		}
 	}
 	return r.checkAndHealSentinels(rf, sentinels)
+}
+
+func (r *RedisFailoverHandler) resetRedisFailoverReplication(rf *redisfailoverv1.RedisFailover) error {
+	// trigger reset redis replication
+	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("setting oldest as master")
+	err := r.rfHealer.SetOldestAsMaster(rf)
+	setRedisCheckerMetrics(r.mClient, "redis", rf.Namespace, rf.Name, metrics.NO_MASTER, metrics.NOT_APPLICABLE, err)
+	if err != nil {
+		r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Errorf("Error in Setting oldest Pod as master")
+		return err
+	}
+	// reset sentinels
+	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Infof("resetting sentinel config")
+	sentinels, err := r.rfChecker.GetSentinelsIPs(rf)
+	if err != nil {
+		return err
+	}
+	for _, sip := range sentinels {
+		if err := r.rfHealer.RestoreSentinel(sip); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *RedisFailoverHandler) checkAndHealBootstrapMode(rf *redisfailoverv1.RedisFailover) error {
