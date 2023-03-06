@@ -144,6 +144,14 @@ func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[str
 
 func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference, password string) *corev1.ConfigMap {
 	name := GetRedisName(rf)
+
+	var addConfigLines []string
+	for key, value := range rf.Annotations {
+		if strings.HasPrefix(key, "add-configuration-snippet/") {
+			addConfigLines = append(addConfigLines, value)
+		}
+	}
+
 	labels = util.MergeLabels(labels, generateSelectorLabels(redisRoleName, rf.Name))
 
 	tmpl, err := template.New("redis").Parse(redisConfigTemplate)
@@ -157,6 +165,10 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	}
 
 	redisConfigFileContent := tplOutput.String()
+
+	if len(addConfigLines) > 0 {
+		redisConfigFileContent = fmt.Sprintf("%s\n%s", redisConfigFileContent, strings.Join(addConfigLines, "\n"))
+	}
 
 	if password != "" {
 		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
