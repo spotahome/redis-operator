@@ -146,9 +146,11 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	name := GetRedisName(rf)
 
 	var addConfigLines []string
-	for key, value := range rf.Annotations {
-		if strings.HasPrefix(key, "add-configuration-snippet/") {
-			addConfigLines = append(addConfigLines, value)
+	if rf.Annotations != nil {
+		for key, value := range rf.Annotations {
+			if strings.HasPrefix(key, "add-configuration-snippet") {
+				addConfigLines = append(addConfigLines, value)
+			}
 		}
 	}
 
