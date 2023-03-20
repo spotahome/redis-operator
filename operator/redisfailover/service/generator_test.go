@@ -1898,7 +1898,7 @@ func TestRedisCustomLivenessProbe(t *testing.T) {
 						Command: []string{
 							"sh",
 							"-c",
-							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
 						},
 					},
 				},
@@ -1913,7 +1913,7 @@ func TestRedisCustomLivenessProbe(t *testing.T) {
 						Command: []string{
 							"sh",
 							"-c",
-							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
 						},
 					},
 				},
@@ -1932,7 +1932,7 @@ func TestRedisCustomLivenessProbe(t *testing.T) {
 						Command: []string{
 							"sh",
 							"-c",
-							"redis-cli -h $(hostname) -p 6379 ping --user pinger --pass pingpass --no-auth-warning",
+							"redis-cli -h $(hostname) -p 6379 --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
 						},
 					},
 				},
