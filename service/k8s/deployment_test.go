@@ -104,7 +104,7 @@ func TestDeploymentServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewDeploymentService(mcli, log.Dummy, metrics.Dummy)
+			service := k8s.NewDeploymentService(mcli, log.Dummy, metrics.Dummy, false)
 			err := service.CreateOrUpdateDeployment(testns, test.deployment)
 
 			if test.expErr {

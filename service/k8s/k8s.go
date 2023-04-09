@@ -35,16 +35,16 @@ type services struct {
 }
 
 // New returns a new Kubernetes service.
-func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder) Services {
+func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) Services {
 	return &services{
-		ConfigMap:           NewConfigMapService(kubecli, logger, metricsRecorder),
-		Secret:              NewSecretService(kubecli, logger, metricsRecorder),
-		Pod:                 NewPodService(kubecli, logger, metricsRecorder),
-		PodDisruptionBudget: NewPodDisruptionBudgetService(kubecli, logger, metricsRecorder),
+		ConfigMap:           NewConfigMapService(kubecli, logger, metricsRecorder, useCache),
+		Secret:              NewSecretService(kubecli, logger, metricsRecorder, useCache),
+		Pod:                 NewPodService(kubecli, logger, metricsRecorder, useCache),
+		PodDisruptionBudget: NewPodDisruptionBudgetService(kubecli, logger, metricsRecorder, useCache),
 		RedisFailover:       NewRedisFailoverService(crdcli, logger, metricsRecorder),
-		Service:             NewServiceService(kubecli, logger, metricsRecorder),
-		RBAC:                NewRBACService(kubecli, logger, metricsRecorder),
-		Deployment:          NewDeploymentService(kubecli, logger, metricsRecorder),
-		StatefulSet:         NewStatefulSetService(kubecli, logger, metricsRecorder),
+		Service:             NewServiceService(kubecli, logger, metricsRecorder, useCache),
+		RBAC:                NewRBACService(kubecli, logger, metricsRecorder, useCache),
+		Deployment:          NewDeploymentService(kubecli, logger, metricsRecorder, useCache),
+		StatefulSet:         NewStatefulSetService(kubecli, logger, metricsRecorder, useCache),
 	}
 }

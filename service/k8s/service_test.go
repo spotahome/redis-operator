@@ -104,7 +104,7 @@ func TestServiceServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewServiceService(mcli, log.Dummy, metrics.Dummy)
+			service := k8s.NewServiceService(mcli, log.Dummy, metrics.Dummy, false)
 			err := service.CreateOrUpdateService(testns, test.service)
 
 			if test.expErr {

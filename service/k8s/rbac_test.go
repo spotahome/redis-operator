@@ -131,7 +131,7 @@ func TestRBACServiceGetCreateOrUpdateRoleBinding(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewRBACService(mcli, log.Dummy, metrics.Dummy)
+			service := k8s.NewRBACService(mcli, log.Dummy, metrics.Dummy, false)
 			err := service.CreateOrUpdateRoleBinding(testns, test.rb)
 
 			if test.expErr {

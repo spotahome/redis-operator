@@ -47,7 +47,7 @@ func TestSecretServiceGet(t *testing.T) {
 		assert.NoError(err)
 
 		// test getting the secret
-		service := NewSecretService(mcli, log.Dummy, metrics.Dummy)
+		service := NewSecretService(mcli, log.Dummy, metrics.Dummy, false)
 		ss, err := service.GetSecret(secret.ObjectMeta.Namespace, secret.ObjectMeta.Name)
 		assert.NotNil(ss)
 		assert.NoError(err)

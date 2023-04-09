@@ -102,7 +102,7 @@ func TestPodDisruptionBudgetServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewPodDisruptionBudgetService(mcli, log.Dummy, metrics.Dummy)
+			service := k8s.NewPodDisruptionBudgetService(mcli, log.Dummy, metrics.Dummy, false)
 			err := service.CreateOrUpdatePodDisruptionBudget(testns, test.podDisruptionBudget)
 
 			if test.expErr {

@@ -104,7 +104,7 @@ func TestPodServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewPodService(mcli, log.Dummy, metrics.Dummy)
+			service := k8s.NewPodService(mcli, log.Dummy, metrics.Dummy, false)
 			err := service.CreateOrUpdatePod(testns, test.pod)
 
 			if test.expErr {

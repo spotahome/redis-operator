@@ -1,11 +1,23 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/metrics"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 )
 
 // GetRedisPassword retreives password from kubernetes secret or, if
@@ -41,4 +53,383 @@ func recordMetrics(namespace string, kind string, object string, operation strin
 	} else {
 		metricsRecorder.RecordK8sOperation(namespace, kind, object, operation, metrics.FAIL, metrics.K8S_MISC)
 	}
+}
+
+// type cacheMeta struct {
+// 	objTypeName string
+// 	objType     interface{}
+// 	objListType interface{}
+// 	listFunc    func(metav1.ListOptions) (interface{}, error)
+// 	watchFunc   func(opts metav1.ListOptions) (watch.Interface, error)
+// }
+//
+// var cacheBuilderData = []cacheMeta{
+// 	{
+// 		objTypeName: "pods",
+// 		objType:     corev1.Pod{},
+// 		objListType: corev1.PodList{},
+// 		listFunc: func(opts metav1.ListOptions) (*corev1.PodList, error) {
+// 			result := corev1.PodList{}
+// 			err := rc.Get().Resource("pods").Do(context.Background()).Into(&result)
+// 			return &result, err
+// 		},
+// 		watchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+// 			opts.Watch = true
+// 			parameterCodec := runtime.NewParameterCodec(s)
+// 			return rc.Get().
+// 				Resource("pods").
+// 				VersionedParams(&opts, parameterCodec).
+// 				Watch(context.Background())
+// 		},
+// 	},
+// }
+
+func PodCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	corev1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("pods").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*corev1.PodList, error) {
+		result := corev1.PodList{}
+		err := rc.Get().Resource("pods").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	podCacheStore, podCacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&corev1.Pod{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go podCacheController.Run(wait.NeverStop)
+
+	return &podCacheStore
+
+}
+
+func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	corev1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("services").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*corev1.ServiceList, error) {
+		result := corev1.ServiceList{}
+		err := rc.Get().Resource("services").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&corev1.Service{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	corev1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("configmaps").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*corev1.ConfigMapList, error) {
+		result := corev1.ConfigMapList{}
+		err := rc.Get().Resource("configmaps").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&corev1.ConfigMap{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	appsv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("deployments").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*appsv1.DeploymentList, error) {
+		result := appsv1.DeploymentList{}
+		err := rc.Get().Resource("deployments").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&appsv1.Deployment{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	policyv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("poddisruptionbudgets").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*policyv1.PodDisruptionBudgetList, error) {
+		result := policyv1.PodDisruptionBudgetList{}
+		err := rc.Get().Resource("poddisruptionbudgets").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&policyv1.PodDisruptionBudget{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	rbacv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("roles").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*rbacv1.RoleList, error) {
+		result := rbacv1.RoleList{}
+		err := rc.Get().Resource("roles").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&rbacv1.Role{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	rbacv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("clusterroles").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*rbacv1.ClusterRoleList, error) {
+		result := rbacv1.ClusterRoleList{}
+		err := rc.Get().Resource("clusterroles").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&rbacv1.ClusterRole{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	rbacv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("rolebindings").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*rbacv1.RoleBindingList, error) {
+		result := rbacv1.RoleBindingList{}
+		err := rc.Get().Resource("rolebindings").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&rbacv1.RoleBinding{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	corev1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("secrets").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*corev1.SecretList, error) {
+		result := corev1.SecretList{}
+		err := rc.Get().Resource("secrets").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&corev1.Secret{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
+}
+
+func StatefulSetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+	s := runtime.NewScheme()
+	appsv1.AddToScheme(s)
+	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
+		opts.Watch = true
+		parameterCodec := runtime.NewParameterCodec(s)
+		return rc.Get().
+			Resource("statefulsets").
+			VersionedParams(&opts, parameterCodec).
+			Watch(context.Background())
+	}
+	listFunc := func(opts metav1.ListOptions) (*appsv1.StatefulSetList, error) {
+		result := appsv1.StatefulSetList{}
+		err := rc.Get().Resource("statefulsets").Do(context.Background()).Into(&result)
+		return &result, err
+	}
+	cacheStore, cacheController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo metav1.ListOptions) (result runtime.Object, err error) {
+				return listFunc(lo)
+			},
+			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
+				return watchFunc(lo)
+			},
+		},
+		&appsv1.StatefulSet{},
+		0*time.Second,
+		cache.ResourceEventHandlerFuncs{},
+	)
+
+	go cacheController.Run(wait.NeverStop)
+
+	return &cacheStore
 }

@@ -79,7 +79,7 @@ func (m *Main) Run() error {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger, metricsRecorder)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, m.logger, metricsRecorder, m.flags.UseCache)
 
 	// Create the redis clients
 	redisClient := redis.New(metricsRecorder)

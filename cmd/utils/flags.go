@@ -19,6 +19,7 @@ type CMDFlags struct {
 	K8sQueriesBurstable int
 	Concurrency         int
 	LogLevel            string
+	UseCache            bool
 }
 
 // Init initializes and parse the flags
@@ -35,6 +36,7 @@ func (c *CMDFlags) Init() {
 	// reference: https://github.com/spotahome/kooper/blob/master/controller/controller.go#L89
 	flag.IntVar(&c.Concurrency, "concurrency", 3, "Number of conccurent workers meant to process events")
 	flag.StringVar(&c.LogLevel, "log-level", "info", "set log level")
+	flag.BoolVar(&c.UseCache, "use-cache", false, "use cache stores to get k8s objects")
 	// Parse flags
 	flag.Parse()
 }
