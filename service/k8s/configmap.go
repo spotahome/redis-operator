@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
@@ -36,11 +37,11 @@ type ConfigMapService struct {
 func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *ConfigMapService {
 	logger = logger.With("service", "k8s.configMap")
 
-	// rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cmCacheStore *cache.Store
-	// if !useCache {
-	// 	cmCacheStore = ConfigMapCacheStoreFromKubeClient(rc)
-	// }
+	if !useCache {
+		cmCacheStore = ConfigMapCacheStoreFromKubeClient(rc)
+	}
 	return &ConfigMapService{
 		kubeClient:      kubeClient,
 		logger:          logger,
