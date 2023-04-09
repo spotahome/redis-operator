@@ -158,7 +158,6 @@ func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailover
 	namespace := rf.Namespace
 	// If the service exists (no get error), delete it
 	if _, err := r.K8SService.GetService(namespace, name); err == nil {
-		r.logger.Infof("deleting svc %v...", name)
 		return r.K8SService.DeleteService(namespace, name)
 	}
 	return nil
