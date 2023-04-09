@@ -47,11 +47,21 @@ func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsR
 	var roleCacheStore *cache.Store
 	var roleBindingCacheStore *cache.Store
 	var clusterRoleCacheStore *cache.Store
+	var err error
 
 	if useCache {
-		roleCacheStore = RoleCacheStoreFromKubeClient(rc)
-		roleBindingCacheStore = RoleBindingCacheStoreFromKubeClient(rc)
-		clusterRoleCacheStore = ClusterRoleCacheStoreFromKubeClient(rc)
+		roleCacheStore, err = RoleCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache for roles: %v", err)
+		}
+		roleBindingCacheStore, err = RoleBindingCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache for rolebinding: %v", err)
+		}
+		clusterRoleCacheStore, err = ClusterRoleCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache cluster role: %v", err)
+		}
 	}
 
 	return &RBACService{

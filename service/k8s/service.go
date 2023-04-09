@@ -40,9 +40,13 @@ func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metri
 
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
+	var err error
 
 	if useCache {
-		cacheStore = ServiceCacheStoreFromKubeClient(rc)
+		cacheStore, err = ServiceCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
 	}
 
 	return &ServiceService{

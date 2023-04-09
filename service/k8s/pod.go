@@ -41,8 +41,12 @@ func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRe
 	logger = logger.With("service", "k8s.pod")
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var podCacheStore *cache.Store
+	var err error
 	if useCache {
-		podCacheStore = PodCacheStoreFromKubeClient(rc)
+		podCacheStore, err = PodCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
 	}
 
 	return &PodService{

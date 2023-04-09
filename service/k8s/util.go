@@ -55,38 +55,12 @@ func recordMetrics(namespace string, kind string, object string, operation strin
 	}
 }
 
-// type cacheMeta struct {
-// 	objTypeName string
-// 	objType     interface{}
-// 	objListType interface{}
-// 	listFunc    func(metav1.ListOptions) (interface{}, error)
-// 	watchFunc   func(opts metav1.ListOptions) (watch.Interface, error)
-// }
-//
-// var cacheBuilderData = []cacheMeta{
-// 	{
-// 		objTypeName: "pods",
-// 		objType:     corev1.Pod{},
-// 		objListType: corev1.PodList{},
-// 		listFunc: func(opts metav1.ListOptions) (*corev1.PodList, error) {
-// 			result := corev1.PodList{}
-// 			err := rc.Get().Resource("pods").Do(context.Background()).Into(&result)
-// 			return &result, err
-// 		},
-// 		watchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
-// 			opts.Watch = true
-// 			parameterCodec := runtime.NewParameterCodec(s)
-// 			return rc.Get().
-// 				Resource("pods").
-// 				VersionedParams(&opts, parameterCodec).
-// 				Watch(context.Background())
-// 		},
-// 	},
-// }
-
-func PodCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func PodCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	corev1.AddToScheme(s)
+	err := corev1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -116,13 +90,16 @@ func PodCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go podCacheController.Run(wait.NeverStop)
 
-	return &podCacheStore
+	return &podCacheStore, nil
 
 }
 
-func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	corev1.AddToScheme(s)
+	err := corev1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -152,12 +129,15 @@ func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, nil
 }
 
-func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	corev1.AddToScheme(s)
+	err := corev1.AddToScheme(s)
+	if err != nil {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -187,12 +167,15 @@ func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, nil
 }
 
-func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	appsv1.AddToScheme(s)
+	err := appsv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -222,12 +205,15 @@ func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, nil
 }
 
-func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	policyv1.AddToScheme(s)
+	err := policyv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -257,12 +243,15 @@ func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Sto
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, nil
 }
 
-func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	rbacv1.AddToScheme(s)
+	err := rbacv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -292,12 +281,15 @@ func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, nil
 }
 
-func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	rbacv1.AddToScheme(s)
+	err := rbacv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -327,12 +319,15 @@ func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, err
 }
 
-func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	rbacv1.AddToScheme(s)
+	err := rbacv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -362,11 +357,14 @@ func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, err
 }
-func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	corev1.AddToScheme(s)
+	err := corev1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -396,12 +394,15 @@ func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, err
 }
 
-func StatefulSetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
+func StatefulSetCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	s := runtime.NewScheme()
-	appsv1.AddToScheme(s)
+	err := appsv1.AddToScheme(s)
+	if nil != err {
+		return nil, err
+	}
 	watchFunc := func(opts metav1.ListOptions) (watch.Interface, error) {
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
@@ -431,5 +432,5 @@ func StatefulSetCacheStoreFromKubeClient(rc *rest.RESTClient) *cache.Store {
 
 	go cacheController.Run(wait.NeverStop)
 
-	return &cacheStore
+	return &cacheStore, err
 }

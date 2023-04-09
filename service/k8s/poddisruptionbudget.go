@@ -38,8 +38,12 @@ func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.L
 
 	rc := kubeClient.PolicyV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
+	var err error
 	if useCache {
-		cacheStore = PodDisruptionBudgetCacheStoreFromKubeClient(rc)
+		cacheStore, err = PodDisruptionBudgetCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
 	}
 
 	return &PodDisruptionBudgetService{

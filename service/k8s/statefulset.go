@@ -47,8 +47,12 @@ func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, m
 
 	rc := kubeClient.AppsV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
+	var err error
 	if useCache {
-		cacheStore = StatefulSetCacheStoreFromKubeClient(rc)
+		cacheStore, err = StatefulSetCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
 	}
 	return &StatefulSetService{
 		kubeClient:      kubeClient,
