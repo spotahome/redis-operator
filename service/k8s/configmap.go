@@ -8,10 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/rest"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
+	"k8s.io/client-go/tools/cache"
 )
 
 // ConfigMap the ServiceAccount service that knows how to interact with k8s to manage them
@@ -35,15 +36,15 @@ type ConfigMapService struct {
 // NewConfigMapService returns a new ConfigMap KubeService.
 func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *ConfigMapService {
 	logger = logger.With("service", "k8s.configMap")
-	// var err error
-	// rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	var err error
+	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cmCacheStore *cache.Store
-	// if !useCache {
-	// 	cmCacheStore, err = ConfigMapCacheStoreFromKubeClient(rc)
-	// 	if err != nil {
-	// 		logger.Errorf("unable to initialize cache: %v", err)
-	// 	}
-	// }
+	if !useCache {
+		cmCacheStore, err = ConfigMapCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
 	return &ConfigMapService{
 		kubeClient:      kubeClient,
 		logger:          logger,

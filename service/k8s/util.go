@@ -56,6 +56,10 @@ func recordMetrics(namespace string, kind string, object string, operation strin
 }
 
 func PodCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := corev1.AddToScheme(s)
 	if nil != err {
@@ -95,6 +99,10 @@ func PodCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 }
 
 func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := corev1.AddToScheme(s)
 	if nil != err {
@@ -133,6 +141,10 @@ func ServiceCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) 
 }
 
 func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := corev1.AddToScheme(s)
 	if err != nil {
@@ -142,13 +154,16 @@ func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error
 		opts.Watch = true
 		parameterCodec := runtime.NewParameterCodec(s)
 		return rc.Get().
-			Resource("configmaps").
+			Resource("configmap").
 			VersionedParams(&opts, parameterCodec).
 			Watch(context.Background())
 	}
 	listFunc := func(opts metav1.ListOptions) (*corev1.ConfigMapList, error) {
+		fmt.Printf("cm lister calling...")
+		fmt.Printf("resr client: %v...", rc)
 		result := corev1.ConfigMapList{}
-		err := rc.Get().Resource("configmaps").Do(context.Background()).Into(&result)
+		err := rc.Get().Resource("configmap").Do(context.Background()).Into(&result)
+		fmt.Printf("cm lister called; error found: %v\n", err)
 		return &result, err
 	}
 	cacheStore, cacheController := cache.NewInformer(
@@ -171,6 +186,10 @@ func ConfigMapCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error
 }
 
 func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := appsv1.AddToScheme(s)
 	if nil != err {
@@ -209,6 +228,10 @@ func DeploymentCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, erro
 }
 
 func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := policyv1.AddToScheme(s)
 	if nil != err {
@@ -247,6 +270,10 @@ func PodDisruptionBudgetCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.St
 }
 
 func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := rbacv1.AddToScheme(s)
 	if nil != err {
@@ -285,6 +312,10 @@ func RoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 }
 
 func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := rbacv1.AddToScheme(s)
 	if nil != err {
@@ -323,6 +354,10 @@ func ClusterRoleCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, err
 }
 
 func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := rbacv1.AddToScheme(s)
 	if nil != err {
@@ -360,6 +395,10 @@ func RoleBindingCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, err
 	return &cacheStore, err
 }
 func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := corev1.AddToScheme(s)
 	if nil != err {
@@ -398,6 +437,10 @@ func SecretCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 }
 
 func StatefulSetCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
+	if rc == nil {
+		// this case usually happens during testing where dummy / fake clientsets are used
+		return nil, fmt.Errorf("rest client not initialized")
+	}
 	s := runtime.NewScheme()
 	err := appsv1.AddToScheme(s)
 	if nil != err {

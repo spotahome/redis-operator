@@ -40,6 +40,7 @@ type PodService struct {
 func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *PodService {
 	logger = logger.With("service", "k8s.pod")
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	fmt.Printf("[POD]-- rest client interface: %v\n", rc)
 	var podCacheStore *cache.Store
 	var err error
 	if useCache {
