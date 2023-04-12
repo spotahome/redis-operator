@@ -42,13 +42,13 @@ type StatefulSetService struct {
 }
 
 // NewStatefulSetService returns a new StatefulSet KubeService.
-func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *StatefulSetService {
+func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *StatefulSetService {
 	logger = logger.With("service", "k8s.statefulSet")
 
 	rc := kubeClient.AppsV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
 	var err error
-	if useCache {
+	if ShouldUseCache() {
 		cacheStore, err = StatefulSetCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

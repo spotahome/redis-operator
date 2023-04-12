@@ -37,12 +37,12 @@ type DeploymentService struct {
 }
 
 // NewDeploymentService returns a new Deployment KubeService.
-func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *DeploymentService {
+func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *DeploymentService {
 	logger = logger.With("service", "k8s.deployment")
 	rc := kubeClient.AppsV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
 	var err error
-	if useCache {
+	if ShouldUseCache() {
 		cacheStore, err = DeploymentCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

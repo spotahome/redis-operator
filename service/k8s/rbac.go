@@ -39,7 +39,7 @@ type RBACService struct {
 }
 
 // NewRBACService returns a new RBAC KubeService.
-func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *RBACService {
+func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *RBACService {
 	logger = logger.With("service", "k8s.rbac")
 
 	rc := kubeClient.RbacV1().RESTClient().(*rest.RESTClient)
@@ -49,7 +49,7 @@ func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsR
 	var clusterRoleCacheStore *cache.Store
 	var err error
 
-	if useCache {
+	if ShouldUseCache() {
 		roleCacheStore, err = RoleCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache for roles: %v", err)

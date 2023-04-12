@@ -26,13 +26,13 @@ type SecretService struct {
 	metricsRecorder metrics.Recorder
 }
 
-func NewSecretService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *SecretService {
+func NewSecretService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *SecretService {
 
 	logger = logger.With("service", "k8s.secret")
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
 	var err error
-	if useCache {
+	if ShouldUseCache() {
 		cacheStore, err = SecretCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

@@ -34,12 +34,12 @@ type ConfigMapService struct {
 }
 
 // NewConfigMapService returns a new ConfigMap KubeService.
-func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *ConfigMapService {
+func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ConfigMapService {
 	logger = logger.With("service", "k8s.configMap")
 	var err error
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cmCacheStore *cache.Store
-	if !useCache {
+	if ShouldUseCache() {
 		cmCacheStore, err = ConfigMapCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

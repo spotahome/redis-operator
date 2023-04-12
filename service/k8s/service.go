@@ -35,14 +35,14 @@ type ServiceService struct {
 }
 
 // NewServiceService returns a new Service KubeService.
-func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *ServiceService {
+func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ServiceService {
 	logger = logger.With("service", "k8s.service")
 
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
 	var err error
 
-	if useCache {
+	if ShouldUseCache() {
 		cacheStore, err = ServiceCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

@@ -104,7 +104,7 @@ func TestConfigMapServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewConfigMapService(mcli, log.Dummy, metrics.Dummy, false)
+			service := k8s.NewConfigMapService(mcli, log.Dummy, metrics.Dummy)
 			err := service.CreateOrUpdateConfigMap(testns, test.configMap)
 
 			if test.expErr {

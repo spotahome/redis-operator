@@ -33,13 +33,13 @@ type PodDisruptionBudgetService struct {
 }
 
 // NewPodDisruptionBudgetService returns a new PodDisruptionBudget KubeService.
-func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *PodDisruptionBudgetService {
+func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodDisruptionBudgetService {
 	logger = logger.With("service", "k8s.podDisruptionBudget")
 
 	rc := kubeClient.PolicyV1().RESTClient().(*rest.RESTClient)
 	var cacheStore *cache.Store
 	var err error
-	if useCache {
+	if ShouldUseCache() {
 		cacheStore, err = PodDisruptionBudgetCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)

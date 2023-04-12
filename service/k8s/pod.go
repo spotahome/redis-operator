@@ -37,13 +37,13 @@ type PodService struct {
 }
 
 // NewPodService returns a new Pod KubeService.
-func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder, useCache bool) *PodService {
+func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodService {
 	logger = logger.With("service", "k8s.pod")
 	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
 	fmt.Printf("[POD]-- rest client interface: %v\n", rc)
 	var podCacheStore *cache.Store
 	var err error
-	if useCache {
+	if ShouldUseCache() {
 		podCacheStore, err = PodCacheStoreFromKubeClient(rc)
 		if err != nil {
 			logger.Errorf("unable to initialize cache: %v", err)
