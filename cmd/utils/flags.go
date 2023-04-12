@@ -20,6 +20,7 @@ type CMDFlags struct {
 	Concurrency         int
 	LogLevel            string
 	UseCache            bool
+	EnableObjectHashing bool
 }
 
 // Init initializes and parse the flags
@@ -37,6 +38,7 @@ func (c *CMDFlags) Init() {
 	flag.IntVar(&c.Concurrency, "concurrency", 3, "Number of conccurent workers meant to process events")
 	flag.StringVar(&c.LogLevel, "log-level", "info", "set log level")
 	flag.BoolVar(&c.UseCache, "use-cache", false, "use cache stores to get k8s objects")
+	flag.BoolVar(&c.EnableObjectHashing, "enable-hash", false, "Add hashed annotations to k8s objects, apply changes only when theres a diff.")
 	// Parse flags
 	flag.Parse()
 }

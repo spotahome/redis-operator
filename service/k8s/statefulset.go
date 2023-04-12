@@ -124,6 +124,7 @@ func (s *StatefulSetService) UpdateStatefulSet(namespace string, statefulSet *ap
 // CreateOrUpdateStatefulSet will update the statefulset or create it if does not exist
 func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
 	storedStatefulSet, err := s.GetStatefulSet(namespace, statefulSet.Name)
+
 	if err != nil {
 		// If no resource we need to create.
 		if errors.IsNotFound(err) {
@@ -198,6 +199,16 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	// set stored.volumeClaimTemplates
 	statefulSet.Spec.VolumeClaimTemplates = storedStatefulSet.Spec.VolumeClaimTemplates
 	statefulSet.Annotations = util.MergeAnnotations(storedStatefulSet.Annotations, statefulSet.Annotations)
+
+	if hashingEnabled() {
+		if !shouldUpdate(statefulSet, storedStatefulSet) {
+			s.logger.Debugf("%v/%v statefulset is upto date, no need to apply changes...", statefulSet.Namespace, statefulSet.Name)
+			return nil
+		}
+		s.logger.Debugf("%v/%v statefulset has a different resource hash, updating the object...", statefulSet.Namespace, statefulSet.Name)
+		addHashAnnotation(statefulSet)
+	}
+
 	return s.UpdateStatefulSet(namespace, statefulSet)
 }
 

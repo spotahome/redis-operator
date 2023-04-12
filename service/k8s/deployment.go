@@ -126,6 +126,15 @@ func (d *DeploymentService) CreateOrUpdateDeployment(namespace string, deploymen
 		return err
 	}
 
+	if hashingEnabled() {
+		if !shouldUpdate(deployment, storedDeployment) {
+			d.logger.Debugf("%v/%v deployment is upto date, no need to apply changes...", deployment.Namespace, deployment.Name)
+			return nil
+		}
+		d.logger.Debugf("%v/%v deployment has a different resource hash, updating the object...", deployment.Namespace, deployment.Name)
+		addHashAnnotation(deployment)
+	}
+
 	// Already exists, need to Update.
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),

@@ -119,6 +119,15 @@ func (s *ServiceService) CreateOrUpdateService(namespace string, service *corev1
 		return err
 	}
 
+	if hashingEnabled() {
+		if !shouldUpdate(service, storedService) {
+			s.logger.Debugf("%v/%v service is upto date, no need to apply changes...", service.Namespace, service.Name)
+			return nil
+		}
+		s.logger.Debugf("%v/%v service has a different resource hash, updating the object...", service.Namespace, service.Name)
+		addHashAnnotation(service)
+	}
+
 	// Already exists, need to Update.
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),

@@ -108,6 +108,15 @@ func (p *PodDisruptionBudgetService) CreateOrUpdatePodDisruptionBudget(namespace
 		return err
 	}
 
+	if hashingEnabled() {
+		if !shouldUpdate(podDisruptionBudget, storedPodDisruptionBudget) {
+			p.logger.Debugf("%v/%v pdb is upto date, no need to apply changes...", podDisruptionBudget.Namespace, podDisruptionBudget.Name)
+			return nil
+		}
+		p.logger.Debugf("%v/%v pdb has a different resource hash, updating the object...", podDisruptionBudget.Namespace, podDisruptionBudget.Name)
+		addHashAnnotation(podDisruptionBudget)
+	}
+
 	// Already exists, need to Update.
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
