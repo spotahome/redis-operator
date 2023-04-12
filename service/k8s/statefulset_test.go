@@ -108,7 +108,7 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 				return true, nil, test.errorOnCreation
 			})
 
-			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy, false)
+			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
 			err := service.CreateOrUpdateStatefulSet(testns, test.statefulSet)
 
 			if test.expErr {
@@ -207,7 +207,7 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 				pvcList.Items[0] = *action.(kubetesting.UpdateActionImpl).Object.(*v1.PersistentVolumeClaim)
 				return true, action.(kubetesting.UpdateActionImpl).Object, nil
 			})
-			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy, false)
+			service := k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
 			err := service.CreateOrUpdateStatefulSet(testns, afterSts)
 			assert.NoError(err)
 			assert.Equal(pvcList.Items[0].Spec.Resources, pvcList.Items[1].Spec.Resources)
@@ -215,7 +215,7 @@ func TestStatefulSetServiceGetCreateOrUpdate(t *testing.T) {
 			mcli.AddReactor("update", "persistentvolumeclaims", func(action kubetesting.Action) (handled bool, ret runtime.Object, err error) {
 				panic("shouldn't call update")
 			})
-			service = k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy, false)
+			service = k8s.NewStatefulSetService(mcli, log.Dummy, metrics.Dummy)
 			err = service.CreateOrUpdateStatefulSet(testns, afterSts)
 			assert.NoError(err)
 		})
