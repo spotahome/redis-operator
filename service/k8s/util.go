@@ -55,6 +55,8 @@ func recordMetrics(namespace string, kind string, object string, operation strin
 	}
 }
 
+// TODO: Update *CacheStoreFromKubeClient be  implemented via generics
+
 func PodCacheStoreFromKubeClient(rc *rest.RESTClient) (*cache.Store, error) {
 	if rc == nil {
 		// this case usually happens during testing where dummy / fake clientsets are used
