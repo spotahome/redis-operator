@@ -8,6 +8,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+// taken from https://github.com/k8ssandra/cass-operator/blob/master/pkg/utils/hash_annotation.go
+
 type Annotated interface {
 	GetAnnotations() map[string]string
 	SetAnnotations(annotations map[string]string)
