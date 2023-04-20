@@ -250,7 +250,7 @@ case $role in
 				check_slave
 				;;
 		*)
-				echo "unespected"
+				echo "unexpected"
 				exit 1
 esac`, port)
 
