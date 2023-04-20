@@ -1879,3 +1879,436 @@ func TestSentinelStartupProbe(t *testing.T) {
 		assert.Contains(startupVolumeMounts, test.expectedVolumeMount)
 	}
 }
+
+func TestRedisCustomLivenessProbe(t *testing.T) {
+	tests := []struct {
+		name                  string
+		customLivenessProbe   *corev1.Probe
+		expectedLivenessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning",
+						},
+					},
+				},
+			},
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                "liveness_probe_nil",
+			customLivenessProbe: nil,
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				FailureThreshold:    6,
+				PeriodSeconds:       15,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 6379 ping --user pinger --pass pingpass --no-auth-warning",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var livenessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomLivenessProbe = test.customLivenessProbe
+		rf.Spec.Redis.Port = 6379
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			livenessProbe = s.Spec.Template.Spec.Containers[0].LivenessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedLivenessProbe, livenessProbe)
+	}
+}
+
+func TestSentinelCustomLivenessProbe(t *testing.T) {
+	tests := []struct {
+		name                  string
+		customLivenessProbe   *corev1.Probe
+		expectedLivenessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                "liveness_probe_nil",
+			customLivenessProbe: nil,
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var livenessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomLivenessProbe = test.customLivenessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			livenessProbe = d.Spec.Template.Spec.Containers[0].LivenessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedLivenessProbe, livenessProbe)
+	}
+}
+
+func TestRedisCustomReadinessProbe(t *testing.T) {
+	tests := []struct {
+		name                   string
+		customReadinessProbe   *corev1.Probe
+		expectedReadinessProbe *corev1.Probe
+	}{
+		{
+			name: "readiness_probe",
+			customReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/readiness.sh"},
+					},
+				},
+			},
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/readiness.sh"},
+					},
+				},
+			},
+		},
+		{
+			name:                 "readiness_probe_nil",
+			customReadinessProbe: nil,
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var readinessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomReadinessProbe = test.customReadinessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			readinessProbe = s.Spec.Template.Spec.Containers[0].ReadinessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedReadinessProbe, readinessProbe)
+	}
+}
+
+func TestSentinelCustomReadinessProbe(t *testing.T) {
+	tests := []struct {
+		name                   string
+		customReadinessProbe   *corev1.Probe
+		expectedReadinessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                 "liveness_probe_nil",
+			customReadinessProbe: nil,
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var readinessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomReadinessProbe = test.customReadinessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			readinessProbe = d.Spec.Template.Spec.Containers[0].ReadinessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedReadinessProbe, readinessProbe)
+	}
+}
+
+func TestRedisCustomStartupProbe(t *testing.T) {
+	tests := []struct {
+		name                 string
+		customStartupProbe   *corev1.Probe
+		expectedStartupProbe *corev1.Probe
+	}{
+		{
+			name: "readiness_probe",
+			customStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-startup/startup.sh"},
+					},
+				},
+			},
+			expectedStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-startup/startup.sh"},
+					},
+				},
+			},
+		},
+		{
+			name:                 "readiness_probe_nil",
+			customStartupProbe:   nil,
+			expectedStartupProbe: nil,
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomStartupProbe = test.customStartupProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			startupProbe = s.Spec.Template.Spec.Containers[0].StartupProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedStartupProbe, startupProbe)
+	}
+}
+
+func TestSentinelCustomStartupProbe(t *testing.T) {
+	tests := []struct {
+		name                 string
+		customStartupProbe   *corev1.Probe
+		expectedStartupProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                 "liveness_probe_nil",
+			customStartupProbe:   nil,
+			expectedStartupProbe: nil,
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomStartupProbe = test.customStartupProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			startupProbe = d.Spec.Template.Spec.Containers[0].StartupProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedStartupProbe, startupProbe)
+	}
+}

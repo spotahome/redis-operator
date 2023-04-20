@@ -330,31 +330,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							},
 							VolumeMounts: volumeMounts,
 							Command:      redisCommand,
-							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
-									},
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								FailureThreshold:    6,
-								PeriodSeconds:       15,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
-										},
-									},
-								},
-							},
-							Resources: rf.Spec.Redis.Resources,
+							Resources:    rf.Spec.Redis.Resources,
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.LifecycleHandler{
 									Exec: &corev1.ExecAction{
@@ -394,7 +370,43 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		}
 	}
 
-	if rf.Spec.Redis.StartupConfigMap != "" {
+	if rf.Spec.Redis.CustomLivenessProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].LivenessProbe = rf.Spec.Redis.CustomLivenessProbe
+	} else {
+		ss.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			FailureThreshold:    6,
+			PeriodSeconds:       15,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Redis.CustomReadinessProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].ReadinessProbe = rf.Spec.Redis.CustomReadinessProbe
+	} else {
+		ss.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Redis.CustomStartupProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].StartupProbe = rf.Spec.Redis.CustomStartupProbe
+	} else if rf.Spec.Redis.StartupConfigMap != "" {
 		ss.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
 			InitialDelaySeconds: graceTime,
 			TimeoutSeconds:      5,
@@ -517,33 +529,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							},
 							VolumeMounts: volumeMounts,
 							Command:      sentinelCommand,
-							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											"redis-cli -h $(hostname) -p 26379 ping",
-										},
-									},
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											"redis-cli -h $(hostname) -p 26379 ping",
-										},
-									},
-								},
-							},
-							Resources: rf.Spec.Sentinel.Resources,
+							Resources:    rf.Spec.Sentinel.Resources,
 						},
 					},
 					Volumes: volumes,
@@ -552,7 +538,45 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 		},
 	}
 
-	if rf.Spec.Sentinel.StartupConfigMap != "" {
+	if rf.Spec.Sentinel.CustomLivenessProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].LivenessProbe = rf.Spec.Sentinel.CustomLivenessProbe
+	} else {
+		sd.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						"redis-cli -h $(hostname) -p 26379 ping",
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Sentinel.CustomReadinessProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].ReadinessProbe = rf.Spec.Sentinel.CustomReadinessProbe
+	} else {
+		sd.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						"redis-cli -h $(hostname) -p 26379 ping",
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Sentinel.CustomStartupProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].StartupProbe = rf.Spec.Sentinel.CustomStartupProbe
+	} else if rf.Spec.Sentinel.StartupConfigMap != "" {
 		sd.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
 			InitialDelaySeconds: graceTime,
 			TimeoutSeconds:      5,
