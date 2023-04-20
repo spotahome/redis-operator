@@ -567,7 +567,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 					Command: []string{
 						"sh",
 						"-c",
-						"redis-cli -h $(hostname) -p 26379 ping",
+						"redis-cli -h $(hostname) -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1 | grep -vq '127.0.0.1'",
 					},
 				},
 			},
