@@ -222,6 +222,9 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 		*out = new(BootstrapSettings)
 		**out = **in
 	}
+
+	out.NetworkPolicyNsList = in.NetworkPolicyNsList
+	
 	return
 }
 

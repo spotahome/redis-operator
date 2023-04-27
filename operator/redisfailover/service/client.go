@@ -14,6 +14,7 @@ import (
 // RedisFailoverClient has the minimumm methods that a Redis failover controller needs to satisfy
 // in order to talk with K8s
 type RedisFailoverClient interface {
+	EnsureNetworkPolicy(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelDeployment(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
@@ -63,6 +64,14 @@ func generateRedisSlaveRoleLabel() map[string]string {
 	return map[string]string{
 		redisRoleLabelKey: redisRoleLabelSlave,
 	}
+}
+
+// EnsureNetworkPolicy makes sure the network policy exists
+func (r *RedisFailoverKubeClient) EnsureNetworkPolicy(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	svc := generateNetworkPolicy(rf, labels, ownerRefs)
+	err := r.K8SService.CreateOrUpdateNetworkPolicy(rf.Namespace, svc)
+	r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "NetworkPolicy", rf.Name, err)
+	return err
 }
 
 // EnsureSentinelService makes sure the sentinel service exists

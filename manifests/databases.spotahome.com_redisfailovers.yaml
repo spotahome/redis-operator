@@ -68,6 +68,16 @@ spec:
                   port:
                     type: string
                 type: object
+              networkPolicyNsList:
+                description: NetworkPolicy provides available namespace ingress rules
+                type: array
+                items:
+                  type: object
+                  properties:
+                    matchLabelKey:
+                      type: string
+                    matchLabelValue:
+                      type: string
               labelWhitelist:
                 items:
                   type: string

@@ -25,6 +25,7 @@ const (
 	redisRoleName          = "redis"
 	appLabel               = "redis-failover"
 	hostnameTopologyKey    = "kubernetes.io/hostname"
+	networkPolicyName      = "network-policy"
 )
 
 const (

@@ -22,11 +22,15 @@ type RedisFailover struct {
 
 // RedisFailoverSpec represents a Redis failover spec
 type RedisFailoverSpec struct {
-	Redis          RedisSettings      `json:"redis,omitempty"`
-	Sentinel       SentinelSettings   `json:"sentinel,omitempty"`
-	Auth           AuthSettings       `json:"auth,omitempty"`
-	LabelWhitelist []string           `json:"labelWhitelist,omitempty"`
-	BootstrapNode  *BootstrapSettings `json:"bootstrapNode,omitempty"`
+	Redis               RedisSettings      `json:"redis,omitempty"`
+	Sentinel            SentinelSettings   `json:"sentinel,omitempty"`
+	Auth                AuthSettings       `json:"auth,omitempty"`
+	LabelWhitelist      []string           `json:"labelWhitelist,omitempty"`
+	BootstrapNode       *BootstrapSettings `json:"bootstrapNode,omitempty"`
+	NetworkPolicyNsList []struct {
+		MatchLabelKey   string `json:"matchLabelKey,omitempty"`
+		MatchLabelValue string `json:"matchLabelValue,omitempty"`
+	} `json:"networkPolicyNsList,omitempty"`
 }
 
 // RedisCommandRename defines the specification of a "rename-command" configuration option
