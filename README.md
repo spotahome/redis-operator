@@ -187,6 +187,20 @@ By default, no service annotations will be applied to the Redis nor Sentinel ser
 
 In order to apply custom service Annotations, you can provide the `serviceAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 
+### Allow Operator to Be Namespace-Scoped
+By default operator is cluster wide.
+
+In order to make operator namespace-scoped you can provide the env variable `WATCH_NAMESPACE` to the redisoperator deployment manifest.
+
+```
+env:
+  - name: WATCH_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+```
+
+
 ### Control of label propagation.
 By default the operator will propagate all labels on the CRD down to the resources that it creates.  This can be problematic if the
 labels on the CRD are not fully under your own control (for example: being deployed by a gitops operator)
