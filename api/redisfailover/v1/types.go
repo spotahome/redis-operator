@@ -31,6 +31,16 @@ type RedisFailoverSpec struct {
 		MatchLabelKey   string `json:"matchLabelKey,omitempty"`
 		MatchLabelValue string `json:"matchLabelValue,omitempty"`
 	} `json:"networkPolicyNsList,omitempty"`
+	Haproxy *HaproxySettings `json:"haproxy,omitempty"`
+}
+
+// HaproxySettings contains settings about a potential bootstrap node
+type HaproxySettings struct {
+	RedisHost    string                      `json:"redisHost,omitempty"`
+	Image        string                      `json:"image,omitempty"`
+	Replicas     int32                       `json:"replicas,omitempty"`
+	Resources    corev1.ResourceRequirements `json:"resources,omitempty"`
+	CustomConfig string                      `json:"customConfig,omitempty"`
 }
 
 // RedisCommandRename defines the specification of a "rename-command" configuration option

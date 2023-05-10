@@ -47,6 +47,253 @@ sentinel parallel-syncs mymaster 2`
 	graceTime = 30
 )
 
+func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *appsv1.Deployment {
+	name := "redis-haproxy"
+
+	namespace := rf.Namespace
+
+	labels = util.MergeLabels(labels, map[string]string{
+		"app.kubernetes.io/component": "redis",
+	})
+
+	appName, ok := labels["app.kubernetes.io/name"]
+	if !ok {
+		appName = rf.Name
+	}
+
+	selectorLabels := util.MergeLabels(labels, map[string]string{
+		appName + ".powerapp.cloud/redis": "haproxy",
+	})
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "config",
+			MountPath: "/usr/local/etc/haproxy/haproxy.cfg",
+			SubPath:   "haproxy.cfg",
+			ReadOnly:  true,
+		},
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "redis-haproxy",
+					},
+				},
+			},
+		},
+	}
+
+	podAntiAffinity := corev1.PodAntiAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+			{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      appName + ".powerapp.cloud/redis",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{"haproxy"},
+						},
+					},
+				},
+				TopologyKey: "physicalmachine",
+			},
+		},
+	}
+
+	sd := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &rf.Spec.Haproxy.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: selectorLabels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: selectorLabels,
+				},
+				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						PodAntiAffinity: &podAntiAffinity,
+					},
+					Containers: []corev1.Container{
+						{
+							Name:  "haproxy",
+							Image: rf.Spec.Haproxy.Image,
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+								},
+								{
+									ContainerPort: rf.Spec.Redis.Port,
+								},
+							},
+							VolumeMounts: volumeMounts,
+							Resources:    rf.Spec.Haproxy.Resources,
+						},
+					},
+					Volumes:       volumes,
+					RestartPolicy: "Always",
+				},
+			},
+		},
+	}
+
+	return sd
+}
+
+func generateHAProxyConfigmap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
+	name := "redis-haproxy"
+	namespace := rf.Namespace
+
+	labels = util.MergeLabels(labels, map[string]string{
+		"app.kubernetes.io/component": "redis",
+	})
+
+	port := rf.Spec.Redis.Port
+	haproxyCfg := fmt.Sprintf(`global
+    daemon
+    maxconn 256
+
+    defaults
+    mode tcp
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+    timeout check 5000ms
+
+    frontend http
+    bind :8080
+    default_backend stats
+
+    backend stats
+    mode http
+    stats enable
+    stats uri /
+    stats refresh 1s
+    stats show-legends
+    stats admin if TRUE
+
+    resolvers k8s
+    parse-resolv-conf
+    hold other 10s
+    hold refused 10s
+    hold nx 10
+    hold timeout 10s
+    hold valid 10s
+    hold obsolete 10s
+
+    frontend redis-master
+    bind *:%d
+    default_backend redis-master
+
+    backend redis-master
+    mode tcp
+    balance first
+    option tcp-check
+    tcp-check send info\ replication\r\n
+    tcp-check expect string role:master
+    server-template redis %d _redis._tcp.redis.%s.svc.cluster.local:%d check inter 1s resolvers k8s init-addr none
+`, port, rf.Spec.Redis.Replicas, namespace, port)
+
+	if rf.Spec.Haproxy.CustomConfig != "" {
+		haproxyCfg = rf.Spec.Haproxy.CustomConfig
+	}
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Data: map[string]string{
+			"haproxy.cfg": haproxyCfg,
+		},
+	}
+}
+
+func generateRedisHeadlessService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
+
+	name := "redis"
+	namespace := rf.Namespace
+
+	redisTargetPort := intstr.FromString("redis")
+	selectorLabels := map[string]string{
+		"app.kubernetes.io/component": "redis",
+		"app.kubernetes.io/part-of":   "redis-failover",
+	}
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector:  selectorLabels,
+			Type:      "ClusterIP",
+			ClusterIP: "None",
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "redis",
+					Port:       rf.Spec.Redis.Port,
+					TargetPort: redisTargetPort,
+					Protocol:   "TCP",
+				},
+			},
+		},
+	}
+}
+
+func generateHAProxyService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
+	name := rf.Spec.Haproxy.RedisHost
+	namespace := rf.Namespace
+
+	appName, ok := labels["app.kubernetes.io/name"]
+	if !ok {
+		appName = rf.Name
+	}
+
+	redisTargetPort := intstr.FromInt(int(rf.Spec.Redis.Port))
+	selectorLabels := map[string]string{
+		"app.kubernetes.io/component":     "redis",
+		appName + ".powerapp.cloud/redis": "haproxy",
+	}
+
+	selectorLabels = util.MergeLabels(labels, selectorLabels)
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: selectorLabels,
+			Type:     "ClusterIP",
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "redis-master",
+					Port:       rf.Spec.Redis.Port,
+					TargetPort: redisTargetPort,
+					Protocol:   "TCP",
+				},
+			},
+		},
+	}
+}
+
 func generateNetworkPolicy(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *np.NetworkPolicy {
 	name := GetNetworkPolicyName(rf)
 	namespace := rf.Namespace
@@ -83,7 +330,7 @@ func generateNetworkPolicy(rf *redisfailoverv1.RedisFailover, labels map[string]
 		},
 		Spec: np.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"app.kubernetes.io/part-of": "redis-failover"},
+				MatchLabels: map[string]string{"redisfailovers.databases.spotahome.com/name": rf.Name},
 			},
 			Ingress: []np.NetworkPolicyIngressRule{
 				np.NetworkPolicyIngressRule{

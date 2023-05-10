@@ -25,6 +25,24 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1.RedisFailover, labels 
 		}
 	}
 
+	if rf.Spec.Haproxy != nil {
+		if err := w.rfService.EnsureHAProxyService(rf, labels, or); err != nil {
+			return err
+		}
+
+		if err := w.rfService.EnsureRedisHeadlessService(rf, labels, or); err != nil {
+			return err
+		}
+
+		if err := w.rfService.EnsureHAProxyConfigmap(rf, labels, or); err != nil {
+			return err
+		}
+
+		if err := w.rfService.EnsureHAProxyDeployment(rf, labels, or); err != nil {
+			return err
+		}
+	}
+
 	sentinelsAllowed := rf.SentinelsAllowed()
 	if sentinelsAllowed {
 		if err := w.rfService.EnsureSentinelService(rf, labels, or); err != nil {
