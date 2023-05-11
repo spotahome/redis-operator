@@ -6,7 +6,7 @@ metadata:
     # These two labels will be propagated.
     app.example.com/label1: value
     app.example.com/label2: value
-    # This one wont be, as there is a non-empty whitelist and the regexp doesnt match it.
+    # This one wont be, as there is a non-empty allowlist and the regexp doesnt match it.
     anotherlabel: value
 spec:
   sentinel:
@@ -25,5 +25,5 @@ spec:
       limits:
         cpu: 400m
         memory: 500Mi
-  labelWhitelist:
-  - ^app.example.com.*
+  propagateLabels:
+    - ^app.example.com.*

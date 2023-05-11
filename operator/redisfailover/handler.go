@@ -91,13 +91,13 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 		rfLabelNameKey: rf.Name,
 	}
 
-	// Filter the labels based on the whitelist
+	// Filter the labels based on the allowlist
 	filteredCustomLabels := make(map[string]string)
-	if rf.Spec.LabelWhitelist != nil && len(rf.Spec.LabelWhitelist) != 0 {
-		for _, regex := range rf.Spec.LabelWhitelist {
+	if rf.Spec.PropagateLabels != nil && len(rf.Spec.PropagateLabels) != 0 {
+		for _, regex := range rf.Spec.PropagateLabels {
 			compiledRegexp, err := regexp.Compile(regex)
 			if err != nil {
-				r.logger.Errorf("Unable to compile label whitelist regex '%s', ignoring it.", regex)
+				r.logger.Errorf("Unable to compile label allowlist regex '%s', ignoring it.", regex)
 				continue
 			}
 			for labelKey, labelValue := range rf.Labels {
@@ -107,7 +107,7 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 			}
 		}
 	} else {
-		// If no whitelist is specified then don't filter the labels.
+		// If no allowlist is specified then don't filter the labels.
 		filteredCustomLabels = rf.Labels
 	}
 	return util.MergeLabels(defaultLabels, dynLabels, filteredCustomLabels)
