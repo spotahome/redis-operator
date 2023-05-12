@@ -19,6 +19,7 @@ type CMDFlags struct {
 	K8sQueriesBurstable int
 	Concurrency         int
 	LogLevel            string
+	PDBMinAvailable     string
 }
 
 // Init initializes and parse the flags
@@ -35,6 +36,7 @@ func (c *CMDFlags) Init() {
 	// reference: https://github.com/spotahome/kooper/blob/master/controller/controller.go#L89
 	flag.IntVar(&c.Concurrency, "concurrency", 3, "Number of conccurent workers meant to process events")
 	flag.StringVar(&c.LogLevel, "log-level", "info", "set log level")
+	flag.StringVar(&c.PDBMinAvailable, "pdb-minAvailable", "2", "set default pdb min available value")
 	// Parse flags
 	flag.Parse()
 }
@@ -42,8 +44,9 @@ func (c *CMDFlags) Init() {
 // ToRedisOperatorConfig convert the flags to redisfailover config
 func (c *CMDFlags) ToRedisOperatorConfig() redisfailover.Config {
 	return redisfailover.Config{
-		ListenAddress: c.ListenAddr,
-		MetricsPath:   c.MetricsPath,
-		Concurrency:   c.Concurrency,
+		ListenAddress:   c.ListenAddr,
+		MetricsPath:     c.MetricsPath,
+		Concurrency:     c.Concurrency,
+		PDBMinAvailable: c.PDBMinAvailable,
 	}
 }

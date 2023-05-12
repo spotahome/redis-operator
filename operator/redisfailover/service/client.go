@@ -27,17 +27,19 @@ type RedisFailoverClient interface {
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
 type RedisFailoverKubeClient struct {
-	K8SService    k8s.Services
-	logger        log.Logger
-	metricsClient metrics.Recorder
+	K8SService      k8s.Services
+	logger          log.Logger
+	metricsClient   metrics.Recorder
+	pdbMinAvailable string
 }
 
 // NewRedisFailoverKubeClient creates a new RedisFailoverKubeClient
-func NewRedisFailoverKubeClient(k8sService k8s.Services, logger log.Logger, metricsClient metrics.Recorder) *RedisFailoverKubeClient {
+func NewRedisFailoverKubeClient(k8sService k8s.Services, logger log.Logger, metricsClient metrics.Recorder, pdbMinAvailable string) *RedisFailoverKubeClient {
 	return &RedisFailoverKubeClient{
-		K8SService:    k8sService,
-		logger:        logger,
-		metricsClient: metricsClient,
+		K8SService:      k8sService,
+		logger:          logger,
+		metricsClient:   metricsClient,
+		pdbMinAvailable: pdbMinAvailable,
 	}
 }
 
@@ -168,7 +170,7 @@ func (r *RedisFailoverKubeClient) ensurePodDisruptionBudget(rf *redisfailoverv1.
 	name = generateName(name, rf.Name)
 	namespace := rf.Namespace
 
-	minAvailable := intstr.FromInt(2)
+	minAvailable := intstr.FromString(r.pdbMinAvailable)
 	if rf.Spec.Redis.Replicas <= 2 {
 		minAvailable = intstr.FromInt(1)
 	}
