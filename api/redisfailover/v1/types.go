@@ -41,6 +41,7 @@ type HaproxySettings struct {
 	Replicas     int32                       `json:"replicas,omitempty"`
 	Resources    corev1.ResourceRequirements `json:"resources,omitempty"`
 	CustomConfig string                      `json:"customConfig,omitempty"`
+	Affinity     *corev1.Affinity            `json:"affinity,omitempty"`
 }
 
 // RedisCommandRename defines the specification of a "rename-command" configuration option

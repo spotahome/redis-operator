@@ -134,6 +134,11 @@ func (in *Exporter) DeepCopy() *Exporter {
 func (in *HaproxySettings) DeepCopyInto(out *HaproxySettings) {
 	*out = *in
 	in.Resources.DeepCopyInto(&out.Resources)
+	if in.Affinity != nil {
+		in, out := &in.Affinity, &out.Affinity
+		*out = new(corev1.Affinity)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
@@ -239,8 +244,9 @@ func (in *RedisFailoverSpec) DeepCopyInto(out *RedisFailoverSpec) {
 		*out = new(BootstrapSettings)
 		**out = **in
 	}
-	out.NetworkPolicyNsList = in.NetworkPolicyNsList
 	
+	out.NetworkPolicyNsList = in.NetworkPolicyNsList
+
 	if in.Haproxy != nil {
 		in, out := &in.Haproxy, &out.Haproxy
 		*out = new(HaproxySettings)

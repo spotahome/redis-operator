@@ -56,13 +56,8 @@ func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[str
 		"app.kubernetes.io/component": "redis",
 	})
 
-	appName, ok := labels["app.kubernetes.io/name"]
-	if !ok {
-		appName = rf.Name
-	}
-
 	selectorLabels := util.MergeLabels(labels, map[string]string{
-		appName + ".powerapp.cloud/redis": "haproxy",
+		"redisfailovers.databases.spotahome.com/component": "haproxy",
 	})
 
 	volumeMounts := []corev1.VolumeMount{
@@ -87,23 +82,6 @@ func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[str
 		},
 	}
 
-	podAntiAffinity := corev1.PodAntiAffinity{
-		RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-			{
-				LabelSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{
-						{
-							Key:      appName + ".powerapp.cloud/redis",
-							Operator: metav1.LabelSelectorOpIn,
-							Values:   []string{"haproxy"},
-						},
-					},
-				},
-				TopologyKey: "physicalmachine",
-			},
-		},
-	}
-
 	sd := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -121,9 +99,6 @@ func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[str
 					Labels: selectorLabels,
 				},
 				Spec: corev1.PodSpec{
-					Affinity: &corev1.Affinity{
-						PodAntiAffinity: &podAntiAffinity,
-					},
 					Containers: []corev1.Container{
 						{
 							Name:  "haproxy",
@@ -145,6 +120,10 @@ func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[str
 				},
 			},
 		},
+	}
+
+	if rf.Spec.Haproxy.Affinity != nil {
+		sd.Spec.Template.Spec.Affinity = rf.Spec.Haproxy.Affinity
 	}
 
 	return sd
@@ -258,16 +237,10 @@ func generateRedisHeadlessService(rf *redisfailoverv1.RedisFailover, labels map[
 func generateHAProxyService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
 	name := rf.Spec.Haproxy.RedisHost
 	namespace := rf.Namespace
-
-	appName, ok := labels["app.kubernetes.io/name"]
-	if !ok {
-		appName = rf.Name
-	}
-
 	redisTargetPort := intstr.FromInt(int(rf.Spec.Redis.Port))
 	selectorLabels := map[string]string{
-		"app.kubernetes.io/component":     "redis",
-		appName + ".powerapp.cloud/redis": "haproxy",
+		"app.kubernetes.io/component":                      "redis",
+		"redisfailovers.databases.spotahome.com/component": "haproxy",
 	}
 
 	selectorLabels = util.MergeLabels(labels, selectorLabels)
