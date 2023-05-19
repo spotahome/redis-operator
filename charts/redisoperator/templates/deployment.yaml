@@ -5,6 +5,7 @@ apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
   name: {{ $fullName }}
+  namespace: {{ include "chart.namespaceName" . }}
   labels:
     {{- include "chart.labels" $data | nindent 4 }}
   {{- if .Values.annotations }}

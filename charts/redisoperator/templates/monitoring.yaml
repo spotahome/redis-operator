@@ -6,6 +6,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ $fullName }}-prometheus
+  namespace: {{ include "chart.namespaceName" . }}
   labels:
     prometheus: {{ .Values.monitoring.prometheus.name }}
     {{- include "chart.labels" $data | nindent 4 }}
@@ -28,6 +29,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ $fullName }}
+  namespace: {{ include "chart.namespaceName" . }}
   labels:
     prometheus: {{ .Values.monitoring.prometheus.name }}
     {{- include "chart.labels" $data | nindent 4 }}
@@ -38,7 +40,7 @@ spec:
      {{- include "chart.selectorLabels" $data | nindent 6 }}
   namespaceSelector:
     matchNames:
-    - {{ .Release.Namespace }}
+    - {{ include "chart.namespaceName" . }}
   endpoints:
   - port: metrics
     interval: 15s
