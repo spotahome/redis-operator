@@ -56,9 +56,7 @@ func generateHAProxyDeployment(rf *redisfailoverv1.RedisFailover, labels map[str
 		"app.kubernetes.io/component": "redis",
 	})
 
-	selectorLabels := util.MergeLabels(labels, map[string]string{
-		"redisfailovers.databases.spotahome.com/component": "haproxy",
-	})
+	selectorLabels := util.MergeLabels(labels, generateComponentLabel("haproxy"))
 
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -239,9 +237,10 @@ func generateHAProxyService(rf *redisfailoverv1.RedisFailover, labels map[string
 	namespace := rf.Namespace
 	redisTargetPort := intstr.FromInt(int(rf.Spec.Redis.Port))
 	selectorLabels := map[string]string{
-		"app.kubernetes.io/component":                      "redis",
-		"redisfailovers.databases.spotahome.com/component": "haproxy",
+		"app.kubernetes.io/component": "redis",
 	}
+
+	selectorLabels = util.MergeLabels(selectorLabels, generateComponentLabel("haproxy"))
 
 	selectorLabels = util.MergeLabels(labels, selectorLabels)
 
@@ -556,6 +555,8 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 	labels = util.MergeLabels(labels, selectorLabels)
 	labels = util.MergeLabels(labels, generateRedisDefaultRoleLabel())
 
+	labels = util.MergeLabels(labels, generateComponentLabel("redis"))
+
 	volumeMounts := getRedisVolumeMounts(rf)
 	volumes := getRedisVolumes(rf)
 	terminationGracePeriodSeconds := getTerminationGracePeriodSeconds(rf)
@@ -729,6 +730,8 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 	sentinelCommand := getSentinelCommand(rf)
 	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
 	labels = util.MergeLabels(labels, selectorLabels)
+
+	labels = util.MergeLabels(labels, generateComponentLabel("sentinel"))
 
 	volumeMounts := getSentinelVolumeMounts(rf)
 	volumes := getSentinelVolumes(rf, configMapName)

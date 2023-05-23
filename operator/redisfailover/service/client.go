@@ -70,6 +70,12 @@ func generateRedisSlaveRoleLabel() map[string]string {
 	}
 }
 
+func generateComponentLabel(componentType string) map[string]string {
+	return map[string]string{
+		"redisfailovers.databases.spotahome.com/component": componentType,
+	}
+}
+
 // EnsureNetworkPolicy makes sure the network policy exists
 func (r *RedisFailoverKubeClient) EnsureNetworkPolicy(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateNetworkPolicy(rf, labels, ownerRefs)
