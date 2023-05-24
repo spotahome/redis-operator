@@ -39,6 +39,7 @@ type RedisFailoverCheck interface {
 	IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool
 	IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool
 	IsClusterRunning(rFailover *redisfailoverv1.RedisFailover) bool
+	IsHAProxyRunning(rFailover *redisfailoverv1.RedisFailover) bool
 }
 
 // RedisFailoverChecker is our implementation of RedisFailoverCheck interface
@@ -486,9 +487,18 @@ func (r *RedisFailoverChecker) IsSentinelRunning(rFailover *redisfailoverv1.Redi
 	return err == nil && len(dp.Items) > int(rFailover.Spec.Sentinel.Replicas-1) && AreAllRunning(dp)
 }
 
+// IsHAProxyRunning returns true if all the pods are Running
+func (r *RedisFailoverChecker) IsHAProxyRunning(rFailover *redisfailoverv1.RedisFailover) bool {
+	if rFailover.Spec.Haproxy == nil {
+		return true
+	}
+	dp, err := r.k8sService.GetDeploymentPods(rFailover.Namespace, redisHAProxyName)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Haproxy.Replicas-1) && AreAllRunning(dp)
+}
+
 // IsClusterRunning returns true if all the pods in the given redisfailover are Running
 func (r *RedisFailoverChecker) IsClusterRunning(rFailover *redisfailoverv1.RedisFailover) bool {
-	return r.IsSentinelRunning(rFailover) && r.IsRedisRunning(rFailover)
+	return r.IsSentinelRunning(rFailover) && r.IsRedisRunning(rFailover) && r.IsHAProxyRunning(rFailover)
 }
 
 func getRedisPort(p int32) string {

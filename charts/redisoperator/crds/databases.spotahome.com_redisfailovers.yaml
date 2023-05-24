@@ -5,6 +5,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
+    krane.shopify.io/instance-rollout-conditions: "true"
   creationTimestamp: null
   name: redisfailovers.databases.spotahome.com
 spec:
@@ -13292,12 +13293,37 @@ spec:
                     type: array
                 type: object
             type: object
+          status:
+            type: object
+            properties:
+              observedGeneration:
+                format: int64
+                minimum: 0
+                type: integer
+              conditions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    type:
+                      type: string
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                    status:
+                      type: string
+                      enum:
+                        - "True"
+                        - "False"
+                        - Unknown
         required:
         - spec
         type: object
     served: true
     storage: true
-    subresources: {}
+    subresources: 
+      status: {}
 status:
   acceptedNames:
     kind: ""

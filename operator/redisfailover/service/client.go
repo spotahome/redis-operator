@@ -28,6 +28,8 @@ type RedisFailoverClient interface {
 	EnsureRedisReadinessConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureNotPresentRedisService(rFailover *redisfailoverv1.RedisFailover) error
+
+	UpdateStatus(rFailover *redisfailoverv1.RedisFailover) (*redisfailoverv1.RedisFailover, error)
 }
 
 // RedisFailoverKubeClient implements the required methods to talk with kubernetes
@@ -238,4 +240,9 @@ func (r *RedisFailoverKubeClient) setEnsureOperationMetrics(objectNamespace stri
 		r.metricsClient.RecordEnsureOperation(objectNamespace, objectName, objectKind, ownerName, metrics.FAIL)
 	}
 	r.metricsClient.RecordEnsureOperation(objectNamespace, objectName, objectKind, ownerName, metrics.SUCCESS)
+}
+
+func (r *RedisFailoverKubeClient) UpdateStatus(rf *redisfailoverv1.RedisFailover) (*redisfailoverv1.RedisFailover, error) {
+	rf, err := r.K8SService.WriteStatus(rf)
+	return rf, err
 }

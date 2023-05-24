@@ -13,11 +13,38 @@ import (
 // +kubebuilder:printcolumn:name="REDIS",type="integer",JSONPath=".spec.redis.replicas"
 // +kubebuilder:printcolumn:name="SENTINELS",type="integer",JSONPath=".spec.sentinel.replicas"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].message"
 // +kubebuilder:resource:singular=redisfailover,path=redisfailovers,shortName=rf,scope=Namespaced
 type RedisFailover struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              RedisFailoverSpec `json:"spec"`
+	Spec              RedisFailoverSpec   `json:"spec"`
+	Status            RedisFailoverStatus `json:"status,omitempty"`
+}
+
+type AppState string
+
+const (
+	AppStatePending AppState = "Pending"
+	AppStateReady   AppState = "Ready"
+)
+
+type ConditionStatus string
+
+const (
+	ConditionTrue ConditionStatus = "True"
+)
+
+type ClusterCondition struct {
+	Status  ConditionStatus `json:"status,omitempty"`
+	Type    AppState        `json:"type,omitempty"`
+	Message string          `json:"message,omitempty"`
+}
+
+// RedisFailoverStatus defines the observed state
+type RedisFailoverStatus struct {
+	Conditions         []ClusterCondition `json:"conditions,omitempty"`
+	ObservedGeneration int64              `json:"observedGeneration,omitempty"`
 }
 
 // RedisFailoverSpec represents a Redis failover spec
@@ -210,4 +237,21 @@ type RedisFailoverList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []RedisFailover `json:"items"`
+}
+
+const maxStatusesQuantity = 10
+
+func (s *RedisFailoverStatus) AddCondition(c ClusterCondition) {
+	if len(s.Conditions) == 0 {
+		s.Conditions = append(s.Conditions, c)
+		return
+	}
+
+	if s.Conditions[len(s.Conditions)-1].Type != c.Type {
+		s.Conditions = append(s.Conditions, c)
+	}
+
+	if len(s.Conditions) > maxStatusesQuantity {
+		s.Conditions = s.Conditions[len(s.Conditions)-maxStatusesQuantity:]
+	}
 }
