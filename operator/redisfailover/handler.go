@@ -124,6 +124,12 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 				return err
 			}
 		}
+	} else {
+		// app was deployed, make sure ObservedGeneration equails Generation
+		if rf.GetObjectMeta().GetGeneration() != rf.Status.ObservedGeneration {
+			rf.Status.ObservedGeneration = rf.GetObjectMeta().GetGeneration()
+			r.rfService.UpdateStatus(rf)
+		}
 	}
 
 	r.mClient.SetClusterOK(rf.Namespace, rf.Name)
