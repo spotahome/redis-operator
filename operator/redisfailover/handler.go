@@ -59,6 +59,12 @@ func (r *RedisFailoverHandler) Handle(_ context.Context, obj runtime.Object) err
 		return fmt.Errorf("can't handle the received object: not a redisfailover")
 	}
 
+	if match, err := regexp.Match(r.config.SupportedNamespacesRegex, []byte(rf.Namespace)); err != nil {
+		return fmt.Errorf("can't check the Redisfailover's namespace against the target namespace regex: %w", err)
+	} else if !match {
+		return fmt.Errorf("the Redisfailover is in a not-supported namespace %s. Only supporting namespaces that match this regex %s", rf.Namespace, r.config.SupportedNamespacesRegex)
+	}
+
 	if err := rf.Validate(); err != nil {
 		r.mClient.SetClusterError(rf.Namespace, rf.Name)
 		return err
