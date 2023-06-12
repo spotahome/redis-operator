@@ -40,6 +40,10 @@ spec:
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
+        {{- if .Values.image.cli_args }}
+        args: 
+        - {{ quote .Values.image.cli_args }}
+        {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
           - name: metrics
