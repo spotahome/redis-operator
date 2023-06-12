@@ -2,7 +2,9 @@ package utils
 
 import (
 	"flag"
+	"fmt"
 	"path/filepath"
+	"regexp"
 
 	"github.com/spotahome/redis-operator/operator/redisfailover"
 	"k8s.io/client-go/util/homedir"
@@ -39,6 +41,10 @@ func (c *CMDFlags) Init() {
 	flag.StringVar(&c.LogLevel, "log-level", "info", "set log level")
 	// Parse flags
 	flag.Parse()
+
+	if _, err := regexp.Compile(c.SupportedNamespacesRegex); err != nil {
+		panic(fmt.Errorf("supported namespaces Regex is not valid: %w", err))
+	}
 }
 
 // ToRedisOperatorConfig convert the flags to redisfailover config
