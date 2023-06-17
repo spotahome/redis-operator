@@ -1,0 +1,15 @@
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 1
+    exporter:
+      enabled: true
+      podMonitor:
+        labels:
+          hello: world
+        interval: 1m
+  redis:
+    replicas: 1

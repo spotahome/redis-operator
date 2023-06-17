@@ -1,6 +1,7 @@
 package v1
 
 import (
+	prometheusv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -126,6 +127,14 @@ type Exporter struct {
 	Args                     []string                     `json:"args,omitempty"`
 	Env                      []corev1.EnvVar              `json:"env,omitempty"`
 	Resources                *corev1.ResourceRequirements `json:"resources,omitempty"`
+	PodMonitor               PodMonitor                   `json:"podMonitor,omitempty"`
+}
+
+type PodMonitor struct {
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// +optional
+	Interval prometheusv1.Duration `json:"interval,omitempty"`
 }
 
 // SentinelConfigCopy defines the specification for the sentinel exporter
