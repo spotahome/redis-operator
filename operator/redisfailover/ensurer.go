@@ -13,8 +13,24 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1.RedisFailover, labels 
 		if err := w.rfService.EnsureRedisService(rf, labels, or); err != nil {
 			return err
 		}
+		if err := w.rfService.EnsureRedisPodMonitor(rf, labels, or); err != nil {
+			return err
+		}
 	} else {
 		if err := w.rfService.EnsureNotPresentRedisService(rf); err != nil {
+			return err
+		}
+		if err := w.rfService.EnsureNotPresentRedisPodMonitor(rf, labels, or); err != nil {
+			return err
+		}
+	}
+
+	if rf.Spec.Sentinel.Exporter.Enabled {
+		if err := w.rfService.EnsureSentinelPodMonitor(rf, labels, or); err != nil {
+			return err
+		}
+	} else {
+		if err := w.rfService.EnsureNotPresentSentinelPodMonitor(rf, labels, or); err != nil {
 			return err
 		}
 	}

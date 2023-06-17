@@ -42,6 +42,9 @@ func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisF
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
 				Replicas: int32(3),
+				Exporter: redisfailoverv1.Exporter{
+					Enabled: enableExporter,
+				},
 			},
 			BootstrapNode: generateRFBootstrappingNode(bootstrapping),
 		},
@@ -107,8 +110,12 @@ func TestEnsure(t *testing.T) {
 			mrfs := &mRFService.RedisFailoverClient{}
 			if test.exporter {
 				mrfs.On("EnsureRedisService", rf, mock.Anything, mock.Anything).Once().Return(nil)
+				mrfs.On("EnsureRedisPodMonitor", rf, mock.Anything, mock.Anything).Once().Return(nil)
+				mrfs.On("EnsureSentinelPodMonitor", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			} else {
 				mrfs.On("EnsureNotPresentRedisService", rf).Once().Return(nil)
+				mrfs.On("EnsureNotPresentRedisPodMonitor", rf, mock.Anything, mock.Anything).Once().Return(nil)
+				mrfs.On("EnsureNotPresentSentinelPodMonitor", rf, mock.Anything, mock.Anything).Once().Return(nil)
 			}
 
 			if !test.bootstrapping || test.bootstrappingAllowSentinels {
