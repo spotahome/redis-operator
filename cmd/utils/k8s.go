@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -36,25 +37,30 @@ func LoadKubernetesConfig(flags *CMDFlags) (*rest.Config, error) {
 }
 
 // CreateKubernetesClients create the clients to connect to kubernetes
-func CreateKubernetesClients(flags *CMDFlags) (kubernetes.Interface, redisfailoverclientset.Interface, apiextensionsclientset.Interface, error) {
+func CreateKubernetesClients(flags *CMDFlags) (kubernetes.Interface, redisfailoverclientset.Interface, apiextensionsclientset.Interface, monitoringv1.MonitoringV1Interface, error) {
 	config, err := LoadKubernetesConfig(flags)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	customClientset, err := redisfailoverclientset.NewForConfig(config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	aeClientset, err := apiextensionsclientset.NewForConfig(config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return clientset, customClientset, aeClientset, nil
+	monitoringV1Client, err := monitoringv1.NewForConfig(config)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return clientset, customClientset, aeClientset, monitoringV1Client, nil
 }
