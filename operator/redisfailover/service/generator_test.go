@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	prometheusv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	appsv1 "k8s.io/api/apps/v1"
@@ -1045,6 +1046,282 @@ func TestSentinelService(t *testing.T) {
 	}
 }
 
+func TestSentinelPodMonitor(t *testing.T) {
+	tests := []struct {
+		name               string
+		rfName             string
+		rfNamespace        string
+		rfLabels           map[string]string
+		rfAnnotations      map[string]string
+		interval           prometheusv1.Duration
+		expectedPodMonitor prometheusv1.PodMonitor
+	}{
+		{
+			name: "with defaults",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfs-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      "custom-name",
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{"custom-namespace"},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"some":                        "label",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{"some": "annotation"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with interval provided",
+			interval: prometheusv1.Duration("30s"),
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sentinelName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "sentinel",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "sentinel",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration("30s"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			if test.interval != "" {
+				rf.Spec.Sentinel.Exporter.PodMonitor.Interval = test.interval
+			}
+			rf.Spec.Sentinel.ServiceAnnotations = test.rfAnnotations
+
+			generatedPodMonitor := prometheusv1.PodMonitor{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdatePodMonitor", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				pm := args.Get(1).(*prometheusv1.PodMonitor)
+				generatedPodMonitor = *pm
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureSentinelPodMonitor(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedPodMonitor, generatedPodMonitor)
+			assert.NoError(err)
+		})
+	}
+}
+
 func TestRedisService(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -1288,6 +1565,282 @@ func TestRedisService(t *testing.T) {
 			err := client.EnsureRedisService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
 
 			assert.Equal(test.expectedService, generatedService)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestRedisPodMonitor(t *testing.T) {
+	tests := []struct {
+		name               string
+		rfName             string
+		rfNamespace        string
+		rfLabels           map[string]string
+		rfAnnotations      map[string]string
+		interval           prometheusv1.Duration
+		expectedPodMonitor prometheusv1.PodMonitor
+	}{
+		{
+			name: "with defaults",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfr-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      "custom-name",
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{"custom-namespace"},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"some":                        "label",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: map[string]string{"some": "annotation"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration(""),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with interval provided",
+			interval: prometheusv1.Duration("30s"),
+			expectedPodMonitor: prometheusv1.PodMonitor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      redisName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: prometheusv1.PodMonitorSpec{
+					NamespaceSelector: prometheusv1.NamespaceSelector{
+						MatchNames: []string{namespace},
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/component": "redis",
+							"app.kubernetes.io/name":      name,
+							"app.kubernetes.io/part-of":   "redis-failover",
+						},
+					},
+					PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+						{
+							Port:     "metrics",
+							Interval: prometheusv1.Duration("30s"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			if test.interval != "" {
+				rf.Spec.Redis.Exporter.PodMonitor.Interval = test.interval
+			}
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedPodMonitor := prometheusv1.PodMonitor{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdatePodMonitor", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				pm := args.Get(1).(*prometheusv1.PodMonitor)
+				generatedPodMonitor = *pm
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureRedisPodMonitor(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedPodMonitor, generatedPodMonitor)
 			assert.NoError(err)
 		})
 	}

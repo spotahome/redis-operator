@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/template"
 
+	prometheusv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -75,6 +76,38 @@ func generateSentinelService(rf *redisfailoverv1.RedisFailover, labels map[strin
 	}
 }
 
+func generateSentinelPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *prometheusv1.PodMonitor {
+	name := GetSentinelPodMonitorName(rf)
+	namespace := rf.Namespace
+
+	selectorLabels := generateSelectorLabels(sentinelRoleName, rf.Name)
+	labels = util.MergeLabels(labels, selectorLabels, rf.Spec.Sentinel.Exporter.PodMonitor.Labels)
+
+	return &prometheusv1.PodMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Sentinel.ServiceAnnotations,
+		},
+		Spec: prometheusv1.PodMonitorSpec{
+			NamespaceSelector: prometheusv1.NamespaceSelector{
+				MatchNames: []string{rf.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: selectorLabels,
+			},
+			PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+				{
+					Port:     "metrics",
+					Interval: rf.Spec.Sentinel.Exporter.PodMonitor.Interval,
+				},
+			},
+		},
+	}
+}
+
 func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
 	name := GetRedisName(rf)
 	namespace := rf.Namespace
@@ -107,6 +140,38 @@ func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]s
 				},
 			},
 			Selector: selectorLabels,
+		},
+	}
+}
+
+func generateRedisPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *prometheusv1.PodMonitor {
+	name := GetRedisPodMonitorName(rf)
+	namespace := rf.Namespace
+
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
+	labels = util.MergeLabels(labels, selectorLabels, rf.Spec.Redis.Exporter.PodMonitor.Labels)
+
+	return &prometheusv1.PodMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Redis.ServiceAnnotations,
+		},
+		Spec: prometheusv1.PodMonitorSpec{
+			NamespaceSelector: prometheusv1.NamespaceSelector{
+				MatchNames: []string{rf.Namespace},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: selectorLabels,
+			},
+			PodMetricsEndpoints: []prometheusv1.PodMetricsEndpoint{
+				{
+					Port:     "metrics",
+					Interval: rf.Spec.Redis.Exporter.PodMonitor.Interval,
+				},
+			},
 		},
 	}
 }

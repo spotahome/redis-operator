@@ -34,6 +34,14 @@ func GetSentinelName(rf *redisfailoverv1.RedisFailover) string {
 	return generateName(sentinelName, rf.Name)
 }
 
+func GetRedisPodMonitorName(rf *redisfailoverv1.RedisFailover) string {
+	return GetRedisName(rf)
+}
+
+func GetSentinelPodMonitorName(rf *redisfailoverv1.RedisFailover) string {
+	return GetSentinelName(rf)
+}
+
 func generateName(typeName, metaName string) string {
 	return fmt.Sprintf("%s%s-%s", baseName, typeName, metaName)
 }
