@@ -536,7 +536,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
 		err := client.EnsureRedisStatefulset(rf, nil, test.ownerRefs)
 
-		// Check that the storage-related fields are as spected
+		// Check that the storage-related fields are as expected
 		assert.Equal(test.expectedSS.Spec.Template.Spec.Volumes, generatedStatefulSet.Spec.Template.Spec.Volumes)
 		assert.Equal(test.expectedSS.Spec.Template.Spec.Containers[0].VolumeMounts, generatedStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts)
 		assert.Equal(test.expectedSS.Spec.VolumeClaimTemplates, generatedStatefulSet.Spec.VolumeClaimTemplates)
@@ -1288,6 +1288,486 @@ func TestRedisService(t *testing.T) {
 			err := client.EnsureRedisService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
 
 			assert.Equal(test.expectedService, generatedService)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestRedisMasterService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfrm-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+						"some":                        "label",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: map[string]string{
+						"some": "annotation",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Redis.Port = 6379
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedMasterService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedMasterService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureRedisMasterService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedMasterService)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestRedisSlaveService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfrs-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+						"some":                        "label",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: map[string]string{
+						"some": "annotation",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Redis.Port = 6379
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedSlaveService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedSlaveService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureRedisSlaveService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedSlaveService)
 			assert.NoError(err)
 		})
 	}
