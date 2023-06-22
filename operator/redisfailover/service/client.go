@@ -19,6 +19,8 @@ type RedisFailoverClient interface {
 	EnsureSentinelDeployment(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisStatefulset(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisMasterService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisSlaveService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisReadinessConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
@@ -161,6 +163,24 @@ func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailover
 		return r.K8SService.DeleteService(namespace, name)
 	}
 	return nil
+}
+
+// EnsureRedisMasterService makes sure the redis master service exists
+func (r *RedisFailoverKubeClient) EnsureRedisMasterService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	svc := generateRedisMasterService(rf, labels, ownerRefs)
+	err := r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
+
+	r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
+	return err
+}
+
+// EnsureRedisSlaveService makes sure the redis slave service exists
+func (r *RedisFailoverKubeClient) EnsureRedisSlaveService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	svc := generateRedisSlaveService(rf, labels, ownerRefs)
+	err := r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
+
+	r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
+	return err
 }
 
 // EnsureRedisStatefulset makes sure the pdb exists in the desired state
