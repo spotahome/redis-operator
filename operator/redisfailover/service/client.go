@@ -15,10 +15,14 @@ import (
 // in order to talk with K8s
 type RedisFailoverClient interface {
 	EnsureSentinelService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureSentinelPodMonitor(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureNotPresentSentinelPodMonitor(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureSentinelDeployment(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisStatefulset(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisService(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureRedisPodMonitor(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
+	EnsureNotPresentRedisPodMonitor(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisShutdownConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisReadinessConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
 	EnsureRedisConfigMap(rFailover *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error
@@ -71,6 +75,26 @@ func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.Redi
 	err := r.K8SService.CreateOrUpdateService(rf.Namespace, svc)
 	r.setEnsureOperationMetrics(svc.Namespace, svc.Name, "Service", rf.Name, err)
 	return err
+}
+
+// EnsureSentinelPodMonitor makes sure the redis statefulset exists
+func (r *RedisFailoverKubeClient) EnsureSentinelPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	podMonitor := generateSentinelPodMonitor(rf, labels, ownerRefs)
+	err := r.K8SService.CreateOrUpdatePodMonitor(rf.Namespace, podMonitor)
+
+	r.setEnsureOperationMetrics(podMonitor.Namespace, podMonitor.Name, "PodMonitor", rf.Name, err)
+	return err
+}
+
+// EnsureNotPresentSentinelPodMonitor makes sure the redis statefulset exists
+func (r *RedisFailoverKubeClient) EnsureNotPresentSentinelPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	name := GetSentinelPodMonitorName(rf)
+	namespace := rf.Namespace
+	// If the podMonitor exists (no get error), delete it
+	if _, err := r.K8SService.GetPodMonitor(namespace, name); err == nil {
+		return r.K8SService.DeletePodMonitor(namespace, name)
+	}
+	return nil
 }
 
 // EnsureSentinelConfigMap makes sure the sentinel configmap exists
@@ -159,6 +183,26 @@ func (r *RedisFailoverKubeClient) EnsureNotPresentRedisService(rf *redisfailover
 	// If the service exists (no get error), delete it
 	if _, err := r.K8SService.GetService(namespace, name); err == nil {
 		return r.K8SService.DeleteService(namespace, name)
+	}
+	return nil
+}
+
+// EnsureRedisPodMonitor makes sure the redis statefulset exists
+func (r *RedisFailoverKubeClient) EnsureRedisPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	podMonitor := generateRedisPodMonitor(rf, labels, ownerRefs)
+	err := r.K8SService.CreateOrUpdatePodMonitor(rf.Namespace, podMonitor)
+
+	r.setEnsureOperationMetrics(podMonitor.Namespace, podMonitor.Name, "PodMonitor", rf.Name, err)
+	return err
+}
+
+// EnsureNotPresentRedisPodMonitor makes sure the redis statefulset exists
+func (r *RedisFailoverKubeClient) EnsureNotPresentRedisPodMonitor(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
+	name := GetRedisPodMonitorName(rf)
+	namespace := rf.Namespace
+	// If the podMonitor exists (no get error), delete it
+	if _, err := r.K8SService.GetPodMonitor(namespace, name); err == nil {
+		return r.K8SService.DeletePodMonitor(namespace, name)
 	}
 	return nil
 }

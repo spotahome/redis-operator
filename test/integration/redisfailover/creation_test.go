@@ -13,6 +13,7 @@ import (
 
 	rediscli "github.com/go-redis/redis/v8"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -46,10 +47,11 @@ const (
 )
 
 type clients struct {
-	k8sClient   kubernetes.Interface
-	rfClient    redisfailoverclientset.Interface
-	aeClient    apiextensionsclientset.Interface
-	redisClient redis.Client
+	k8sClient          kubernetes.Interface
+	rfClient           redisfailoverclientset.Interface
+	aeClient           apiextensionsclientset.Interface
+	monitoringV1Client monitoringv1.MonitoringV1Interface
+	redisClient        redis.Client
 }
 
 func (c *clients) prepareNS() error {
@@ -80,21 +82,22 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Kubernetes clients.
-	k8sClient, customClient, aeClientset, err := utils.CreateKubernetesClients(flags)
+	k8sClient, customClient, aeClientset, monitoringV1Client, err := utils.CreateKubernetesClients(flags)
 	require.NoError(err)
 
 	// Create the redis clients
 	redisClient := redis.New(metrics.Dummy)
 
 	clients := clients{
-		k8sClient:   k8sClient,
-		rfClient:    customClient,
-		aeClient:    aeClientset,
-		redisClient: redisClient,
+		k8sClient:          k8sClient,
+		rfClient:           customClient,
+		aeClient:           aeClientset,
+		monitoringV1Client: monitoringV1Client,
+		redisClient:        redisClient,
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy, metrics.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, monitoringV1Client, log.Dummy, metrics.Dummy)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()

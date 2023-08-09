@@ -45,6 +45,8 @@ jobs:
           kubernetes-version: ${{ matrix.kubernetes }}
           minikube-version: 1.28.0
           driver: none
+      - name: Add PodMonitor CRD
+        run: curl 'https://raw.githubusercontent.com/prometheus-community/helm-charts/prometheus-operator-crds-4.0.2/charts/kube-prometheus-stack/crds/crd-podmonitors.yaml' | kubectl create -f -
       - name: Add redisfailover CRD
         run: kubectl create -f manifests/databases.spotahome.com_redisfailovers.yaml
       - run: make ci-integration-test
