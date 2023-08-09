@@ -75,3 +75,6 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+    {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+    {{- end }}
