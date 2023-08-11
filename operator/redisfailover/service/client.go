@@ -85,8 +85,10 @@ func (r *RedisFailoverKubeClient) EnsureSentinelConfigMap(rf *redisfailoverv1.Re
 
 // EnsureSentinelDeployment makes sure the sentinel deployment exists in the desired state
 func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	if err := r.ensurePodDisruptionBudget(rf, sentinelName, sentinelRoleName, labels, ownerRefs); err != nil {
-		return err
+	if !rf.Spec.Sentinel.DisablePodDisruptionBudget {
+		if err := r.ensurePodDisruptionBudget(rf, sentinelName, sentinelRoleName, labels, ownerRefs); err != nil {
+			return err
+		}
 	}
 	d := generateSentinelDeployment(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateDeployment(rf.Namespace, d)
@@ -97,8 +99,10 @@ func (r *RedisFailoverKubeClient) EnsureSentinelDeployment(rf *redisfailoverv1.R
 
 // EnsureRedisStatefulset makes sure the redis statefulset exists in the desired state
 func (r *RedisFailoverKubeClient) EnsureRedisStatefulset(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
-	if err := r.ensurePodDisruptionBudget(rf, redisName, redisRoleName, labels, ownerRefs); err != nil {
-		return err
+	if !rf.Spec.Redis.DisablePodDisruptionBudget {
+		if err := r.ensurePodDisruptionBudget(rf, redisName, redisRoleName, labels, ownerRefs); err != nil {
+			return err
+		}
 	}
 	ss := generateRedisStatefulSet(rf, labels, ownerRefs)
 	err := r.K8SService.CreateOrUpdateStatefulSet(rf.Namespace, ss)
