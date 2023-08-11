@@ -30,6 +30,10 @@ nameOverride: ""
 # A name to substitute for the full names of resources.
 fullnameOverride: ""
 
+# The name of the Namespace to deploy
+# If not set, `.Release.Namespace` is used
+namespace: null
+
 serviceAccount:
   # Enable service account creation.
   create: true
