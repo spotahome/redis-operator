@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -35,27 +37,52 @@ type StatefulSet interface {
 type StatefulSetService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewStatefulSetService returns a new StatefulSet KubeService.
 func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *StatefulSetService {
 	logger = logger.With("service", "k8s.statefulSet")
+
+	rc := kubeClient.AppsV1().RESTClient().(*rest.RESTClient)
+	var cacheStore *cache.Store
+	var err error
+	if ShouldUseCache() {
+		cacheStore, err = StatefulSetCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
 	return &StatefulSetService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      cacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 // GetStatefulSet will retrieve the requested statefulset based on namespace and name
 func (s *StatefulSetService) GetStatefulSet(namespace, name string) (*appsv1.StatefulSet, error) {
-	statefulSet, err := s.kubeClient.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "StatefulSet", name, "GET", err, s.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var ss *appsv1.StatefulSet
+	var err error
+	var exists bool
+	if s.cacheStore != nil {
+		c := *s.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			ss = item.(*appsv1.StatefulSet)
+		}
+		if !exists {
+			err = fmt.Errorf("statefulset %s not found in namespace %v", name, namespace)
+		}
+	} else {
+		ss, err = s.kubeClient.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
-	return statefulSet, err
+
+	recordMetrics(namespace, "StatefulSet", name, "GET", err, s.metricsRecorder)
+	return ss, err
 }
 
 // GetStatefulSetPods will give a list of pods that are managed by the statefulset
@@ -97,6 +124,7 @@ func (s *StatefulSetService) UpdateStatefulSet(namespace string, statefulSet *ap
 // CreateOrUpdateStatefulSet will update the statefulset or create it if does not exist
 func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error {
 	storedStatefulSet, err := s.GetStatefulSet(namespace, statefulSet.Name)
+
 	if err != nil {
 		// If no resource we need to create.
 		if errors.IsNotFound(err) {
@@ -171,6 +199,16 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	// set stored.volumeClaimTemplates
 	statefulSet.Spec.VolumeClaimTemplates = storedStatefulSet.Spec.VolumeClaimTemplates
 	statefulSet.Annotations = util.MergeAnnotations(storedStatefulSet.Annotations, statefulSet.Annotations)
+
+	if hashingEnabled() {
+		if !shouldUpdate(statefulSet, storedStatefulSet) {
+			s.logger.Debugf("%v/%v statefulset is upto date, no need to apply changes...", statefulSet.Namespace, statefulSet.Name)
+			return nil
+		}
+		s.logger.Debugf("%v/%v statefulset has a different resource hash, updating the object...", statefulSet.Namespace, statefulSet.Name)
+		addHashAnnotation(statefulSet)
+	}
+
 	return s.UpdateStatefulSet(namespace, statefulSet)
 }
 

@@ -3,16 +3,18 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/spotahome/redis-operator/log"
+	"github.com/spotahome/redis-operator/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/spotahome/redis-operator/log"
-	"github.com/spotahome/redis-operator/metrics"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Pod the ServiceAccount service that knows how to interact with k8s to manage them
@@ -30,25 +32,52 @@ type Pod interface {
 type PodService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewPodService returns a new Pod KubeService.
 func NewPodService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodService {
 	logger = logger.With("service", "k8s.pod")
+	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	fmt.Printf("[POD]-- rest client interface: %v\n", rc)
+	var podCacheStore *cache.Store
+	var err error
+	if ShouldUseCache() {
+		podCacheStore, err = PodCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
+
 	return &PodService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      podCacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *PodService) GetPod(namespace string, name string) (*corev1.Pod, error) {
-	pod, err := p.kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "Pod", name, "GET", err, p.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var pod *corev1.Pod
+	var err error
+	var exists bool
+	if p.cacheStore != nil {
+
+		c := *p.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			pod = item.(*corev1.Pod)
+		}
+		if !exists {
+			err = fmt.Errorf("pod %v not found in namespace %v", name, namespace)
+		}
+	} else {
+		pod, err = p.kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
 	}
+	recordMetrics(namespace, "Pod", name, "GET", err, p.metricsRecorder)
 	return pod, err
 }
 
