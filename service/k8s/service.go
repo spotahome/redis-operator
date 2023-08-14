@@ -2,11 +2,14 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -27,25 +30,51 @@ type Service interface {
 type ServiceService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewServiceService returns a new Service KubeService.
 func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ServiceService {
 	logger = logger.With("service", "k8s.service")
+
+	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	var cacheStore *cache.Store
+	var err error
+
+	if ShouldUseCache() {
+		cacheStore, err = ServiceCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
+
 	return &ServiceService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      cacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (s *ServiceService) GetService(namespace string, name string) (*corev1.Service, error) {
-	service, err := s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "Service", name, "GET", err, s.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var service *corev1.Service
+	var err error
+	var exists bool
+	if s.cacheStore != nil {
+		c := *s.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			service = item.(*corev1.Service)
+		}
+		if !exists {
+			err = fmt.Errorf("svc %v/%v not found", namespace, name)
+		}
+	} else {
+		service, err = s.kubeClient.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
+	recordMetrics(namespace, "Service", name, "GET", err, s.metricsRecorder)
 	return service, err
 }
 

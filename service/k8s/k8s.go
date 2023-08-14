@@ -9,6 +9,14 @@ import (
 	"github.com/spotahome/redis-operator/metrics"
 )
 
+var (
+	useCache bool
+)
+
+func ShouldUseCache() bool {
+	return useCache
+}
+
 // Service is the K8s service entrypoint.
 type Services interface {
 	ConfigMap
@@ -35,7 +43,8 @@ type services struct {
 }
 
 // New returns a new Kubernetes service.
-func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder) Services {
+func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder, cacheEnabled bool) Services {
+	useCache = cacheEnabled
 	return &services{
 		ConfigMap:           NewConfigMapService(kubecli, logger, metricsRecorder),
 		Secret:              NewSecretService(kubecli, logger, metricsRecorder),

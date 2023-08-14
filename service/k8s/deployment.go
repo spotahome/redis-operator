@@ -10,6 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -30,26 +32,49 @@ type Deployment interface {
 type DeploymentService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewDeploymentService returns a new Deployment KubeService.
 func NewDeploymentService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *DeploymentService {
 	logger = logger.With("service", "k8s.deployment")
+	rc := kubeClient.AppsV1().RESTClient().(*rest.RESTClient)
+	var cacheStore *cache.Store
+	var err error
+	if ShouldUseCache() {
+		cacheStore, err = DeploymentCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
 	return &DeploymentService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      cacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 // GetDeployment will retrieve the requested deployment based on namespace and name
 func (d *DeploymentService) GetDeployment(namespace, name string) (*appsv1.Deployment, error) {
-	deployment, err := d.kubeClient.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "Deployment", name, "GET", err, d.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var deployment *appsv1.Deployment
+	var err error
+	var exists bool
+	if d.cacheStore != nil {
+		c := *d.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			deployment = item.(*appsv1.Deployment)
+		}
+		if !exists {
+			err = fmt.Errorf("deployment %v not found in namespace %v", name, namespace)
+		}
+	} else {
+		deployment, err = d.kubeClient.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
+	recordMetrics(namespace, "Deployment", name, "GET", err, d.metricsRecorder)
 	return deployment, err
 }
 

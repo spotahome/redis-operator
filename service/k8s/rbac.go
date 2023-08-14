@@ -2,11 +2,14 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -27,37 +30,117 @@ type RBAC interface {
 
 // NamespaceService is the Namespace service implementation using API calls to kubernetes.
 type RBACService struct {
-	kubeClient      kubernetes.Interface
-	logger          log.Logger
-	metricsRecorder metrics.Recorder
+	kubeClient            kubernetes.Interface
+	logger                log.Logger
+	roleCacheStore        *cache.Store
+	roleBindingCacheStore *cache.Store
+	clusterRoleCacheStore *cache.Store
+	metricsRecorder       metrics.Recorder
 }
 
 // NewRBACService returns a new RBAC KubeService.
 func NewRBACService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *RBACService {
 	logger = logger.With("service", "k8s.rbac")
+
+	rc := kubeClient.RbacV1().RESTClient().(*rest.RESTClient)
+
+	var roleCacheStore *cache.Store
+	var roleBindingCacheStore *cache.Store
+	var clusterRoleCacheStore *cache.Store
+	var err error
+
+	if ShouldUseCache() {
+		roleCacheStore, err = RoleCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache for roles: %v", err)
+		}
+		roleBindingCacheStore, err = RoleBindingCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache for rolebinding: %v", err)
+		}
+		clusterRoleCacheStore, err = ClusterRoleCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache cluster role: %v", err)
+		}
+	}
+
 	return &RBACService{
-		kubeClient:      kubeClient,
-		logger:          logger,
-		metricsRecorder: metricsRecorder,
+		kubeClient:            kubeClient,
+		logger:                logger,
+		roleCacheStore:        roleCacheStore,
+		roleBindingCacheStore: roleBindingCacheStore,
+		clusterRoleCacheStore: clusterRoleCacheStore,
+		metricsRecorder:       metricsRecorder,
 	}
 }
 
 func (r *RBACService) GetClusterRole(name string) (*rbacv1.ClusterRole, error) {
-	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	var clusterRole *rbacv1.ClusterRole
+	var err error
+	var exists bool
+	if r.clusterRoleCacheStore != nil {
+
+		c := *r.clusterRoleCacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v", name))
+		if exists && nil == err {
+			clusterRole = item.(*rbacv1.ClusterRole)
+		}
+
+		if !exists {
+			err = fmt.Errorf("clusterRole %v not found", name)
+		}
+
+	} else {
+		clusterRole, err = r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	}
 	recordMetrics(metrics.NOT_APPLICABLE, "ClusterRole", name, "GET", err, r.metricsRecorder)
 	return clusterRole, err
+
 }
 
 func (r *RBACService) GetRole(namespace, name string) (*rbacv1.Role, error) {
-	role, err := r.kubeClient.RbacV1().Roles(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	var role *rbacv1.Role
+	var err error
+	var exists bool
+	if r.roleCacheStore != nil {
+		c := *r.roleCacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			role = item.(*rbacv1.Role)
+		}
+		if !exists {
+			err = fmt.Errorf("role %v not found in namespace %v", name, namespace)
+		}
+
+	} else {
+		role, err = r.kubeClient.RbacV1().Roles(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	}
+
 	recordMetrics(namespace, "Role", name, "GET", err, r.metricsRecorder)
 	return role, err
 }
 
 func (r *RBACService) GetRoleBinding(namespace, name string) (*rbacv1.RoleBinding, error) {
-	rolbinding, err := r.kubeClient.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	var roleBinding *rbacv1.RoleBinding
+	var err error
+	var exists bool
+	if r.roleBindingCacheStore != nil {
+		c := *r.roleCacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			roleBinding = item.(*rbacv1.RoleBinding)
+		}
+		if !exists {
+			err = fmt.Errorf("role binding %v not found in namespace %v", name, namespace)
+		}
+	} else {
+		roleBinding, err = r.kubeClient.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	}
 	recordMetrics(namespace, "RoleBinding", name, "GET", err, r.metricsRecorder)
-	return rolbinding, err
+	return roleBinding, err
 }
 
 func (r *RBACService) DeleteRole(namespace, name string) error {

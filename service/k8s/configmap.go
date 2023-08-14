@@ -2,14 +2,17 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
+	"k8s.io/client-go/tools/cache"
 )
 
 // ConfigMap the ServiceAccount service that knows how to interact with k8s to manage them
@@ -26,26 +29,51 @@ type ConfigMap interface {
 type ConfigMapService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewConfigMapService returns a new ConfigMap KubeService.
 func NewConfigMapService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *ConfigMapService {
 	logger = logger.With("service", "k8s.configMap")
+	var err error
+	rc := kubeClient.CoreV1().RESTClient().(*rest.RESTClient)
+	var cmCacheStore *cache.Store
+	if ShouldUseCache() {
+		cmCacheStore, err = ConfigMapCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
 	return &ConfigMapService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      cmCacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *ConfigMapService) GetConfigMap(namespace string, name string) (*corev1.ConfigMap, error) {
-	configMap, err := p.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "ConfigMap", name, "GET", err, p.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var cm *corev1.ConfigMap
+	var err error
+	var exists bool
+	if p.cacheStore != nil {
+		c := *p.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			cm = item.(*corev1.ConfigMap)
+		}
+		if !exists {
+			err = fmt.Errorf("configmap %v not found in namespace %v", name, namespace)
+		}
+	} else {
+		cm, err = p.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
-	return configMap, err
+
+	recordMetrics(namespace, "ConfigMap", name, "GET", err, p.metricsRecorder)
+
+	return cm, err
 }
 
 func (p *ConfigMapService) CreateConfigMap(namespace string, configMap *corev1.ConfigMap) error {

@@ -2,11 +2,14 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
@@ -25,26 +28,54 @@ type PodDisruptionBudget interface {
 type PodDisruptionBudgetService struct {
 	kubeClient      kubernetes.Interface
 	logger          log.Logger
+	cacheStore      *cache.Store
 	metricsRecorder metrics.Recorder
 }
 
 // NewPodDisruptionBudgetService returns a new PodDisruptionBudget KubeService.
 func NewPodDisruptionBudgetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *PodDisruptionBudgetService {
 	logger = logger.With("service", "k8s.podDisruptionBudget")
+
+	rc := kubeClient.PolicyV1().RESTClient().(*rest.RESTClient)
+	var cacheStore *cache.Store
+	var err error
+	if ShouldUseCache() {
+		cacheStore, err = PodDisruptionBudgetCacheStoreFromKubeClient(rc)
+		if err != nil {
+			logger.Errorf("unable to initialize cache: %v", err)
+		}
+	}
+
 	return &PodDisruptionBudgetService{
 		kubeClient:      kubeClient,
 		logger:          logger,
+		cacheStore:      cacheStore,
 		metricsRecorder: metricsRecorder,
 	}
 }
 
 func (p *PodDisruptionBudgetService) GetPodDisruptionBudget(namespace string, name string) (*policyv1.PodDisruptionBudget, error) {
-	podDisruptionBudget, err := p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	recordMetrics(namespace, "PodDisruptionBudget", name, "GET", err, p.metricsRecorder)
-	if err != nil {
-		return nil, err
+	var podDisruptionBudget *policyv1.PodDisruptionBudget
+	var err error
+	var exists bool
+
+	if p.cacheStore != nil {
+		c := *p.cacheStore
+		var item interface{}
+		item, exists, err = c.GetByKey(fmt.Sprintf("%v/%v", namespace, name))
+		if exists && nil == err {
+			podDisruptionBudget = item.(*policyv1.PodDisruptionBudget)
+		}
+		if !exists {
+
+			err = fmt.Errorf("podDisruptionBudget %v not found in namespace %v", name, namespace)
+		}
+	} else {
+		podDisruptionBudget, err = p.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	}
-	return podDisruptionBudget, nil
+	recordMetrics(namespace, "PodDisruptionBudget", name, "GET", err, p.metricsRecorder)
+
+	return podDisruptionBudget, err
 }
 
 func (p *PodDisruptionBudgetService) CreatePodDisruptionBudget(namespace string, podDisruptionBudget *policyv1.PodDisruptionBudget) error {
