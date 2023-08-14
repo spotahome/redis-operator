@@ -6,6 +6,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: {{ $fullName }}-{{ $name }}
+  namespace: {{ include "chart.namespaceName" . }}
   labels:
     {{- include "chart.labels" $data | nindent 4 }}
   {{- if .Values.annotations }}

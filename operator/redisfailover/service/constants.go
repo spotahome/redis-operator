@@ -20,6 +20,8 @@ const (
 	sentinelConfigFileName = "sentinel.conf"
 	redisConfigFileName    = "redis.conf"
 	redisName              = "r"
+	redisMasterName        = "rm"
+	redisSlaveName         = "rs"
 	redisShutdownName      = "r-s"
 	redisReadinessName     = "r-readiness"
 	redisRoleName          = "redis"

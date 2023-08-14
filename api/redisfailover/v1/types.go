@@ -67,36 +67,44 @@ type RedisSettings struct {
 	TerminationGracePeriodSeconds int64                             `json:"terminationGracePeriod,omitempty"`
 	ExtraVolumes                  []corev1.Volume                   `json:"extraVolumes,omitempty"`
 	ExtraVolumeMounts             []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
+	CustomLivenessProbe           *corev1.Probe                     `json:"customLivenessProbe,omitempty"`
+	CustomReadinessProbe          *corev1.Probe                     `json:"customReadinessProbe,omitempty"`
+	CustomStartupProbe            *corev1.Probe                     `json:"customStartupProbe,omitempty"`
+	DisablePodDisruptionBudget    bool                              `json:"disablePodDisruptionBudget,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
 type SentinelSettings struct {
-	Image                     string                            `json:"image,omitempty"`
-	ImagePullPolicy           corev1.PullPolicy                 `json:"imagePullPolicy,omitempty"`
-	Replicas                  int32                             `json:"replicas,omitempty"`
-	Resources                 corev1.ResourceRequirements       `json:"resources,omitempty"`
-	CustomConfig              []string                          `json:"customConfig,omitempty"`
-	Command                   []string                          `json:"command,omitempty"`
-	StartupConfigMap          string                            `json:"startupConfigMap,omitempty"`
-	Affinity                  *corev1.Affinity                  `json:"affinity,omitempty"`
-	SecurityContext           *corev1.PodSecurityContext        `json:"securityContext,omitempty"`
-	ContainerSecurityContext  *corev1.SecurityContext           `json:"containerSecurityContext,omitempty"`
-	ImagePullSecrets          []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
-	Tolerations               []corev1.Toleration               `json:"tolerations,omitempty"`
-	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-	NodeSelector              map[string]string                 `json:"nodeSelector,omitempty"`
-	PodAnnotations            map[string]string                 `json:"podAnnotations,omitempty"`
-	ServiceAnnotations        map[string]string                 `json:"serviceAnnotations,omitempty"`
-	InitContainers            []corev1.Container                `json:"initContainers,omitempty"`
-	Exporter                  Exporter                          `json:"exporter,omitempty"`
-	ExtraContainers           []corev1.Container                `json:"extraContainers,omitempty"`
-	ConfigCopy                SentinelConfigCopy                `json:"configCopy,omitempty"`
-	HostNetwork               bool                              `json:"hostNetwork,omitempty"`
-	DNSPolicy                 corev1.DNSPolicy                  `json:"dnsPolicy,omitempty"`
-	PriorityClassName         string                            `json:"priorityClassName,omitempty"`
-	ServiceAccountName        string                            `json:"serviceAccountName,omitempty"`
-	ExtraVolumes              []corev1.Volume                   `json:"extraVolumes,omitempty"`
-	ExtraVolumeMounts         []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
+	Image                      string                            `json:"image,omitempty"`
+	ImagePullPolicy            corev1.PullPolicy                 `json:"imagePullPolicy,omitempty"`
+	Replicas                   int32                             `json:"replicas,omitempty"`
+	Resources                  corev1.ResourceRequirements       `json:"resources,omitempty"`
+	CustomConfig               []string                          `json:"customConfig,omitempty"`
+	Command                    []string                          `json:"command,omitempty"`
+	StartupConfigMap           string                            `json:"startupConfigMap,omitempty"`
+	Affinity                   *corev1.Affinity                  `json:"affinity,omitempty"`
+	SecurityContext            *corev1.PodSecurityContext        `json:"securityContext,omitempty"`
+	ContainerSecurityContext   *corev1.SecurityContext           `json:"containerSecurityContext,omitempty"`
+	ImagePullSecrets           []corev1.LocalObjectReference     `json:"imagePullSecrets,omitempty"`
+	Tolerations                []corev1.Toleration               `json:"tolerations,omitempty"`
+	TopologySpreadConstraints  []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	NodeSelector               map[string]string                 `json:"nodeSelector,omitempty"`
+	PodAnnotations             map[string]string                 `json:"podAnnotations,omitempty"`
+	ServiceAnnotations         map[string]string                 `json:"serviceAnnotations,omitempty"`
+	InitContainers             []corev1.Container                `json:"initContainers,omitempty"`
+	Exporter                   Exporter                          `json:"exporter,omitempty"`
+	ExtraContainers            []corev1.Container                `json:"extraContainers,omitempty"`
+	ConfigCopy                 SentinelConfigCopy                `json:"configCopy,omitempty"`
+	HostNetwork                bool                              `json:"hostNetwork,omitempty"`
+	DNSPolicy                  corev1.DNSPolicy                  `json:"dnsPolicy,omitempty"`
+	PriorityClassName          string                            `json:"priorityClassName,omitempty"`
+	ServiceAccountName         string                            `json:"serviceAccountName,omitempty"`
+	ExtraVolumes               []corev1.Volume                   `json:"extraVolumes,omitempty"`
+	ExtraVolumeMounts          []corev1.VolumeMount              `json:"extraVolumeMounts,omitempty"`
+	CustomLivenessProbe        *corev1.Probe                     `json:"customLivenessProbe,omitempty"`
+	CustomReadinessProbe       *corev1.Probe                     `json:"customReadinessProbe,omitempty"`
+	CustomStartupProbe         *corev1.Probe                     `json:"customStartupProbe,omitempty"`
+	DisablePodDisruptionBudget bool                              `json:"disablePodDisruptionBudget,omitempty"`
 }
 
 // AuthSettings contains settings about auth

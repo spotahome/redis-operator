@@ -76,3 +76,10 @@ Create the name of the service account to use
 {{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"email\":\"%s\",\"auth\":\"%s\"}}}" .registry .username .password .email (printf "%s:%s" .username .password | b64enc) | b64enc }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the namespace
+*/}}
+{{- define "chart.namespaceName" -}}
+{{- default .Release.Namespace .Values.namespace }}
+{{- end }}
