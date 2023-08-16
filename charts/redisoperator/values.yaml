@@ -87,4 +87,12 @@ tolerations: []
 
 affinity: {}
 
+# CRDs configuration
+crds:
+  # -- Additional CRDs annotations
+  annotations: {}
+    # argocd.argoproj.io/sync-options: Replace=true
+    # strategy.spinnaker.io/replace: 'true'
+
 priorityClassName: ""
+
