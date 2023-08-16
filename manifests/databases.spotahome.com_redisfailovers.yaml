@@ -68,7 +68,7 @@ spec:
                   port:
                     type: string
                 type: object
-              labelWhitelist:
+              propagateLabels:
                 items:
                   type: string
                 type: array
