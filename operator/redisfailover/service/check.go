@@ -477,13 +477,13 @@ func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redis
 // IsRedisRunning returns true if all the pods are Running
 func (r *RedisFailoverChecker) IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool {
 	dp, err := r.k8sService.GetStatefulSetPods(rFailover.Namespace, GetRedisName(rFailover))
-	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp, int(rFailover.Spec.Redis.Replicas))
 }
 
 // IsSentinelRunning returns true if all the pods are Running
 func (r *RedisFailoverChecker) IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool {
 	dp, err := r.k8sService.GetDeploymentPods(rFailover.Namespace, GetSentinelName(rFailover))
-	return err == nil && len(dp.Items) > int(rFailover.Spec.Sentinel.Replicas-1) && AreAllRunning(dp)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Sentinel.Replicas-1) && AreAllRunning(dp, int(rFailover.Spec.Sentinel.Replicas))
 }
 
 // IsClusterRunning returns true if all the pods in the given redisfailover are Running
@@ -495,11 +495,13 @@ func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
 }
 
-func AreAllRunning(pods *corev1.PodList) bool {
+func AreAllRunning(pods *corev1.PodList, expectedRunningPods int) bool {
+	var runningPods int
 	for _, pod := range pods.Items {
 		if pod.Status.Phase != corev1.PodRunning || pod.DeletionTimestamp != nil {
-			return false
+			continue
 		}
+		runningPods++
 	}
-	return true
+	return runningPods == expectedRunningPods
 }

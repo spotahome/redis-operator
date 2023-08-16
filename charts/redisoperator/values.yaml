@@ -7,6 +7,7 @@ image:
   repository: quay.io/spotahome/redis-operator
   pullPolicy: IfNotPresent
   tag: v1.2.4
+  cli_args: ""
 
 imageCredentials:
   create: false
@@ -28,6 +29,10 @@ nameOverride: ""
 
 # A name to substitute for the full names of resources.
 fullnameOverride: ""
+
+# The name of the Namespace to deploy
+# If not set, `.Release.Namespace` is used
+namespace: null
 
 serviceAccount:
   # Enable service account creation.
@@ -88,3 +93,6 @@ crds:
   annotations: {}
     # argocd.argoproj.io/sync-options: Replace=true
     # strategy.spinnaker.io/replace: 'true'
+
+priorityClassName: ""
+
