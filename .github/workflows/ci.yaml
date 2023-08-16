@@ -10,11 +10,16 @@ jobs:
   check:
     name: Golang Check
     runs-on: ubuntu-latest
-    # Execute the checks inside the container instead the VM.
-    container: golangci/golangci-lint:v1.54-alpine
     steps:
       - uses: actions/checkout@v3
-      - run: ./scripts/check.sh
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.53
 
   unit-test:
     name: Unit test
