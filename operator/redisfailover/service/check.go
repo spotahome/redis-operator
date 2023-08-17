@@ -184,10 +184,10 @@ func (r *RedisFailoverChecker) CheckIfMasterLocalhost(rFailover *redisfailoverv1
 		}
 	}
 	if lhmaster == len(redisIps) {
-		r.logger.Infof("all available redis configured localhost as master , opertor must heal")
+		r.logger.Infof("all available redis configured localhost as master , operator must heal")
 		return true, nil
 	}
-	r.logger.Infof("atleast one pod does not have localhost as master , opertor should not heal")
+	r.logger.Infof("atleast one pod does not have localhost as master , operator should not heal")
 	return false, nil
 }
 
