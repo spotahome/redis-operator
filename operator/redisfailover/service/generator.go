@@ -130,7 +130,8 @@ func generateRedisMasterService(rf *redisfailoverv1.RedisFailover, labels map[st
 			Annotations:     rf.Spec.Redis.ServiceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeLoadBalancer,
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: corev1.ClusterIPNone,
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "redis",
@@ -163,7 +164,8 @@ func generateRedisSlaveService(rf *redisfailoverv1.RedisFailover, labels map[str
 			Annotations:     rf.Spec.Redis.ServiceAnnotations,
 		},
 		Spec: corev1.ServiceSpec{
-			Type: corev1.ServiceTypeLoadBalancer,
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: corev1.ClusterIPNone,
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "redis",
