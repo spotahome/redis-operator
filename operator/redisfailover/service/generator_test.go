@@ -1322,7 +1322,8 @@ func TestRedisMasterService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1361,7 +1362,8 @@ func TestRedisMasterService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      "custom-name",
@@ -1400,7 +1402,8 @@ func TestRedisMasterService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1440,7 +1443,8 @@ func TestRedisMasterService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1481,7 +1485,8 @@ func TestRedisMasterService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1562,7 +1567,8 @@ func TestRedisSlaveService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1601,7 +1607,8 @@ func TestRedisSlaveService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      "custom-name",
@@ -1640,7 +1647,8 @@ func TestRedisSlaveService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1680,7 +1688,8 @@ func TestRedisSlaveService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
@@ -1721,7 +1730,8 @@ func TestRedisSlaveService(t *testing.T) {
 					},
 				},
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeLoadBalancer,
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: "None",
 					Selector: map[string]string{
 						"app.kubernetes.io/component": "redis",
 						"app.kubernetes.io/name":      name,
