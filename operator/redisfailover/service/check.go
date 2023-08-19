@@ -12,6 +12,7 @@ import (
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
 )
@@ -498,10 +499,13 @@ func getRedisPort(p int32) string {
 func AreAllRunning(pods *corev1.PodList, expectedRunningPods int) bool {
 	var runningPods int
 	for _, pod := range pods.Items {
-		if pod.Status.Phase != corev1.PodRunning || pod.DeletionTimestamp != nil {
+		if util.PodIsScheduling(&pod) {
+			return false
+		}
+		if util.PodIsTerminal(&pod) {
 			continue
 		}
 		runningPods++
 	}
-	return runningPods == expectedRunningPods
+	return runningPods >= expectedRunningPods
 }
