@@ -7,8 +7,8 @@ const (
 	exporterPortName              = "http-metrics"
 	exporterContainerName         = "redis-exporter"
 	sentinelExporterContainerName = "sentinel-exporter"
-	exporterDefaultRequestCPU     = "25m"
-	exporterDefaultLimitCPU       = "50m"
+	exporterDefaultRequestCPU     = "10m"
+	exporterDefaultLimitCPU       = "1000m"
 	exporterDefaultRequestMemory  = "50Mi"
 	exporterDefaultLimitMemory    = "100Mi"
 )
