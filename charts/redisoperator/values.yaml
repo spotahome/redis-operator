@@ -87,12 +87,9 @@ tolerations: []
 
 affinity: {}
 
-# CRDs configuration
+## Install Redis Operator CRDs
+##
 crds:
-  # -- Additional CRDs annotations
-  annotations: {}
-    # argocd.argoproj.io/sync-options: Replace=true
-    # strategy.spinnaker.io/replace: 'true'
+  enabled: true
 
 priorityClassName: ""
-
