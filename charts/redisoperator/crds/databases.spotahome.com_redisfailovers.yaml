@@ -4,9 +4,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    {{- with .Values.crds.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    argocd.argoproj.io/sync-options: Replace=true
+    strategy.spinnaker.io/replace: 'true'
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
   name: redisfailovers.databases.spotahome.com
