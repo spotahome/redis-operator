@@ -225,7 +225,7 @@ func generateRedisConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string
 	redisConfigFileContent := tplOutput.String()
 
 	if password != "" {
-		redisConfigFileContent = fmt.Sprintf("%s\nmasterauth %s\nrequirepass %s", redisConfigFileContent, password, password)
+		redisConfigFileContent = fmt.Sprintf("%s\nuser default on >%s &* ~* +@all\nmasterauth %s\n", redisConfigFileContent, password, password)
 	}
 
 	return &corev1.ConfigMap{
