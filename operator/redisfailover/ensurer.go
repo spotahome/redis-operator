@@ -29,6 +29,14 @@ func (w *RedisFailoverHandler) Ensure(rf *redisfailoverv1.RedisFailover, labels 
 		}
 	}
 
+	if err := w.rfService.EnsureRedisMasterService(rf, labels, or); err != nil {
+		return err
+	}
+
+	if err := w.rfService.EnsureRedisSlaveService(rf, labels, or); err != nil {
+		return err
+	}
+
 	if err := w.rfService.EnsureRedisShutdownConfigMap(rf, labels, or); err != nil {
 		return err
 	}

@@ -12,6 +12,7 @@ import (
 	redisfailoverv1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"github.com/spotahome/redis-operator/log"
 	"github.com/spotahome/redis-operator/metrics"
+	"github.com/spotahome/redis-operator/operator/redisfailover/util"
 	"github.com/spotahome/redis-operator/service/k8s"
 	"github.com/spotahome/redis-operator/service/redis"
 )
@@ -184,10 +185,10 @@ func (r *RedisFailoverChecker) CheckIfMasterLocalhost(rFailover *redisfailoverv1
 		}
 	}
 	if lhmaster == len(redisIps) {
-		r.logger.Infof("all available redis configured localhost as master , opertor must heal")
+		r.logger.Infof("all available redis configured localhost as master , operator must heal")
 		return true, nil
 	}
-	r.logger.Infof("atleast one pod does not have localhost as master , opertor should not heal")
+	r.logger.Infof("atleast one pod does not have localhost as master , operator should not heal")
 	return false, nil
 }
 
@@ -477,13 +478,13 @@ func (r *RedisFailoverChecker) CheckRedisSlavesReady(ip string, rFailover *redis
 // IsRedisRunning returns true if all the pods are Running
 func (r *RedisFailoverChecker) IsRedisRunning(rFailover *redisfailoverv1.RedisFailover) bool {
 	dp, err := r.k8sService.GetStatefulSetPods(rFailover.Namespace, GetRedisName(rFailover))
-	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp, int(rFailover.Spec.Redis.Replicas))
 }
 
 // IsSentinelRunning returns true if all the pods are Running
 func (r *RedisFailoverChecker) IsSentinelRunning(rFailover *redisfailoverv1.RedisFailover) bool {
 	dp, err := r.k8sService.GetDeploymentPods(rFailover.Namespace, GetSentinelName(rFailover))
-	return err == nil && len(dp.Items) > int(rFailover.Spec.Redis.Replicas-1) && AreAllRunning(dp)
+	return err == nil && len(dp.Items) > int(rFailover.Spec.Sentinel.Replicas-1) && AreAllRunning(dp, int(rFailover.Spec.Sentinel.Replicas))
 }
 
 // IsClusterRunning returns true if all the pods in the given redisfailover are Running
@@ -495,11 +496,16 @@ func getRedisPort(p int32) string {
 	return strconv.Itoa(int(p))
 }
 
-func AreAllRunning(pods *corev1.PodList) bool {
+func AreAllRunning(pods *corev1.PodList, expectedRunningPods int) bool {
+	var runningPods int
 	for _, pod := range pods.Items {
-		if pod.Status.Phase != corev1.PodRunning || pod.DeletionTimestamp != nil {
+		if util.PodIsScheduling(&pod) {
 			return false
 		}
+		if util.PodIsTerminal(&pod) {
+			continue
+		}
+		runningPods++
 	}
-	return true
+	return runningPods >= expectedRunningPods
 }

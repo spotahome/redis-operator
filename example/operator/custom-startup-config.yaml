@@ -6,7 +6,7 @@ metadata:
 data:
   startup.sh: |
     #!/bin/bash
-    redis-cli -h 127.0.0.1 -p ${REDIS_PORT} ping --user pinger --pass pingpass --no-auth-warning
+    redis-cli -h 127.0.0.1 -p ${REDIS_PORT} --user pinger --pass pingpass --no-auth-warning ping | grep PONG
 ---
 apiVersion: databases.spotahome.com/v1
 kind: RedisFailover

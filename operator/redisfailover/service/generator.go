@@ -111,6 +111,72 @@ func generateRedisService(rf *redisfailoverv1.RedisFailover, labels map[string]s
 	}
 }
 
+func generateRedisMasterService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
+	name := GetRedisMasterName(rf)
+	namespace := rf.Namespace
+
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
+	selectorLabels = util.MergeLabels(selectorLabels, map[string]string{
+		redisRoleLabelKey: redisRoleLabelMaster,
+	})
+	labels = util.MergeLabels(labels, selectorLabels)
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Redis.ServiceAnnotations,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "redis",
+					Port:       rf.Spec.Redis.Port,
+					TargetPort: intstr.FromString("redis"),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Selector: selectorLabels,
+		},
+	}
+}
+
+func generateRedisSlaveService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.Service {
+	name := GetRedisSlaveName(rf)
+	namespace := rf.Namespace
+
+	selectorLabels := generateSelectorLabels(redisRoleName, rf.Name)
+	selectorLabels = util.MergeLabels(selectorLabels, map[string]string{
+		redisRoleLabelKey: redisRoleLabelSlave,
+	})
+	labels = util.MergeLabels(labels, selectorLabels)
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespace,
+			Labels:          labels,
+			OwnerReferences: ownerRefs,
+			Annotations:     rf.Spec.Redis.ServiceAnnotations,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "redis",
+					Port:       rf.Spec.Redis.Port,
+					TargetPort: intstr.FromString("redis"),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Selector: selectorLabels,
+		},
+	}
+}
+
 func generateSentinelConfigMap(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) *corev1.ConfigMap {
 	name := GetSentinelName(rf)
 	namespace := rf.Namespace
@@ -250,7 +316,7 @@ case $role in
 				check_slave
 				;;
 		*)
-				echo "unespected"
+				echo "unexpected"
 				exit 1
 esac`, port)
 
@@ -330,31 +396,7 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 							},
 							VolumeMounts: volumeMounts,
 							Command:      redisCommand,
-							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
-									},
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								FailureThreshold:    6,
-								PeriodSeconds:       15,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v ping --user pinger --pass pingpass --no-auth-warning", rf.Spec.Redis.Port),
-										},
-									},
-								},
-							},
-							Resources: rf.Spec.Redis.Resources,
+							Resources:    rf.Spec.Redis.Resources,
 							Lifecycle: &corev1.Lifecycle{
 								PreStop: &corev1.LifecycleHandler{
 									Exec: &corev1.ExecAction{
@@ -394,7 +436,43 @@ func generateRedisStatefulSet(rf *redisfailoverv1.RedisFailover, labels map[stri
 		}
 	}
 
-	if rf.Spec.Redis.StartupConfigMap != "" {
+	if rf.Spec.Redis.CustomLivenessProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].LivenessProbe = rf.Spec.Redis.CustomLivenessProbe
+	} else {
+		ss.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			FailureThreshold:    6,
+			PeriodSeconds:       15,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						fmt.Sprintf("redis-cli -h $(hostname) -p %[1]v --user pinger --pass pingpass --no-auth-warning ping | grep PONG", rf.Spec.Redis.Port),
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Redis.CustomReadinessProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].ReadinessProbe = rf.Spec.Redis.CustomReadinessProbe
+	} else {
+		ss.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Redis.CustomStartupProbe != nil {
+		ss.Spec.Template.Spec.Containers[0].StartupProbe = rf.Spec.Redis.CustomStartupProbe
+	} else if rf.Spec.Redis.StartupConfigMap != "" {
 		ss.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
 			InitialDelaySeconds: graceTime,
 			TimeoutSeconds:      5,
@@ -517,33 +595,7 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 							},
 							VolumeMounts: volumeMounts,
 							Command:      sentinelCommand,
-							ReadinessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											"redis-cli -h $(hostname) -p 26379 ping",
-										},
-									},
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								InitialDelaySeconds: graceTime,
-								TimeoutSeconds:      5,
-								ProbeHandler: corev1.ProbeHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"sh",
-											"-c",
-											"redis-cli -h $(hostname) -p 26379 ping",
-										},
-									},
-								},
-							},
-							Resources: rf.Spec.Sentinel.Resources,
+							Resources:    rf.Spec.Sentinel.Resources,
 						},
 					},
 					Volumes: volumes,
@@ -552,7 +604,45 @@ func generateSentinelDeployment(rf *redisfailoverv1.RedisFailover, labels map[st
 		},
 	}
 
-	if rf.Spec.Sentinel.StartupConfigMap != "" {
+	if rf.Spec.Sentinel.CustomLivenessProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].LivenessProbe = rf.Spec.Sentinel.CustomLivenessProbe
+	} else {
+		sd.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						"redis-cli -h $(hostname) -p 26379 ping",
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Sentinel.CustomReadinessProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].ReadinessProbe = rf.Spec.Sentinel.CustomReadinessProbe
+	} else {
+		sd.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+			InitialDelaySeconds: graceTime,
+			TimeoutSeconds:      5,
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sh",
+						"-c",
+						"redis-cli -h $(hostname) -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1 | grep -vq '127.0.0.1'",
+					},
+				},
+			},
+		}
+	}
+
+	if rf.Spec.Sentinel.CustomStartupProbe != nil {
+		sd.Spec.Template.Spec.Containers[0].StartupProbe = rf.Spec.Sentinel.CustomStartupProbe
+	} else if rf.Spec.Sentinel.StartupConfigMap != "" {
 		sd.Spec.Template.Spec.Containers[0].StartupProbe = &corev1.Probe{
 			InitialDelaySeconds: graceTime,
 			TimeoutSeconds:      5,

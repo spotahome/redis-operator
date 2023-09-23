@@ -5,6 +5,7 @@ apiVersion: {{ template "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
   name: {{ $fullName }}
+  namespace: {{ include "chart.namespaceName" . }}
   labels:
     {{- include "chart.labels" $data | nindent 4 }}
   {{- if .Values.annotations }}
@@ -40,6 +41,10 @@ spec:
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
+        {{- if .Values.image.cli_args }}
+        args: 
+        - {{ quote .Values.image.cli_args }}
+        {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
           - name: metrics
@@ -74,4 +79,7 @@ spec:
     {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
     {{- end }}

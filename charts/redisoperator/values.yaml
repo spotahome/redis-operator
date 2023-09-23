@@ -6,7 +6,8 @@
 image:
   repository: quay.io/spotahome/redis-operator
   pullPolicy: IfNotPresent
-  tag: v1.2.4
+  tag: v1.3.0
+  cli_args: ""
 
 imageCredentials:
   create: false
@@ -28,6 +29,10 @@ nameOverride: ""
 
 # A name to substitute for the full names of resources.
 fullnameOverride: ""
+
+# The name of the Namespace to deploy
+# If not set, `.Release.Namespace` is used
+namespace: null
 
 serviceAccount:
   # Enable service account creation.
@@ -55,13 +60,13 @@ securityContext:
 # Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
 # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#resources) for details.
 # @default -- No requests or limits.
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 100m
-    memory: 128Mi
+resources: {}
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi
+#   limits:
+#     cpu: 100m
+#     memory: 128Mi
 
 ### Monitoring
 ###############
@@ -81,3 +86,13 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# CRDs configuration
+crds:
+  # -- Additional CRDs annotations
+  annotations: {}
+    # argocd.argoproj.io/sync-options: Replace=true
+    # strategy.spinnaker.io/replace: 'true'
+
+priorityClassName: ""
+

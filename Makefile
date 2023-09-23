@@ -1,4 +1,4 @@
-VERSION := v1.2.4
+VERSION := v1.3.0-rc0
 
 # Name of this service/application
 SERVICE_NAME := redis-operator
@@ -40,7 +40,7 @@ endif
 
 
 PROJECT_PACKAGE := github.com/spotahome/redis-operator
-CODEGEN_IMAGE := quay.io/slok/kube-code-generator:v1.23.0
+CODEGEN_IMAGE := ghcr.io/slok/kube-code-generator:v1.27.0
 PORT := 9710
 
 # CMDs

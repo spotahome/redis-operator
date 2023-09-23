@@ -536,7 +536,7 @@ func TestRedisStatefulSetStorageGeneration(t *testing.T) {
 		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
 		err := client.EnsureRedisStatefulset(rf, nil, test.ownerRefs)
 
-		// Check that the storage-related fields are as spected
+		// Check that the storage-related fields are as expected
 		assert.Equal(test.expectedSS.Spec.Template.Spec.Volumes, generatedStatefulSet.Spec.Template.Spec.Volumes)
 		assert.Equal(test.expectedSS.Spec.Template.Spec.Containers[0].VolumeMounts, generatedStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts)
 		assert.Equal(test.expectedSS.Spec.VolumeClaimTemplates, generatedStatefulSet.Spec.VolumeClaimTemplates)
@@ -1293,6 +1293,486 @@ func TestRedisService(t *testing.T) {
 	}
 }
 
+func TestRedisMasterService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfrm-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+						"some":                        "label",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      masterName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Annotations: map[string]string{
+						"some": "annotation",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "master",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Redis.Port = 6379
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedMasterService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedMasterService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureRedisMasterService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedMasterService)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestRedisSlaveService(t *testing.T) {
+	tests := []struct {
+		name            string
+		rfName          string
+		rfNamespace     string
+		rfLabels        map[string]string
+		rfAnnotations   map[string]string
+		expectedService corev1.Service
+	}{
+		{
+			name: "with defaults",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "with Name provided",
+			rfName: "custom-name",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rfrs-custom-name",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      "custom-name",
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "with Namespace provided",
+			rfNamespace: "custom-namespace",
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: "custom-namespace",
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "with Labels provided",
+			rfLabels: map[string]string{"some": "label"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+						"some":                        "label",
+					},
+					Annotations: nil,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:          "with Annotations provided",
+			rfAnnotations: map[string]string{"some": "annotation"},
+			expectedService: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      slaveName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Annotations: map[string]string{
+						"some": "annotation",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "testing",
+						},
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{
+						"app.kubernetes.io/component": "redis",
+						"app.kubernetes.io/name":      name,
+						"app.kubernetes.io/part-of":   "redis-failover",
+						"redisfailovers-role":         "slave",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "redis",
+							Port:       6379,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromString("redis"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			// Generate a default RedisFailover and attaching the required annotations
+			rf := generateRF()
+			if test.rfName != "" {
+				rf.Name = test.rfName
+			}
+			if test.rfNamespace != "" {
+				rf.Namespace = test.rfNamespace
+			}
+			rf.Spec.Redis.Port = 6379
+			rf.Spec.Redis.ServiceAnnotations = test.rfAnnotations
+
+			generatedSlaveService := corev1.Service{}
+
+			ms := &mK8SService.Services{}
+			ms.On("CreateOrUpdateService", rf.Namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+				s := args.Get(1).(*corev1.Service)
+				generatedSlaveService = *s
+			}).Return(nil)
+
+			client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+			err := client.EnsureRedisSlaveService(rf, test.rfLabels, []metav1.OwnerReference{{Name: "testing"}})
+
+			assert.Equal(test.expectedService, generatedSlaveService)
+			assert.NoError(err)
+		})
+	}
+}
+
 func TestRedisHostNetworkAndDnsPolicy(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -1877,5 +2357,438 @@ func TestSentinelStartupProbe(t *testing.T) {
 		assert.NoError(err)
 		assert.Contains(startupVolumes, test.expectedVolume)
 		assert.Contains(startupVolumeMounts, test.expectedVolumeMount)
+	}
+}
+
+func TestRedisCustomLivenessProbe(t *testing.T) {
+	tests := []struct {
+		name                  string
+		customLivenessProbe   *corev1.Probe
+		expectedLivenessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
+						},
+					},
+				},
+			},
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p ${REDIS_PORT} --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                "liveness_probe_nil",
+			customLivenessProbe: nil,
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				FailureThreshold:    6,
+				PeriodSeconds:       15,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 6379 --user pinger --pass pingpass --no-auth-warning ping | grep PONG",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var livenessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomLivenessProbe = test.customLivenessProbe
+		rf.Spec.Redis.Port = 6379
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			livenessProbe = s.Spec.Template.Spec.Containers[0].LivenessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedLivenessProbe, livenessProbe)
+	}
+}
+
+func TestSentinelCustomLivenessProbe(t *testing.T) {
+	tests := []struct {
+		name                  string
+		customLivenessProbe   *corev1.Probe
+		expectedLivenessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                "liveness_probe_nil",
+			customLivenessProbe: nil,
+			expectedLivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var livenessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomLivenessProbe = test.customLivenessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			livenessProbe = d.Spec.Template.Spec.Containers[0].LivenessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedLivenessProbe, livenessProbe)
+	}
+}
+
+func TestRedisCustomReadinessProbe(t *testing.T) {
+	tests := []struct {
+		name                   string
+		customReadinessProbe   *corev1.Probe
+		expectedReadinessProbe *corev1.Probe
+	}{
+		{
+			name: "readiness_probe",
+			customReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/readiness.sh"},
+					},
+				},
+			},
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/readiness.sh"},
+					},
+				},
+			},
+		},
+		{
+			name:                 "readiness_probe_nil",
+			customReadinessProbe: nil,
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-readiness/ready.sh"},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var readinessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomReadinessProbe = test.customReadinessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			readinessProbe = s.Spec.Template.Spec.Containers[0].ReadinessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedReadinessProbe, readinessProbe)
+	}
+}
+
+func TestSentinelCustomReadinessProbe(t *testing.T) {
+	tests := []struct {
+		name                   string
+		customReadinessProbe   *corev1.Probe
+		expectedReadinessProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                 "liveness_probe_nil",
+			customReadinessProbe: nil,
+			expectedReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      5,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h $(hostname) -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1 | grep -vq '127.0.0.1'",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var readinessProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomReadinessProbe = test.customReadinessProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			readinessProbe = d.Spec.Template.Spec.Containers[0].ReadinessProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedReadinessProbe, readinessProbe)
+	}
+}
+
+func TestRedisCustomStartupProbe(t *testing.T) {
+	tests := []struct {
+		name                 string
+		customStartupProbe   *corev1.Probe
+		expectedStartupProbe *corev1.Probe
+	}{
+		{
+			name: "readiness_probe",
+			customStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-startup/startup.sh"},
+					},
+				},
+			},
+			expectedStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"/bin/sh", "/redis-startup/startup.sh"},
+					},
+				},
+			},
+		},
+		{
+			name:                 "readiness_probe_nil",
+			customStartupProbe:   nil,
+			expectedStartupProbe: nil,
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Redis.CustomStartupProbe = test.customStartupProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateStatefulSet", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			s := args.Get(1).(*appsv1.StatefulSet)
+			startupProbe = s.Spec.Template.Spec.Containers[0].StartupProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureRedisStatefulset(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedStartupProbe, startupProbe)
+	}
+}
+
+func TestSentinelCustomStartupProbe(t *testing.T) {
+	tests := []struct {
+		name                 string
+		customStartupProbe   *corev1.Probe
+		expectedStartupProbe *corev1.Probe
+	}{
+		{
+			name: "liveness_probe",
+			customStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+			expectedStartupProbe: &corev1.Probe{
+				InitialDelaySeconds: 30,
+				TimeoutSeconds:      10,
+				FailureThreshold:    10,
+				PeriodSeconds:       25,
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"sh",
+							"-c",
+							"redis-cli -h 127.0.0.1 -p 26379 ping",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:                 "liveness_probe_nil",
+			customStartupProbe:   nil,
+			expectedStartupProbe: nil,
+		},
+	}
+	for _, test := range tests {
+		assert := assert.New(t)
+
+		var startupProbe *corev1.Probe
+		rf := generateRF()
+		rf.Spec.Sentinel.CustomStartupProbe = test.customStartupProbe
+
+		ms := &mK8SService.Services{}
+		ms.On("CreateOrUpdatePodDisruptionBudget", namespace, mock.Anything).Once().Return(nil, nil)
+		ms.On("CreateOrUpdateDeployment", namespace, mock.Anything).Once().Run(func(args mock.Arguments) {
+			d := args.Get(1).(*appsv1.Deployment)
+			startupProbe = d.Spec.Template.Spec.Containers[0].StartupProbe
+		}).Return(nil)
+
+		client := rfservice.NewRedisFailoverKubeClient(ms, log.Dummy, metrics.Dummy)
+		err := client.EnsureSentinelDeployment(rf, nil, []metav1.OwnerReference{})
+
+		assert.NoError(err)
+		assert.Equal(test.expectedStartupProbe, startupProbe)
 	}
 }

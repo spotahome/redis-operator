@@ -16,8 +16,8 @@ func MergeLabels(allLabels ...map[string]string) map[string]string {
 func MergeAnnotations(allMergeAnnotations ...map[string]string) map[string]string {
 	res := map[string]string{}
 
-	for _, labels := range allMergeAnnotations {
-		for k, v := range labels {
+	for _, annotations := range allMergeAnnotations {
+		for k, v := range annotations {
 			res[k] = v
 		}
 	}
