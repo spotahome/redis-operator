@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -37,6 +38,8 @@ type StatefulSetService struct {
 	logger          log.Logger
 	metricsRecorder metrics.Recorder
 }
+
+var previousSS appsv1.StatefulSet
 
 // NewStatefulSetService returns a new StatefulSet KubeService.
 func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *StatefulSetService {
@@ -101,16 +104,11 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	if err != nil {
 		// If no resource we need to create.
 		if errors.IsNotFound(err) {
+			addHashAnnotation(statefulSet)
 			return s.CreateStatefulSet(namespace, statefulSet)
 		}
 		return err
 	}
-
-	// Already exists, need to Update.
-	// Set the correct resource version to ensure we are on the latest version. This way the only valid
-	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
-	// we will replace the current namespace state.
-	statefulSet.ResourceVersion = storedStatefulSet.ResourceVersion
 	// resize pvc
 	// 1.Get the data already stored internally
 	// 2.Get the desired data
@@ -174,12 +172,15 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	statefulSet.Annotations = util.MergeAnnotations(storedStatefulSet.Annotations, statefulSet.Annotations)
 
 	if hashingEnabled() {
+		delete(statefulSet.Annotations, resourceHashAnnotationKey) // this will be regenerated if changes are required.
 		if !shouldUpdate(statefulSet, storedStatefulSet) {
 			s.logger.Debugf("%v/%v statefulset is upto date, no need to apply changes...", statefulSet.Namespace, statefulSet.Name)
 			return nil
 		}
 		s.logger.Debugf("%v/%v statefulset has a different resource hash, updating the object...", statefulSet.Namespace, statefulSet.Name)
 		addHashAnnotation(statefulSet)
+		previousSS = *statefulSet
+
 	}
 
 	return s.UpdateStatefulSet(namespace, statefulSet)
@@ -198,4 +199,13 @@ func (s *StatefulSetService) ListStatefulSets(namespace string) (*appsv1.Statefu
 	stsList, err := s.kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	recordMetrics(namespace, "StatefulSet", metrics.NOT_APPLICABLE, "LIST", err, s.metricsRecorder)
 	return stsList, err
+}
+
+func StatefulsetToJson(sts appsv1.StatefulSet) {
+	// convert statefulset object to json string
+	stsJson, err := json.Marshal(sts)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(stsJson))
 }
