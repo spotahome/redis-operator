@@ -94,7 +94,7 @@ func TestRedisFailover(t *testing.T) {
 	}
 
 	// Create kubernetes service.
-	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy, metrics.Dummy)
+	k8sservice := k8s.New(k8sClient, customClient, aeClientset, log.Dummy, metrics.Dummy, true)
 
 	// Prepare namespace
 	prepErr := clients.prepareNS()
