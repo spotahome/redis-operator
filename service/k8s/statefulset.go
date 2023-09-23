@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -38,8 +37,6 @@ type StatefulSetService struct {
 	logger          log.Logger
 	metricsRecorder metrics.Recorder
 }
-
-var previousSS appsv1.StatefulSet
 
 // NewStatefulSetService returns a new StatefulSet KubeService.
 func NewStatefulSetService(kubeClient kubernetes.Interface, logger log.Logger, metricsRecorder metrics.Recorder) *StatefulSetService {
@@ -179,8 +176,6 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 		}
 		s.logger.Debugf("%v/%v statefulset has a different resource hash, updating the object...", statefulSet.Namespace, statefulSet.Name)
 		addHashAnnotation(statefulSet)
-		previousSS = *statefulSet
-
 	}
 
 	return s.UpdateStatefulSet(namespace, statefulSet)
@@ -199,13 +194,4 @@ func (s *StatefulSetService) ListStatefulSets(namespace string) (*appsv1.Statefu
 	stsList, err := s.kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	recordMetrics(namespace, "StatefulSet", metrics.NOT_APPLICABLE, "LIST", err, s.metricsRecorder)
 	return stsList, err
-}
-
-func StatefulsetToJson(sts appsv1.StatefulSet) {
-	// convert statefulset object to json string
-	stsJson, err := json.Marshal(sts)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(stsJson))
 }
