@@ -31,7 +31,7 @@ var (
 // resources that a RF needs.
 type RedisFailoverHandler struct {
 	config     Config
-	k8sservice k8s.Service
+	k8sservice k8s.Services
 	rfService  rfservice.RedisFailoverClient
 	rfChecker  rfservice.RedisFailoverCheck
 	rfHealer   rfservice.RedisFailoverHeal
@@ -40,7 +40,7 @@ type RedisFailoverHandler struct {
 }
 
 // NewRedisFailoverHandler returns a new RF handler
-func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Service, mClient metrics.Recorder, logger log.Logger) *RedisFailoverHandler {
+func NewRedisFailoverHandler(config Config, rfService rfservice.RedisFailoverClient, rfChecker rfservice.RedisFailoverCheck, rfHealer rfservice.RedisFailoverHeal, k8sservice k8s.Services, mClient metrics.Recorder, logger log.Logger) *RedisFailoverHandler {
 	return &RedisFailoverHandler{
 		config:     config,
 		rfService:  rfService,

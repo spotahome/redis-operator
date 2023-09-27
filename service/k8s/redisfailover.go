@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"context"
+	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -18,6 +20,7 @@ type RedisFailover interface {
 	ListRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (*redisfailoverv1.RedisFailoverList, error)
 	// WatchRedisFailovers watches the redisfailovers on a cluster.
 	WatchRedisFailovers(ctx context.Context, namespace string, opts metav1.ListOptions) (watch.Interface, error)
+	UpdateRedisFailoverStatus(ctx context.Context, namespace string, redisFailover *redisfailoverv1.RedisFailover, opts metav1.PatchOptions)
 }
 
 // RedisFailoverService is the RedisFailover service implementation using API calls to kubernetes.
@@ -49,4 +52,13 @@ func (r *RedisFailoverService) WatchRedisFailovers(ctx context.Context, namespac
 	watcher, err := r.k8sCli.DatabasesV1().RedisFailovers(namespace).Watch(ctx, opts)
 	recordMetrics(namespace, "RedisFailover", metrics.NOT_APPLICABLE, "WATCH", err, r.metricsRecorder)
 	return watcher, err
+}
+
+func (r *RedisFailoverService) UpdateRedisFailoverStatus(ctx context.Context, namespace string, rf *redisfailoverv1.RedisFailover, opts metav1.PatchOptions) {
+	status := fmt.Sprintf(`{"status":  {"state": "%s", "lastChanged": "%s", "message": "%s"}}`, rf.Status.State, rf.Status.LastChanged, rf.Status.Message)
+	_, err := r.k8sCli.DatabasesV1().RedisFailovers(namespace).Patch(ctx, rf.Name, types.MergePatchType, []byte(status), opts)
+	if err != nil {
+		recordMetrics(namespace, "RedisFailover", metrics.NOT_APPLICABLE, "PATCH", err, r.metricsRecorder)
+		r.logger.Errorf("Error while patching RedisFailover status %s/%s : %s", rf.Namespace, rf.Name, err.Error())
+	}
 }

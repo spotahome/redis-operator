@@ -71,6 +71,8 @@ func (_m *RedisFailover) WatchRedisFailovers(ctx context.Context, namespace stri
 	return r0, r1
 }
 
+func (_m *RedisFailover) UpdateRedisFailoverStatus(ctx context.Context, namespace string, redisFailover *redisfailoverv1.RedisFailover, opts v1.PatchOptions) {}
+
 type mockConstructorTestingTNewRedisFailover interface {
 	mock.TestingT
 	Cleanup(func())

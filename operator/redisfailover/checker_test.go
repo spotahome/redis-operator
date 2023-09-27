@@ -3,6 +3,7 @@ package redisfailover_test
 import (
 	"errors"
 	"fmt"
+	v1 "github.com/spotahome/redis-operator/api/redisfailover/v1"
 	"testing"
 	"time"
 
@@ -420,8 +421,10 @@ func TestCheckAndHeal(t *testing.T) {
 
 			if expErr {
 				assert.Error(err)
+				assert.Equal(v1.NotHealthyState, rf.Status.State)
 			} else {
 				assert.NoError(err)
+				assert.Equal(v1.HealthyState, rf.Status.State)
 			}
 			mrfc.AssertExpectations(t)
 			mrfh.AssertExpectations(t)
