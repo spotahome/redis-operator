@@ -87,6 +87,9 @@ func (m *Main) Run() error {
 	// Get lease lock resource namespace
 	lockNamespace := getNamespace()
 
+	// Override default values  provided by flags
+	m.flags.ReinitiliazeDefaults()
+
 	// Create operator and run.
 	redisfailoverOperator, err := redisfailover.New(m.flags.ToRedisOperatorConfig(), k8sservice, k8sClient, lockNamespace, redisClient, metricsRecorder, m.logger)
 	if err != nil {

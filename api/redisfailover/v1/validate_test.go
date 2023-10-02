@@ -102,20 +102,20 @@ func TestValidate(t *testing.T) {
 					},
 					Spec: RedisFailoverSpec{
 						Redis: RedisSettings{
-							Image:    defaultImage,
+							Image:    DefaultImage,
 							Replicas: defaultRedisNumber,
 							Port:     defaultRedisPort,
 							Exporter: Exporter{
-								Image: defaultExporterImage,
+								Image: DefaultExporterImage,
 							},
 							CustomConfig: expectedRedisCustomConfig,
 						},
 						Sentinel: SentinelSettings{
-							Image:        defaultImage,
+							Image:        DefaultImage,
 							Replicas:     defaultSentinelNumber,
 							CustomConfig: expectedSentinelCustomConfig,
 							Exporter: Exporter{
-								Image: defaultSentinelExporterImage,
+								Image: DefaultSentinelExporterImage,
 							},
 						},
 						BootstrapNode: test.expectedBootstrapNode,
