@@ -30,11 +30,11 @@ func (r *RedisFailover) Validate() error {
 	}
 
 	if r.Spec.Redis.Image == "" {
-		r.Spec.Redis.Image = defaultImage
+		r.Spec.Redis.Image = DefaultImage
 	}
 
 	if r.Spec.Sentinel.Image == "" {
-		r.Spec.Sentinel.Image = defaultImage
+		r.Spec.Sentinel.Image = DefaultImage
 	}
 
 	if r.Spec.Redis.Replicas <= 0 {
@@ -50,11 +50,11 @@ func (r *RedisFailover) Validate() error {
 	}
 
 	if r.Spec.Redis.Exporter.Image == "" {
-		r.Spec.Redis.Exporter.Image = defaultExporterImage
+		r.Spec.Redis.Exporter.Image = DefaultExporterImage
 	}
 
 	if r.Spec.Sentinel.Exporter.Image == "" {
-		r.Spec.Sentinel.Exporter.Image = defaultSentinelExporterImage
+		r.Spec.Sentinel.Exporter.Image = DefaultSentinelExporterImage
 	}
 
 	if len(r.Spec.Sentinel.CustomConfig) == 0 {
