@@ -120,6 +120,11 @@ func TestValidate(t *testing.T) {
 						},
 						BootstrapNode: test.expectedBootstrapNode,
 					},
+					Status: RedisFailoverStatus{
+						State:       HealthyState,
+						LastChanged: "",
+						Message:     "",
+					},
 				}
 				assert.Equal(expectedRF, rf)
 			} else {

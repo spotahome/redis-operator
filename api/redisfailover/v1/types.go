@@ -17,7 +17,8 @@ import (
 type RedisFailover struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              RedisFailoverSpec `json:"spec"`
+	Spec              RedisFailoverSpec   `json:"spec"`
+	Status            RedisFailoverStatus `json:"status,omitempty"`
 }
 
 // RedisFailoverSpec represents a Redis failover spec
@@ -197,4 +198,10 @@ type RedisFailoverList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []RedisFailover `json:"items"`
+}
+
+type RedisFailoverStatus struct {
+	State       string `json:"state,omitempty"`
+	LastChanged string `json:"lastChanged,omitempty"`
+	Message     string `json:"message,omitempty"`
 }

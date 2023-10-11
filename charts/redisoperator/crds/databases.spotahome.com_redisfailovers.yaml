@@ -12387,6 +12387,19 @@ spec:
                     type: array
                 type: object
             type: object
+          status:
+            description: CRD status defined by redisfailover cluster state
+            properties:
+              state:
+                description: state of redis failover cluster
+                type: string
+              lastChanged:
+                description: timestamp of last state change
+                type: string
+              message:
+                description: message for current state if needed
+                type: string
+            type: object
         required:
         - spec
         type: object
