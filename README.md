@@ -159,7 +159,7 @@ If you need the containers to run as a specific user (or provide any other PodSe
 
 ### Custom containerSecurityContext at container level
 
-By default Kubernetes will run containers with default docker capabilities for exemple, this is not always desirable.
+By default Kubernetes will run containers with default docker capabilities for example, this is not always desirable.
 If you need the containers to run with specific capabilities or with read only root file system (or provide any other securityContext options) then you can specify a custom `containerSecurityContext` in the
 `redisfailover` object. See the [ContainerSecurityContext example file](example/redisfailover/container-security-context.yaml) for an example. Keys available under containerSecurityContext are detailed [here](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#securitycontext-v1-core)
 
