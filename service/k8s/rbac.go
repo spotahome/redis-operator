@@ -100,6 +100,14 @@ func (r *RBACService) CreateOrUpdateRole(namespace string, role *rbacv1.Role) er
 		return err
 	}
 
+	if hashingEnabled() {
+		if !shouldUpdate(role, storedRole) {
+			r.logger.Debugf("%v/%v role is upto date, no need to apply changes...", role.Namespace, role.Name)
+			return nil
+		}
+		r.logger.Debugf("%v/%v role has a different resource hash, updating the object...", role.Namespace, role.Name)
+		addHashAnnotation(role)
+	}
 	// Already exists, need to Update.
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
@@ -146,6 +154,15 @@ func (r *RBACService) CreateOrUpdateRoleBinding(namespace string, binding *rbacv
 			return r.CreateRoleBinding(namespace, binding)
 		}
 		return err
+	}
+
+	if hashingEnabled() {
+		if !shouldUpdate(binding, storedBinding) {
+			r.logger.Debugf("%v/%v rolebinding is upto date, no need to apply changes...", binding.Namespace, binding.Name)
+			return nil
+		}
+		r.logger.Debugf("%v/%v rolebinding has a different resource hash, updating the object...", binding.Namespace, binding.Name)
+		addHashAnnotation(binding)
 	}
 
 	// Check if the role ref has changed, roleref updates are not allowed, if changed then delete and create again the role binding.

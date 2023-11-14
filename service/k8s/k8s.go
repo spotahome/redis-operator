@@ -22,6 +22,14 @@ type Services interface {
 	StatefulSet
 }
 
+var (
+	objectHashingEnabled bool
+)
+
+func hashingEnabled() bool {
+	return objectHashingEnabled
+}
+
 type services struct {
 	ConfigMap
 	Secret
@@ -35,7 +43,8 @@ type services struct {
 }
 
 // New returns a new Kubernetes service.
-func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder) Services {
+func New(kubecli kubernetes.Interface, crdcli redisfailoverclientset.Interface, apiextcli apiextensionscli.Interface, logger log.Logger, metricsRecorder metrics.Recorder, enableHashing bool) Services {
+	objectHashingEnabled = enableHashing
 	return &services{
 		ConfigMap:           NewConfigMapService(kubecli, logger, metricsRecorder),
 		Secret:              NewSecretService(kubecli, logger, metricsRecorder),

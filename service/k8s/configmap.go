@@ -76,6 +76,14 @@ func (p *ConfigMapService) CreateOrUpdateConfigMap(namespace string, configMap *
 		return err
 	}
 
+	if hashingEnabled() {
+		if !shouldUpdate(configMap, storedConfigMap) {
+			p.logger.Debugf("%v/%v configmap is upto date, no need to apply changes...", configMap.Namespace, configMap.Name)
+			return nil
+		}
+		p.logger.Debugf("%v/%v configmap has a different resource hash, updating the object...", configMap.Namespace, configMap.Name)
+		addHashAnnotation(configMap)
+	}
 	// Already exists, need to Update.
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
