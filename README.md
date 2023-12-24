@@ -5,6 +5,43 @@
 
 Redis Operator creates/configures/manages redis-failovers atop Kubernetes.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Operator deployment on Kubernetes](#operator-deployment-on-kubernetes)
+  - [Using the Helm chart](#using-the-helm-chart)
+    - [Update helm chart](#update-helm-chart)
+  - [Using kubectl](#using-kubectl)
+  - [Using kustomize](#using-kustomize)
+- [Usage](#usage)
+  - [Persistence](#persistence)
+  - [NodeAffinity and Tolerations](#nodeaffinity-and-tolerations)
+- [Topology Spread Contraints](#topology-spread-contraints)
+  - [Custom configurations](#custom-configurations)
+  - [Custom shutdown script](#custom-shutdown-script)
+  - [Custom SecurityContext](#custom-securitycontext)
+  - [Custom containerSecurityContext at container level](#custom-containersecuritycontext-at-container-level)
+  - [Custom command](#custom-command)
+  - [Custom Priority Class](#custom-priority-class)
+  - [Custom Service Account](#custom-service-account)
+  - [Custom Pod Annotations](#custom-pod-annotations)
+  - [Custom Service Annotations](#custom-service-annotations)
+  - [Control of label propagation.](#control-of-label-propagation)
+  - [ExtraVolumes and ExtraVolumeMounts](#extravolumes-and-extravolumemounts)
+- [Connection to the created Redis Failovers](#connection-to-the-created-redis-failovers)
+  - [Enabling redis auth](#enabling-redis-auth)
+  - [Bootstrapping from pre-existing Redis Instance(s)](#bootstrapping-from-pre-existing-redis-instances)
+    - [What is Bootstrapping?](#what-is-bootstrapping)
+    - [Default Bootstrapping Mode (Without Sentinels)](#default-bootstrapping-mode-without-sentinels)
+    - [Bootstrapping With Sentinels](#bootstrapping-with-sentinels)
+  - [Default versions](#default-versions)
+- [Cleanup](#cleanup)
+  - [Operator and CRD](#operator-and-crd)
+  - [Single Redis Failover](#single-redis-failover)
+- [Docker Images](#docker-images)
+  - [Redis Operator](#redis-operator)
+- [Documentation](#documentation)
+
 ## Requirements
 
 Kubernetes version: 1.21 or higher
@@ -40,6 +77,7 @@ kubectl replace -f https://raw.githubusercontent.com/spotahome/redis-operator/${
 ```
 helm upgrade redis-operator redis-operator/redis-operator
 ```
+
 ### Using kubectl
 
 To create the operator, you can directly create it with kubectl:
@@ -83,7 +121,7 @@ kind: Kustomization
 namespace: redis-operator
 
 commonLabels:
-    foo: bar
+  foo: bar
 
 resources:
   - github.com/spotahome/redis-operator/manifests/kustomize/overlays/full
@@ -173,24 +211,30 @@ By default, redis and sentinel will be called with the basic command, giving the
 If necessary, this command can be changed with the `command` option inside redis/sentinel spec. An example can be found in the [custom command example file](example/redisfailover/custom-command.yaml).
 
 ### Custom Priority Class
+
 In order to use a custom Kubernetes [Priority Class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass) for Redis and/or Sentinel pods, you can set the `priorityClassName` in the redis/sentinel spec, this attribute has no default and depends on the specific cluster configuration. **Note:** the operator doesn't create the referenced `Priority Class` resource.
 
 ### Custom Service Account
+
 In order to use a custom Kubernetes [Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) for Redis and/or Sentinel pods, you can set the `serviceAccountName` in the redis/sentinel spec, if not specified the `default` Service Account will be used. **Note:** the operator doesn't create the referenced `Service Account` resource.
 
 ### Custom Pod Annotations
+
 By default, no pod annotations will be applied to Redis nor Sentinel pods.
 
 In order to apply custom pod Annotations, you can provide the `podAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
+
 ### Custom Service Annotations
+
 By default, no service annotations will be applied to the Redis nor Sentinel services.
 
 In order to apply custom service Annotations, you can provide the `serviceAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 
 ### Control of label propagation.
-By default the operator will propagate all labels on the CRD down to the resources that it creates.  This can be problematic if the
+
+By default the operator will propagate all labels on the CRD down to the resources that it creates. This can be problematic if the
 labels on the CRD are not fully under your own control (for example: being deployed by a gitops operator)
-as a change to a labels value can fail on immutable resources such as PodDisruptionBudgets.  To control what labels the operator propagates
+as a change to a labels value can fail on immutable resources such as PodDisruptionBudgets. To control what labels the operator propagates
 to resource is creates you can modify the labelWhitelist option in the spec.
 
 By default specifying no whitelist or an empty whitelist will cause all labels to still be copied as not to break backwards compatibility.
@@ -200,7 +244,8 @@ Items in the array should be regular expressions, see [here](example/redisfailov
 
 The whitelist can also be used as a form of blacklist by specifying a regular expression that will not match any label.
 
-NOTE: The operator will always add the labels it requires for operation to resources.  These are the following:
+NOTE: The operator will always add the labels it requires for operation to resources. These are the following:
+
 ```
 app.kubernetes.io/component
 app.kubernetes.io/managed-by
@@ -209,10 +254,10 @@ app.kubernetes.io/part-of
 redisfailovers.databases.spotahome.com/name
 ```
 
-
 ### ExtraVolumes and ExtraVolumeMounts
 
 If the user choose to have extra volumes creates and mounted, he could use the `extraVolumes` and `extraVolumeMounts`, in `spec.redis` of the CRD. This allows users to mount the extra configurations, or secrets to be used. A typical use case for this might be
+
 - Secrets that sidecars might use to backup of RDBs
 - Extra users and their secrets and acls that could used the initContainers to create multiple users
 - Extra Configurations that could merge on top the existing configurations
@@ -259,8 +304,6 @@ spec:
       readOnly: true
 ```
 
-
-
 ## Connection to the created Redis Failovers
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master.
@@ -293,19 +336,22 @@ spec:
   auth:
     secretPath: redis-auth
 ```
+
 You need to set secretPath as the secret name which is created before.
 
 ### Bootstrapping from pre-existing Redis Instance(s)
+
 If you are wanting to migrate off of a pre-existing Redis instance, you can provide a `bootstrapNode` to your `RedisFailover` resource spec.
 
 This `bootstrapNode` can be configured as follows:
-|       Key      | Type         | Description                                                                                                                                                                               | Example File                                                                                 |
+| Key | Type | Description | Example File |
 |:--------------:|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| host           | **required** | The IP of the target Redis address or the ClusterIP of a pre-existing Kubernetes Service targeting Redis pods                                                                             | [bootstrapping.yaml](example/redisfailover/bootstrapping.yaml)                               |
-| port           | _optional_   | The Port that the target Redis address is listening to. Defaults to `6379`.                                                                                                               | [bootstrapping-with-port.yaml](example/redisfailover/bootstrapping-with-port.yaml)           |
-| allowSentinels | _optional_   | Allow the Operator to also create the specified Sentinel resources and point them to the target Node/Port. By default, the Sentinel resources will **not** be created when bootstrapping. | [bootstrapping-with-sentinels.yaml](example/redisfailover/bootstrapping-with-sentinels.yaml) |
+| host | **required** | The IP of the target Redis address or the ClusterIP of a pre-existing Kubernetes Service targeting Redis pods | [bootstrapping.yaml](example/redisfailover/bootstrapping.yaml) |
+| port | _optional_ | The Port that the target Redis address is listening to. Defaults to `6379`. | [bootstrapping-with-port.yaml](example/redisfailover/bootstrapping-with-port.yaml) |
+| allowSentinels | _optional_ | Allow the Operator to also create the specified Sentinel resources and point them to the target Node/Port. By default, the Sentinel resources will **not** be created when bootstrapping. | [bootstrapping-with-sentinels.yaml](example/redisfailover/bootstrapping-with-sentinels.yaml) |
 
 #### What is Bootstrapping?
+
 When a `bootstrapNode` is provided, the Operator will always set all of the defined Redis instances to replicate from the provided `bootstrapNode` host value.
 This allows for defining a `RedisFailover` that replicates from an existing Redis instance to ease cutover from one instance to another.
 
@@ -314,16 +360,19 @@ This allows for defining a `RedisFailover` that replicates from an existing Redi
 Depending on the configuration provided, the Operator will launch the `RedisFailover` in two bootstrapping states: without sentinels and with sentinels.
 
 #### Default Bootstrapping Mode (Without Sentinels)
+
 By default, if the `RedisFailover` resource defines a valid `bootstrapNode`, **only the redis instances will be created**.
 This allows for ease of bootstrapping from an existing `RedisFailover` instance without the Sentinels intermingling with each other.
 
 #### Bootstrapping With Sentinels
+
 When `allowSentinels` is provided, the Operator will also create the defined Sentinel resources. These sentinels will be configured to point to the provided
 `bootstrapNode` as their monitored master.
 
 ### Default versions
 
 The image versions deployed by the operator can be found on the [defaults file](api/redisfailover/v1/defaults.go).
+
 ## Cleanup
 
 ### Operator and CRD
@@ -349,6 +398,7 @@ kubectl delete redisfailover <NAME>
 ### Redis Operator
 
 [![Redis Operator Image](https://quay.io/repository/spotahome/redis-operator/status "Redis Operator Image")](https://quay.io/repository/spotahome/redis-operator)
+
 ## Documentation
 
 For the code documentation, you can lookup on the [GoDoc](https://godoc.org/github.com/spotahome/redis-operator).
