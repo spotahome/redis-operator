@@ -1,13 +1,13 @@
-
+{{- if .Values.crds.install }}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    {{- with .Values.crds.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
     controller-gen.kubebuilder.io/version: (devel)
+    {{- with .Values.crds.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   creationTimestamp: null
   name: redisfailovers.databases.spotahome.com
 spec:
@@ -12399,3 +12399,4 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
+{{- end }}
