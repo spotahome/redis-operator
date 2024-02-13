@@ -5,8 +5,8 @@ resources:
   - service.yaml
   - servicemonitor.yaml
 
-patchesStrategicMerge:
-  - deployment.yaml
+patches:
+  - path: deployment.yaml
 
 configurations:
   - kustomizeconfig.yaml
