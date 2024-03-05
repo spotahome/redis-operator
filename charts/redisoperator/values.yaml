@@ -87,6 +87,8 @@ tolerations: []
 
 affinity: {}
 
+topologySpreadConstraints: []
+
 # CRDs configuration
 crds:
   # -- Additional CRDs annotations
