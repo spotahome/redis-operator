@@ -102,6 +102,26 @@ func (r *RedisFailoverChecker) setSlaveLabelIfNecessary(namespace string, pod co
 	return r.k8sService.UpdatePodLabels(namespace, pod.ObjectMeta.Name, generateRedisSlaveRoleLabel())
 }
 
+func (r *RedisFailoverChecker) setMasterAnnotationIfNecessary(namespace string, pod corev1.Pod) error {
+	for annotationKey, annotationValue := range pod.ObjectMeta.Annotations {
+		if annotationKey == clusterAutoscalerSafeToEvictAnnotationKey &&
+			annotationValue == clusterAutoscalerSafeToEvictAnnotationMaster {
+			return nil
+		}
+	}
+	return r.k8sService.UpdatePodAnnotations(namespace, pod.ObjectMeta.Name, generateRedisMasterAnnotations())
+}
+
+func (r *RedisFailoverChecker) setSlaveAnnotationIfNecessary(namespace string, pod corev1.Pod) error {
+	for annotationKey, annotationValue := range pod.ObjectMeta.Annotations {
+		if annotationKey == clusterAutoscalerSafeToEvictAnnotationKey &&
+			annotationValue == clusterAutoscalerSafeToEvictAnnotationSlave {
+			return nil
+		}
+	}
+	return r.k8sService.UpdatePodAnnotations(namespace, pod.ObjectMeta.Name, generateRedisSlaveAnnotations())
+}
+
 // CheckAllSlavesFromMaster controlls that all slaves have the same master (the real one)
 func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redisfailoverv1.RedisFailover) error {
 	rps, err := r.k8sService.GetStatefulSetPods(rf.Namespace, GetRedisName(rf))
@@ -121,8 +141,16 @@ func (r *RedisFailoverChecker) CheckAllSlavesFromMaster(master string, rf *redis
 			if err != nil {
 				return err
 			}
+			err = r.setMasterAnnotationIfNecessary(rf.Namespace, rp)
+			if err != nil {
+				return err
+			}
 		} else {
 			err = r.setSlaveLabelIfNecessary(rf.Namespace, rp)
+			if err != nil {
+				return err
+			}
+			err = r.setSlaveAnnotationIfNecessary(rf.Namespace, rp)
 			if err != nil {
 				return err
 			}
