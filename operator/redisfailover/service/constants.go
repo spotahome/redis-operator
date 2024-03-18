@@ -33,4 +33,8 @@ const (
 	redisRoleLabelKey    = "redisfailovers-role"
 	redisRoleLabelMaster = "master"
 	redisRoleLabelSlave  = "slave"
+
+	clusterAutoscalerSafeToEvictAnnotationKey    = "cluster-autoscaler.kubernetes.io~1safe-to-evict"
+	clusterAutoscalerSafeToEvictAnnotationMaster = "false"
+	clusterAutoscalerSafeToEvictAnnotationSlave  = "true"
 )

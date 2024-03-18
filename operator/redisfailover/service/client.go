@@ -67,6 +67,18 @@ func generateRedisSlaveRoleLabel() map[string]string {
 	}
 }
 
+func generateRedisMasterAnnotations() map[string]string {
+	return map[string]string{
+		clusterAutoscalerSafeToEvictAnnotationKey: clusterAutoscalerSafeToEvictAnnotationMaster,
+	}
+}
+
+func generateRedisSlaveAnnotations() map[string]string {
+	return map[string]string{
+		clusterAutoscalerSafeToEvictAnnotationKey: clusterAutoscalerSafeToEvictAnnotationSlave,
+	}
+}
+
 // EnsureSentinelService makes sure the sentinel service exists
 func (r *RedisFailoverKubeClient) EnsureSentinelService(rf *redisfailoverv1.RedisFailover, labels map[string]string, ownerRefs []metav1.OwnerReference) error {
 	svc := generateSentinelService(rf, labels, ownerRefs)
