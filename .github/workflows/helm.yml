@@ -23,7 +23,7 @@ jobs:
           version: v3.7.2
 
       - name: Release
-        uses: helm/chart-releaser-action@v1.5.0
+        uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: charts
           config: charts/chart-release-config.yaml
