@@ -1,13 +1,15 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    {{- with .Values.crds.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
     controller-gen.kubebuilder.io/version: (devel)
+    {{- if .Values.crds.annotations }}
+    "helm.sh/resource-policy": keep
+    {{- with .Values.crds.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
   creationTimestamp: null
   name: redisfailovers.databases.spotahome.com
 spec:
