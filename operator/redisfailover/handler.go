@@ -93,7 +93,7 @@ func (r *RedisFailoverHandler) getLabels(rf *redisfailoverv1.RedisFailover) map[
 
 	// Filter the labels based on the whitelist
 	filteredCustomLabels := make(map[string]string)
-	if rf.Spec.LabelWhitelist != nil && len(rf.Spec.LabelWhitelist) != 0 {
+	if len(rf.Spec.LabelWhitelist) != 0 {
 		for _, regex := range rf.Spec.LabelWhitelist {
 			compiledRegexp, err := regexp.Compile(regex)
 			if err != nil {

@@ -3,70 +3,72 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
-
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - master
 jobs:
-  check:
-    name: Golang Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.53
-          args: --timeout=15m
+    check:
+        name: Golang Check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: false
+            - name: golangci-lint
+              uses: golangci/golangci-lint-action@v6
+              with:
+                  version: v1.60
+                  args: --timeout=15m
 
-  unit-test:
-    name: Unit test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - run: make ci-unit-test
+    unit-test:
+        name: Unit test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+            - run: make ci-unit-test
 
-  integration-test:
-    name: Integration test
-    runs-on: ubuntu-latest
-    needs: [check, unit-test]
-    strategy:
-      matrix:
-        kubernetes: [1.24.16, 1.25.12, 1.26.7, 1.27.3 ]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - name: Install conntrack
-        run: sudo apt-get install -y conntrack
-      - uses: medyagh/setup-minikube@v0.0.14
-        with:
-          kubernetes-version: ${{ matrix.kubernetes }}
-          minikube-version: 1.31.1
-          driver: none
-      - name: Add redisfailover CRD
-        run: kubectl create -f manifests/databases.spotahome.com_redisfailovers.yaml
-      - run: make ci-integration-test
+    integration-test:
+        name: Integration test
+        runs-on: ubuntu-latest
+        needs: [check, unit-test]
+        strategy:
+            matrix:
+                kubernetes: [1.27.3, 1.28.13, 1.29.8, 1.30.4, 1.31.0]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+            - name: Install conntrack
+              run: sudo apt-get install -y conntrack
+            - uses: medyagh/setup-minikube@v0.0.18
+              with:
+                  kubernetes-version: ${{ matrix.kubernetes }}
+                  minikube-version: 1.31.1
+                  driver: none
+            - name: Add redisfailover CRD
+              run: kubectl create -f manifests/databases.spotahome.com_redisfailovers.yaml
+            - run: make ci-integration-test
 
-  chart-test:
-    name: Chart testing
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+    chart-test:
+        name: Chart testing
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
 
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.7.2
+            - name: Install Helm
+              uses: azure/setup-helm@v3
+              with:
+                  version: v3.7.2
 
-      - name: Helm test
-        run: make helm-test
+            - name: Helm test
+              run: make helm-test
