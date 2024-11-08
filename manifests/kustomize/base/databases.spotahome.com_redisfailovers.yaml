@@ -1582,6 +1582,8 @@ spec:
                         format: int32
                         type: integer
                     type: object
+                  disableMyMaster:
+                    type: boolean
                   disablePodDisruptionBudget:
                     type: boolean
                   dnsPolicy:
@@ -8797,6 +8799,8 @@ spec:
                         format: int32
                         type: integer
                     type: object
+                  disableMyMaster:
+                    type: boolean
                   disablePodDisruptionBudget:
                     type: boolean
                   dnsPolicy:

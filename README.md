@@ -187,6 +187,38 @@ By default, no service annotations will be applied to the Redis nor Sentinel ser
 
 In order to apply custom service Annotations, you can provide the `serviceAnnotations` option inside redis/sentinel spec. An example can be found in the [custom annotations example file](example/redisfailover/custom-annotations.yaml).
 
+### Disable `mymaster` in Sentinel Cluster Management
+
+By default the sentinel identifies the cluster with `mymaster`, due to the ephemeral nature of Kubernetes. There is a high likelihood of the colliding the sentinel across redisfailover deployments. To avoid this we can set the `disableMyMaster` to `false` under the `sentinel` specification.
+
+```
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+  namespace: disable-mymaster
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+    disableMyMaster: true
+  redis:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
+```
+
+So this will use the name of the redisfailover object and use that instead of `mymaster`. Yes, if you have multiple same redisfailover names across namesapces, you would still run into collision, so please ensure they are not.
+
 ### Control of label propagation.
 By default the operator will propagate all labels on the CRD down to the resources that it creates.  This can be problematic if the
 labels on the CRD are not fully under your own control (for example: being deployed by a gitops operator)

@@ -27,7 +27,7 @@ func generateConfig() rfOperator.Config {
 	}
 }
 
-func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisFailover {
+func generateRF(enableExporter bool, bootstrapping bool, disableMyMaster bool) *redisfailoverv1.RedisFailover {
 	return &redisfailoverv1.RedisFailover{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -41,7 +41,8 @@ func generateRF(enableExporter bool, bootstrapping bool) *redisfailoverv1.RedisF
 				},
 			},
 			Sentinel: redisfailoverv1.SentinelSettings{
-				Replicas: int32(3),
+				Replicas:        int32(3),
+				DisableMyMaster: disableMyMaster,
 			},
 			BootstrapNode: generateRFBootstrappingNode(bootstrapping),
 		},
@@ -95,7 +96,7 @@ func TestEnsure(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			rf := generateRF(test.exporter, test.bootstrapping)
+			rf := generateRF(test.exporter, test.bootstrapping, false)
 			if test.bootstrapping {
 				rf.Spec.BootstrapNode.AllowSentinels = test.bootstrappingAllowSentinels
 			}

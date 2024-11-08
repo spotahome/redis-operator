@@ -375,9 +375,9 @@ func TestNewSentinelMonitor(t *testing.T) {
 
 			if test.errorOnMonitorRedis {
 				errorExpected = true
-				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "").Once().Return(errors.New(""))
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "", "mymaster").Once().Return(errors.New(""))
 			} else {
-				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "").Once().Return(nil)
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "0", "2", "", "mymaster").Once().Return(nil)
 			}
 
 			healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})
@@ -419,9 +419,9 @@ func TestNewSentinelMonitorWithPort(t *testing.T) {
 
 			if test.errorOnMonitorRedis {
 				errorExpected = true
-				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "").Once().Return(errors.New(""))
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "", "mymaster").Once().Return(errors.New(""))
 			} else {
-				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "").Once().Return(nil)
+				mr.On("MonitorRedisWithPort", "0.0.0.0", "1.1.1.1", "6379", "2", "", "mymaster").Once().Return(nil)
 			}
 
 			healer := rfservice.NewRedisFailoverHealer(ms, mr, log.DummyLogger{})

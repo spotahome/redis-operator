@@ -213,7 +213,7 @@ func (r *RedisFailoverHealer) NewSentinelMonitor(ip string, monitor string, rf *
 	}
 
 	port := getRedisPort(rf.Spec.Redis.Port)
-	return r.redisClient.MonitorRedisWithPort(ip, monitor, port, quorum, password)
+	return r.redisClient.MonitorRedisWithPort(ip, monitor, port, quorum, password, rf.MasterName())
 }
 
 // NewSentinelMonitorWithPort changes the master that Sentinel has to monitor by the provided IP and Port
@@ -225,7 +225,7 @@ func (r *RedisFailoverHealer) NewSentinelMonitorWithPort(ip string, monitor stri
 		return err
 	}
 
-	return r.redisClient.MonitorRedisWithPort(ip, monitor, monitorPort, quorum, password)
+	return r.redisClient.MonitorRedisWithPort(ip, monitor, monitorPort, quorum, password, rf.MasterName())
 }
 
 // RestoreSentinel clear the number of sentinels on memory
@@ -237,7 +237,7 @@ func (r *RedisFailoverHealer) RestoreSentinel(ip string) error {
 // SetSentinelCustomConfig will call sentinel to set the configuration given in config
 func (r *RedisFailoverHealer) SetSentinelCustomConfig(ip string, rf *redisfailoverv1.RedisFailover) error {
 	r.logger.WithField("redisfailover", rf.ObjectMeta.Name).WithField("namespace", rf.ObjectMeta.Namespace).Debugf("Setting the custom config on sentinel %s...", ip)
-	return r.redisClient.SetCustomSentinelConfig(ip, rf.Spec.Sentinel.CustomConfig)
+	return r.redisClient.SetCustomSentinelConfig(ip, rf.MasterName(), rf.Spec.Sentinel.CustomConfig)
 }
 
 // SetRedisCustomConfig will call redis to set the configuration given in config

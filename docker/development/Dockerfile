@@ -1,6 +1,6 @@
 FROM golang:1.20-alpine
 
-ENV CODEGEN_VERSION="1.11.9"
+ENV CODEGEN_VERSION="1.27.16"
 
 RUN apk --no-cache add \
     bash \
@@ -17,7 +17,7 @@ RUN wget http://github.com/kubernetes/code-generator/archive/kubernetes-${CODEGE
     touch /go/src/k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt
 
 # Mock creator
-ARG MOCKERY_VERSION="2.9.6"
+ARG MOCKERY_VERSION="2.45.0"
 RUN wget -c https://github.com/vektra/mockery/releases/download/v${MOCKERY_VERSION}/mockery_${MOCKERY_VERSION}_$(uname -o)_$(uname -m).tar.gz -O - | tar -xz -C /go/bin/
 
 # Create user

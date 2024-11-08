@@ -71,6 +71,7 @@ type RedisSettings struct {
 	CustomReadinessProbe          *corev1.Probe                     `json:"customReadinessProbe,omitempty"`
 	CustomStartupProbe            *corev1.Probe                     `json:"customStartupProbe,omitempty"`
 	DisablePodDisruptionBudget    bool                              `json:"disablePodDisruptionBudget,omitempty"`
+	DisableMyMaster               bool                              `json:"disableMyMaster,omitempty"`
 }
 
 // SentinelSettings defines the specification of the sentinel cluster
@@ -105,6 +106,7 @@ type SentinelSettings struct {
 	CustomReadinessProbe       *corev1.Probe                     `json:"customReadinessProbe,omitempty"`
 	CustomStartupProbe         *corev1.Probe                     `json:"customStartupProbe,omitempty"`
 	DisablePodDisruptionBudget bool                              `json:"disablePodDisruptionBudget,omitempty"`
+	DisableMyMaster            bool                              `json:"disableMyMaster,omitempty"`
 }
 
 // AuthSettings contains settings about auth

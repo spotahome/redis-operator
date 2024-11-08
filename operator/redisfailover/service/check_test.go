@@ -20,21 +20,40 @@ import (
 	rfservice "github.com/spotahome/redis-operator/operator/redisfailover/service"
 )
 
-func generateRF() *redisfailoverv1.RedisFailover {
-	return &redisfailoverv1.RedisFailover{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: redisfailoverv1.RedisFailoverSpec{
-			Redis: redisfailoverv1.RedisSettings{
-				Replicas: int32(3),
+func generateRF(args ...bool) *redisfailoverv1.RedisFailover {
+	if len(args) > 0 {
+		return &redisfailoverv1.RedisFailover{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
 			},
-			Sentinel: redisfailoverv1.SentinelSettings{
-				Replicas: int32(3),
+			Spec: redisfailoverv1.RedisFailoverSpec{
+				Redis: redisfailoverv1.RedisSettings{
+					Replicas: int32(3),
+				},
+				Sentinel: redisfailoverv1.SentinelSettings{
+					Replicas:        int32(3),
+					DisableMyMaster: args[0],
+				},
 			},
-		},
+		}
+	} else {
+		return &redisfailoverv1.RedisFailover{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+			Spec: redisfailoverv1.RedisFailoverSpec{
+				Redis: redisfailoverv1.RedisSettings{
+					Replicas: int32(3),
+				},
+				Sentinel: redisfailoverv1.SentinelSettings{
+					Replicas: int32(3),
+				},
+			},
+		}
 	}
+
 }
 
 func TestCheckRedisNumberError(t *testing.T) {
@@ -362,11 +381,11 @@ func TestCheckSentinelMonitorGetSentinelMonitorError(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("", "", errors.New(""))
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("", "", errors.New(""))
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "1.1.1.1")
 	assert.Error(err)
 }
 
@@ -375,11 +394,11 @@ func TestCheckSentinelMonitorMismatch(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("2.2.2.2", "6379", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("2.2.2.2", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "1.1.1.1")
 	assert.Error(err)
 }
 
@@ -388,11 +407,11 @@ func TestCheckSentinelMonitor(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("1.1.1.1", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "1.1.1.1")
 	assert.NoError(err)
 }
 
@@ -401,11 +420,11 @@ func TestCheckSentinelMonitorWithPort(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("1.1.1.1", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1", "6379")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "1.1.1.1", "6379")
 	assert.NoError(err)
 }
 
@@ -414,11 +433,11 @@ func TestCheckSentinelMonitorWithPortMismatch(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("1.1.1.1", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "0.0.0.0", "6379")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "0.0.0.0", "6379")
 	assert.Error(err)
 }
 
@@ -427,11 +446,11 @@ func TestCheckSentinelMonitorWithPortIPMismatch(t *testing.T) {
 
 	ms := &mK8SService.Services{}
 	mr := &mRedisService.Client{}
-	mr.On("GetSentinelMonitor", "0.0.0.0").Once().Return("1.1.1.1", "6379", nil)
+	mr.On("GetSentinelMonitor", "0.0.0.0", "mymaster").Once().Return("1.1.1.1", "6379", nil)
 
 	checker := rfservice.NewRedisFailoverChecker(ms, mr, log.DummyLogger{}, metrics.Dummy)
 
-	err := checker.CheckSentinelMonitor("0.0.0.0", "1.1.1.1", "6380")
+	err := checker.CheckSentinelMonitor("0.0.0.0", "mymaster", "1.1.1.1", "6380")
 	assert.Error(err)
 }
 

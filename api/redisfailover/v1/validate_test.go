@@ -38,7 +38,7 @@ func TestValidate(t *testing.T) {
 			expectedError:   "BootstrapNode must include a host when provided",
 		},
 		{
-			name:   "SentinelCustomConfig provided",
+			name:   "SentinelCustomConfig not provided",
 			rfName: "test",
 		},
 		{
